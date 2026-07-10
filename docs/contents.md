@@ -1,7 +1,7 @@
 # Documentation contents
 
-[Documentation contents](contents.md) is the index for Cabochon's
-documentation set.
+[Documentation contents](contents.md) is the index for Cabochon's documentation
+set.
 
 ## Project guides
 
@@ -11,6 +11,15 @@ documentation set.
   implementation tooling for contributors.
 - [Repository layout](repository-layout.md) explains the generated project's
   top-level files, directories, and ownership boundaries.
+- [Terms of reference](terms-of-reference.md) defines Cabochon's problem
+  space, audiences, scope boundaries, constraints, and unresolved questions.
+- [Cabochon technical design](cabochon-design.md) defines the runtime-first
+  architecture, semantic object contracts, security model, and verification
+  invariants.
+- [Cabochon context](context.md) defines the shared domain vocabulary used by
+  the terms of reference and technical design.
+- [Roadmap](roadmap.md) sequences Cabochon's delivery as GIST-oriented,
+  user-facing vertical slices.
 - [Documentation style guide](documentation-style-guide.md) defines the
   spelling, structure, Markdown, Architecture Decision Record (ADR), Request
   for Comments (RFC), and roadmap conventions used by this documentation set.
