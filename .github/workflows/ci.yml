@@ -13,7 +13,7 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
       BUILD_PROFILE: debug
-      WHITAKER_INSTALLER_REV: f768c2e53c47df13658af1168a67851d388750bf
+      WHITAKER_INSTALLER_REV: 764d5a3199fa2999ae979255e467c9d96fd65780
     steps:
       - uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231
         with:
