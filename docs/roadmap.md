@@ -29,10 +29,11 @@ hosted runtime from becoming disposable scaffolding. See `cabochon-design.md`
     presentation identity.
   - Success: the ADR resolves every decided identity item in
     `cabochon-design.md` §14.
-- [ ] 1.1.2. Record the hosted-runtime and future-shell boundary in an ADR.
+- [x] 1.1.2. Record the hosted-runtime and future-shell boundary in an ADR.
   - Define which responsibilities remain in the runtime and which belong to a
     host or shell adapter.
-  - Success: no domain contract depends on GNOME, KDE Plasma, or a compositor.
+  - Complete: [ADR 002](adr-002-hosted-runtime-boundary.md) keeps domain
+    contracts independent of GNOME, KDE Plasma, and compositors.
 - [ ] 1.1.3. Establish the workspace crate structure around those boundaries.
   - Requires 1.1.1 and 1.1.2.
   - Document every new abstraction's ownership and reuse policy in
@@ -47,10 +48,11 @@ authority and whether cross-object mutations can recover from provider failure.
 Its outcome gates every tool-aware workflow. See `cabochon-design.md` §§4, 6.2,
 6.4, 7.2-7.4, and 11-12.
 
-- [ ] 1.2.1. Record selector discovery and capability grants in a security
-  ADR.
+- [ ] 1.2.1. Validate selector discovery and capability grants.
   - Requires 1.1.1.
   - Define grant scope, expiry, delegation, denial, and audit fields.
+  - Start from [ADR 003](adr-003-runtime-security-boundary.md), which defines
+    grant, denial, transaction, audit, portal, and export invariants.
   - Success: generated capability cases demonstrate that invocation authority
     never exceeds the presented grant.
 - [ ] 1.2.2. Specify the transaction state machine and recovery contract.
@@ -228,10 +230,12 @@ This step answers what users see when sources update, move, disappear, or lose
 authorization. It closes the largest unresolved user contract before live data
 ships. See `cabochon-design.md` §§6.3, 10, and 14.
 
-- [ ] 4.1.1. Specify the live-relationship state machine in an ADR.
+- [ ] 4.1.1. Validate and refine the live-relationship state machine.
   - Requires 3.3.3.
   - Define fresh, refreshing, stale, broken, denied, and recoverable states.
-  - Success: every source-change and failure transition has one visible result.
+  - Start from [ADR 005](adr-005-explicit-live-relationship-states.md).
+  - Success: every source-change and failure transition refines the accepted
+    safety states into one visible result.
 - [ ] 4.1.2. Model refresh, move, denial, provider crash, and recovery
   sequences.
   - Requires 4.1.1.

@@ -5,8 +5,9 @@
 - **Scope:** Runtime-first semantic document environment and initial proving
   ground
 - **Companion documents:** `docs/terms-of-reference.md`, `docs/context.md`,
-  `docs/roadmap.md`, and `references/cabochon-white-paper.md`
-- **Last substantive revision:** 2026-07-10
+  `docs/roadmap.md`, the ADRs indexed in `docs/contents.md`, and
+  `references/cabochon-white-paper.md`
+- **Last substantive revision:** 2026-07-23
 - **Version:** 0.1
 
 ## 1. Design context
@@ -163,7 +164,13 @@ pub struct Invocation {
 ```
 
 These signatures define responsibilities, not an accepted Rust API. The final
-wire and language bindings require ADRs.
+wire and language bindings require ADRs. The runtime resolves the selector's
+mutability classification before provider dispatch. When the selector mutates,
+`transaction` must contain a valid transaction identifier; the runtime rejects
+a missing, unknown, or inactive transaction without invoking the provider.
+Read-only selectors may omit the field. This validation belongs to the runtime
+dispatch boundary even when a future binding uses separate query and mutation
+request types to make the requirement structural.
 
 ### 6.2. Selectors and tools
 
@@ -187,9 +194,10 @@ source of truth. Cached renderings may accelerate display, but the object
 reference remains authoritative.
 
 A live relationship records its source objects, selector, arguments, last
-successful source revisions, and last successful result. The final refresh,
-staleness, broken-link, and authorization behaviour is unresolved. Until an ADR
-settles it, implementations must expose state explicitly and must never replace
+successful source revisions, and last successful result. ADR 005 establishes
+current, refreshing, stale, broken, and denied safety states. Refresh triggers,
+retry timing, source-move resolution, and the detailed transition matrix remain
+unresolved. Implementations must expose state explicitly and must never replace
 the last successful value with silent corruption.
 
 ### 6.4. Transactions and undo
@@ -240,6 +248,10 @@ The coordinator provides optimistic revision checks, prepare/commit for
 multi-object mutations, undo metadata, and an audit record. Providers that
 cannot participate in atomic multi-object transactions may expose read-only
 selectors or single-object mutations only.
+
+Before dispatch, the coordinator validates that a mutating selector names an
+active transaction. A request without one fails before provider code runs or
+state changes. The provider then receives only a transaction-bound mutation.
 
 ### 7.5. Presentation broker
 
@@ -303,7 +315,8 @@ export.
 | Unknown object type          | Preserve identity, payload, and links; present an opaque-object diagnostic.                                  |
 | Source revision conflict     | Reject commit or perform a provider-declared deterministic merge.                                            |
 | Capability denied or expired | Do not invoke the provider; explain the required access at the point of use.                                 |
-| Live source unavailable      | Preserve the last successful value and expose explicit stale state pending the live-link ADR.                |
+| Mutation lacks a transaction | Do not invoke the provider; return a transaction-required diagnostic.                                        |
+| Live source unavailable      | Preserve the last successful value and expose the state required by ADR 005.                                 |
 | Renderer failure             | Fall back only to a semantically valid alternate presentation; otherwise show a bounded diagnostic.          |
 | Runtime restart              | Recover committed objects and transactions; discard uncommitted prepares without exposing partial mutations. |
 | Malformed document           | Isolate the invalid object, preserve recoverable siblings, and produce location-aware diagnostics.           |
@@ -345,6 +358,9 @@ example tests cannot cover alone.
 - Capability tests generate selector, target, expiry, and delegation
   combinations. The invariant is that successful invocation authority is a
   subset of the presented grant.
+- Dispatch contract tests pair selector mutability with absent, unknown,
+  inactive, and active transaction identifiers. Every mutating case without an
+  active transaction must fail before the provider records an invocation.
 - End-to-end suites exercise hosted GNOME-like and KDE-like environments, the
   future Cabochon shell adapter, provider absence, and sandboxed versus
   unsandboxed applications. Pairwise coverage is insufficient for capability
@@ -370,17 +386,18 @@ libraries only emit events and metrics.
 
 ## 14. Decisions and open questions
 
-| Decision                               | Status                                                            | Resolution path                                                                                             |
-| -------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Runtime versus full-desktop boundary   | Decided: one runtime contract supports hosted and shell modes     | Record as an ADR before crate extraction.                                                                   |
-| Object identity versus presentation    | Decided: identity is stable across presentations and applications | Record as an ADR with persistence consequences.                                                             |
-| Tool discovery versus capability grant | Decided: discovery never grants authority                         | Record as a security ADR.                                                                                   |
-| Initial document types                 | Decided: notes, dataframes, Mermaid diagrams, and bitmap images   | Enforce through roadmap scope.                                                                              |
-| Developer authoring paths              | Open                                                              | Prototype Rust, Objective Rust, and one dynamic-language route; compare continuity and first-result effort. |
-| Live relationship lifecycle            | Open                                                              | Specify refresh, stale, broken, moved, and denied states in an ADR.                                         |
-| Runtime wire protocol                  | Open                                                              | Prototype in-process and local inter-process contracts without changing domain identifiers.                 |
-| Storage engine and payload format      | Open                                                              | Exercise migration, unknown-type preservation, and project export before selection.                         |
-| Compositor, renderer, and toolkit      | Deferred                                                          | Decide only when the hosted proving ground establishes product value.                                       |
+| Decision                               | Status                                                            | Resolution path                                                                                     |
+| -------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Product scope                          | Decided: prove the hosted runtime before a full desktop           | [ADR 001](adr-001-runtime-first-product-scope.md).                                                  |
+| Runtime versus full-desktop boundary   | Decided: one runtime contract supports hosted and shell modes     | [ADR 002](adr-002-hosted-runtime-boundary.md).                                                      |
+| Object identity versus presentation    | Decided: identity is stable across presentations and applications | Record as an ADR with persistence consequences.                                                     |
+| Tool discovery versus capability grant | Decided: discovery never grants authority                         | [ADR 003](adr-003-runtime-security-boundary.md).                                                    |
+| Initial document types                 | Decided: notes, dataframes, Mermaid diagrams, and bitmap images   | Enforce through roadmap scope.                                                                      |
+| Developer authoring paths              | Boundary decided; accessible path open                            | [ADR 004](adr-004-interoperable-authoring-paths.md); use spikes to choose the accessible path.      |
+| Live relationship lifecycle            | Safety contract decided; transition details open                  | [ADR 005](adr-005-explicit-live-relationship-states.md); validate transitions against later slices. |
+| Runtime wire protocol                  | Open                                                              | Prototype in-process and local inter-process contracts without changing domain identifiers.         |
+| Storage engine and payload format      | Open                                                              | Exercise migration, unknown-type preservation, and project export before selection.                 |
+| Compositor, renderer, and toolkit      | Deferred                                                          | Decide only when the hosted proving ground establishes product value.                               |
 
 *Table 3: Design decisions and resolution paths.*
 

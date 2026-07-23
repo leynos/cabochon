@@ -24,6 +24,20 @@ set.
   spelling, structure, Markdown, Architecture Decision Record (ADR), Request
   for Comments (RFC), and roadmap conventions used by this documentation set.
 
+## Decision records
+
+- [ADR 001: Adopt a runtime-first product scope](adr-001-runtime-first-product-scope.md)
+  records the hosted proving ground and the evidence gate for desktop work.
+- [ADR 002: Keep the hosted runtime independent of the shell](adr-002-hosted-runtime-boundary.md)
+  records the hexagonal runtime boundary shared by host desktops and a future
+  Cabochon shell.
+- [ADR 003: Separate discovery, authority, and mutation](adr-003-runtime-security-boundary.md)
+  records capability, transaction, portal, audit, and export invariants.
+- [ADR 004: Require interoperable authoring paths](adr-004-interoperable-authoring-paths.md)
+  records the shared object contract for direct Rust and an accessible path.
+- [ADR 005: Expose live-relationship state explicitly](adr-005-explicit-live-relationship-states.md)
+  records the persisted dependency and failure-visibility contract.
+
 ## Rust reference material
 
 - [Reliable testing in Rust via dependency injection](reliable-testing-in-rust-via-dependency-injection.md)

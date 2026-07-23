@@ -4,9 +4,9 @@
 - **Audience:** Product owners, engineering leads, contributors, and prospective
   application developers
 - **Companion documents:** `docs/context.md`, `docs/cabochon-design.md`,
-  `docs/roadmap.md`, and `references/cabochon-white-paper.md`; architectural
-  decision records have not yet been written
-- **Last substantive revision:** 2026-07-09
+  `docs/roadmap.md`, the ADRs indexed in `docs/contents.md`, and
+  `references/cabochon-white-paper.md`
+- **Last substantive revision:** 2026-07-23
 - **Version:** 0.1
 
 ## 1. Background and motivation
@@ -26,8 +26,8 @@ reason to make that larger commitment.
 
 The existing white paper describes both the problem and a candidate solution.
 This document treats its problem claims as prior art. Its component boundaries,
-technology choices, and implementation sequence remain candidates for a future
-design document and roadmap.
+technology choices, and implementation sequence are evaluated by the companion
+design document, ADRs, and roadmap rather than accepted wholesale.
 
 ## 2. Domain
 
@@ -65,13 +65,14 @@ in a datagrid. The formula can address a source represented by a document
 entity, an element in Scalable Vector Graphics (SVG), or a datagrid cell.
 
 The white paper proposes Enfilade as the mechanism that maps those addressable
-entities. That mechanism remains a candidate for the design document; the
+entities. The design document retains it as the proposed object graph; the
 terms-of-reference requirement is the cross-document behaviour visible to the
 user.
 
-The domain vocabulary is not yet settled. Terms including *document*,
-*project*, *service*, *selection*, *object*, *runtime*, *tool-aware*, and
-*Objective Rust* require definitions in a future `docs/context.md`.
+The [shared domain vocabulary](context.md) defines these terms independently of
+the remaining design choices. The initial accessible authoring path and the
+detailed transition rules for live relationships remain unresolved; the terms
+used to discuss those choices are settled.
 
 ## 3. Market context
 
@@ -292,11 +293,11 @@ under elicitation.
 
 ## 9. Open questions
 
-| Question                                                                          | Why it matters                                                                                           | Resolution criterion                                                                                                    | Owner         | Suggested path                      |
-| --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------- | ----------------------------------- |
-| What update and failure behaviour should a live cross-document relationship have? | Defines the user-visible promise behind live formulas without prescribing the mapping architecture       | Specify what the user sees when a source changes, moves, becomes unavailable, or is unauthorized                        | Product owner | Further elicitation                 |
-| Which authoring path should the first currency-object exercise use?               | Determines whether the easiest entry path is Rust, Objective Rust, a dynamic language, or something else | Prototype the candidate paths and compare first-result effort, conceptual continuity, and access to deeper capabilities | Product owner | Design ADR and implementation spike |
-| What measurable signals demonstrate value for each audience?                      | Makes product and developer-experience goals falsifiable                                                 | Define user-facing, operational, and strategic thresholds                                                               | Product owner | Resolve after goals                 |
+| Question                                                                                   | Why it matters                                                                                           | Resolution criterion                                                                                                    | Owner         | Suggested path                      |
+| ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------- | ----------------------------------- |
+| Which refresh triggers, retry policy, and source-move rules should live relationships use? | Refines the accepted visible safety states without weakening them                                        | Validate every transition against ADR 005 and the formula slice                                                         | Product owner | State-machine spike                 |
+| Which authoring path should the first currency-object exercise use?                        | Determines whether the easiest entry path is Rust, Objective Rust, a dynamic language, or something else | Prototype the candidate paths and compare first-result effort, conceptual continuity, and access to deeper capabilities | Product owner | Design ADR and implementation spike |
+| What measurable signals demonstrate value for each audience?                               | Makes product and developer-experience goals falsifiable                                                 | Define user-facing, operational, and strategic thresholds                                                               | Product owner | Resolve after goals                 |
 
 *Table 2: Open questions during elicitation.*
 
@@ -327,7 +328,8 @@ under elicitation.
   plugin](https://docs.obsidian.md/Plugins/Getting+started/Build+a+plugin),
   accessed 10 July 2026.
 
-## Glossary pointer
+## Shared vocabulary
 
-The repository does not yet contain `docs/context.md`. Domain terms introduced
-here should be promoted into that document once their definitions are resolved.
+The normative definitions for domain terms used here are maintained in the
+[Cabochon context](context.md). This document defines product scope and uses
+that vocabulary rather than maintaining a second glossary.
