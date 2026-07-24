@@ -232,7 +232,9 @@ ships. See `cabochon-design.md` §§6.3, 10, and 14.
 
 - [ ] 4.1.1. Validate and refine the live-relationship state machine.
   - Requires 3.3.3.
-  - Define fresh, refreshing, stale, broken, denied, and recoverable states.
+  - Define current, refreshing, stale, broken, and denied states.
+  - Treat recoverability as a transition back to current that preserves the
+    last successful result, not as a standalone state.
   - Start from [ADR 005](adr-005-explicit-live-relationship-states.md).
   - Success: every source-change and failure transition refines the accepted
     safety states into one visible result.
