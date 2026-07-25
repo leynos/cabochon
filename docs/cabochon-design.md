@@ -563,18 +563,20 @@ libraries only emit events and metrics.
 
 ## 15. Decisions and open questions
 
-| Decision                                   | Status                                                            | Resolution path                                                                                     |
-| ------------------------------------------ | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Product scope                              | Decided: prove the hosted runtime before a full desktop           | [ADR 001](adr-001-runtime-first-product-scope.md).                                                  |
-| Runtime versus full-desktop boundary       | Decided: one runtime contract supports hosted and shell modes     | [ADR 002](adr-002-hosted-runtime-boundary.md).                                                      |
-| Object identity versus presentation        | Decided: identity is stable across presentations and applications | Record as an ADR with persistence consequences.                                                     |
-| Tool discovery versus capability grant     | Decided: discovery never grants authority                         | [ADR 003](adr-003-runtime-security-boundary.md).                                                    |
-| Initial document types                     | Decided: notes, dataframes, Mermaid diagrams, and bitmap images   | Enforce through roadmap scope.                                                                      |
-| Developer authoring paths                  | Boundary decided; accessible path open                            | [ADR 004](adr-004-interoperable-authoring-paths.md); use spikes to choose the accessible path.      |
-| Live relationship lifecycle                | Safety contract decided; transition details open                  | [ADR 005](adr-005-explicit-live-relationship-states.md); validate transitions against later slices. |
-| Runtime wire protocol                      | Open                                                              | Prototype in-process and local inter-process contracts without changing domain identifiers.         |
-| Storage engine and payload format          | Open                                                              | Exercise migration, unknown-type preservation, and project export before selection.                 |
-| Compositor and GPU renderer implementation | Deferred                                                          | Decide only when the hosted proving ground establishes product value.                               |
+| Decision                                   | Status                                                                 | Resolution path                                                                                     |
+| ------------------------------------------ | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Product scope                              | Decided: prove the hosted runtime before a full desktop                | [ADR 001](adr-001-runtime-first-product-scope.md).                                                  |
+| Runtime versus full-desktop boundary       | Decided: one runtime contract supports hosted and shell modes          | [ADR 002](adr-002-hosted-runtime-boundary.md).                                                      |
+| Object identity versus presentation        | Decided: identity is stable across presentations and applications      | Record as an ADR with persistence consequences.                                                     |
+| Tool discovery versus capability grant     | Decided: discovery never grants authority                              | [ADR 003](adr-003-runtime-security-boundary.md).                                                    |
+| Initial document types                     | Decided: notes, dataframes, Mermaid diagrams, and bitmap images        | Enforce through roadmap scope.                                                                      |
+| Developer authoring paths                  | Boundary decided; accessible path open                                 | [ADR 004](adr-004-interoperable-authoring-paths.md); use spikes to choose the accessible path.      |
+| Live relationship lifecycle                | Safety contract decided; transition details open                       | [ADR 005](adr-005-explicit-live-relationship-states.md); validate transitions against later slices. |
+| Runtime wire protocol                      | Open                                                                   | Prototype in-process and local inter-process contracts without changing domain identifiers.         |
+| Storage engine and payload format          | Open                                                                   | Exercise migration, unknown-type preservation, and project export before selection.                 |
+| GEM substrate boundary                     | Proposed: substrate contracts are production boundaries in hosted mode | [ADR 006](adr-006-gem-substrate-boundary.md).                                                       |
+| Rendering authority                        | Proposed: Enfilade resolves applicability but never owns rendering     | [ADR 007](adr-007-enfilade-rendering-authority.md).                                                 |
+| Compositor and GPU renderer implementation | Deferred                                                               | Decide only when the hosted proving ground establishes product value.                               |
 
 *Table 3: Design decisions and resolution paths.*
 
