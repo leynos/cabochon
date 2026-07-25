@@ -54,7 +54,7 @@ ADR selects the initial accessible implementation.
 
 - `terms-of-reference.md` §§2, 4, 5, and 8 define both developer experience
   levels and the shared-object assumption.
-- `cabochon-design.md` §§2, 3, and 8.1 require interoperable accessible and
+- `cabochon-design.md` §§2, 4, and 9.1 require interoperable accessible and
   direct Rust implementations.
 - Étoilé LanguageKit supplies prior art for several languages sharing an object
   model; it does not determine Cabochon's language choice.
