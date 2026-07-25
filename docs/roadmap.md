@@ -16,6 +16,35 @@ Idea: if Cabochon settles identity, authority, transaction, and authoring-path
 contracts before application work, each vertical slice can extend one object
 environment instead of building a private framework.
 
+### 1.0. Establish the GEM substrate contracts
+
+This step answers what every Cabochon application can rely on before
+Enfilade-specific behaviour enters the picture. It makes the Clerestory,
+Escutcheon, Lapidary, and Burin boundaries production contracts in hosted mode,
+per ADR 006. See `cabochon-design.md` §§3 and 8.1-8.4.
+
+- [ ] 1.0.1. Define the minimum Clerestory application contract.
+  - Cover windows, menus, commands, standard dialogs, focus, keyboard
+    traversal, inspector panels, accessibility roles, and host-shell
+    adaptation.
+  - Success: a hello-window application can run under the hosted shell
+    adapter without Enfilade.
+- [ ] 1.0.2. Define the minimum Escutcheon resource format.
+  - Cover menus, strings, icons, command metadata, shortcuts, dialog layout,
+    and localization hooks.
+  - Success: the hello-window application loads its UI from resources rather
+    than hard-coded widget construction.
+- [ ] 1.0.3. Define the minimum Lapidary scene contract.
+  - Cover rectangles, paths, text runs, images, clipping, transforms, hit
+    regions, invalidation, physical units, and output intent.
+  - Success: one scene renders consistently to display, PDF-oriented output,
+    thumbnail, and raster export.
+- [ ] 1.0.4. Define the minimum Burin output contract.
+  - Cover interactive rendering, PDF export, raster export, thumbnailing,
+    renderer failure, and print-oriented output preparation.
+  - Success: output tests compare geometry, text placement, clipping, and
+    metadata across targets. See `cabochon-design.md` §13.1.
+
 ### 1.1. Ratify stable identity and runtime boundaries
 
 This step answers what remains stable when Cabochon runs under GNOME, KDE
@@ -78,8 +107,9 @@ ADR, not three permanent runtimes. See `cabochon-design.md` §§7.1, 9.1, and 15
   - Specify identity, base currency, presentations, selectors, and document
     insertion without committing to syntax.
   - Success: every candidate authoring path targets the same fixture.
-- [ ] 1.3.2. Prototype the currency object through direct Rust and Objective
-  Rust-shaped selector declarations.
+- [ ] 1.3.2. Prototype the currency object through direct Rust and
+  selector-declaration prototypes, including one Objective Rust-shaped
+  candidate.
   - Requires 1.3.1.
   - Measure authored concepts, steps to first presentation, diagnostics, and
     access to lower-level capabilities.
@@ -111,13 +141,18 @@ presentation contracts form a usable loop. See `cabochon-design.md` §§7-10.
   - Success: property-generated export/import cycles retain object identity and
     reachable links.
 - [ ] 2.1.2. Implement the currency provider and two currency presentations.
-  - Requires 2.1.1.
+  - Requires 2.1.1, 1.0.3, and 1.0.4.
   - Use the authoring path selected by 1.3.4 and provide the equivalent direct
     Rust route.
+  - Render at least one presentation through the Lapidary scene and Burin
+    output contracts to an interactive view, a thumbnail, and a PDF-oriented
+    export.
   - Success: both routes produce objects satisfying the same provider contract.
 - [ ] 2.1.3. Implement a minimal document host that inserts and reopens a
   currency embed.
-  - Requires 2.1.2.
+  - Requires 2.1.2, 1.0.1, and 1.0.2.
+  - Present the host inside a Clerestory window whose menu, commands, and
+    strings come from Escutcheon resources. See `cabochon-design.md` §9.1.
   - Success: reopening retains object identity and presentation choice rather
     than importing a rendered copy.
 
@@ -329,7 +364,7 @@ This step begins only if 5.2.2 accepts shell work. It tests whether compositor
 ownership materially improves the document and tool experience. See
 `cabochon-design.md` §§6 and 15.
 
-- [ ] 6.1.1. Decide the compositor, renderer, and toolkit boundaries through
+- [ ] 6.1.1. Decide the compositor and GPU renderer implementation through
   ADR-backed spikes.
   - Requires 5.2.2 to accept shell work.
   - Compare reuse of the hosted runtime, protocol coverage, accessibility, and
