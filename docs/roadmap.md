@@ -21,7 +21,7 @@ environment instead of building a private framework.
 This step answers what remains stable when Cabochon runs under GNOME, KDE
 Plasma, or its future shell. The outcome fixes crate ownership and prevents the
 hosted runtime from becoming disposable scaffolding. See `cabochon-design.md`
-§§3-6 and §14.
+§§4-7 and §15.
 
 - [ ] 1.1.1. Record stable object identity and presentation separation in an
   ADR.
@@ -45,8 +45,8 @@ hosted runtime from becoming disposable scaffolding. See `cabochon-design.md`
 
 This step answers whether a tool can be discoverable without receiving ambient
 authority and whether cross-object mutations can recover from provider failure.
-Its outcome gates every tool-aware workflow. See `cabochon-design.md` §§4, 6.2,
-6.4, 7.2-7.4, and 11-12.
+Its outcome gates every tool-aware workflow. See `cabochon-design.md` §§5, 7.2,
+7.4, 8.6-8.8, and 12-13.
 
 - [ ] 1.2.1. Validate selector discovery and capability grants.
   - Requires 1.1.1.
@@ -71,7 +71,7 @@ Its outcome gates every tool-aware workflow. See `cabochon-design.md` §§4, 6.2
 
 This step answers which route gives Python- or JavaScript-aware developers a
 rewarding first result while preserving a direct Rust path. The result is an
-ADR, not three permanent runtimes. See `cabochon-design.md` §§6.1, 8.1, and 14.
+ADR, not three permanent runtimes. See `cabochon-design.md` §§7.1, 9.1, and 15.
 
 - [ ] 1.3.1. Define one language-neutral currency-object contract fixture.
   - Requires 1.1.1 and 1.2.1.
@@ -102,7 +102,7 @@ developer model is coherent enough to support richer documents.
 ### 2.1. Deliver a persistent currency object end to end
 
 This step answers whether identity, provider activation, persistence, and
-presentation contracts form a usable loop. See `cabochon-design.md` §§6-9.
+presentation contracts form a usable loop. See `cabochon-design.md` §§7-10.
 
 - [ ] 2.1.1. Implement object envelopes, revisions, and provider-owned payload
   storage.
@@ -125,7 +125,7 @@ presentation contracts form a usable loop. See `cabochon-design.md` §§6-9.
 
 This step answers whether the canonical exercise teaches the next layer rather
 than hiding it. It also tests failure behaviour before richer providers arrive.
-See `cabochon-design.md` §§8.1, 10, and 13.
+See `cabochon-design.md` §§9.1, 11, and 14.
 
 - [ ] 2.2.1. Expose object identity, selectors, presentations, and capabilities
   in a developer inspector.
@@ -154,7 +154,7 @@ before becoming a desktop environment.
 
 This step answers whether documents can own structure while embedded objects
 retain independent identity. The result informs editor and project boundaries.
-See `cabochon-design.md` §§6.1, 6.3, 8.2, and 9.
+See `cabochon-design.md` §§7.1, 7.3, 9.2, and 10.
 
 - [ ] 3.1.1. Implement note documents, links, and the project tree.
   - Requires phase 2.
@@ -174,7 +174,7 @@ See `cabochon-design.md` §§6.1, 6.3, 8.2, and 9.
 
 This step answers whether separate applications can edit one document's rich
 objects through shared contracts rather than private file formats. See
-`cabochon-design.md` §§5, 7.5, and 8.2.
+`cabochon-design.md` §§6, 8.9, and 9.2.
 
 - [ ] 3.2.1. Implement a bounded dataframe provider and focused editor.
   - Requires 3.1.2.
@@ -202,7 +202,7 @@ objects through shared contracts rather than private file formats. See
 This step answers whether the proving ground is useful rather than merely
 architecturally interesting. Its evidence decides whether later slices deepen
 the workspace or revisit the product premise. See `terms-of-reference.md` §§5-7
-and `cabochon-design.md` §8.2.
+and `cabochon-design.md` §9.2.
 
 - [ ] 3.3.1. Define representative note, dataframe, diagram, and bitmap
   workflows for evaluation.
@@ -228,7 +228,7 @@ offers value that an application-local plugin system cannot provide.
 
 This step answers what users see when sources update, move, disappear, or lose
 authorization. It closes the largest unresolved user contract before live data
-ships. See `cabochon-design.md` §§6.3, 10, and 14.
+ships. See `cabochon-design.md` §§7.3, 11, and 15.
 
 - [ ] 4.1.1. Validate and refine the live-relationship state machine.
   - Requires 3.3.3.
@@ -247,8 +247,8 @@ ships. See `cabochon-design.md` §§6.3, 10, and 14.
 ### 4.2. Deliver formula discovery and live evaluation
 
 This step answers whether selector-based applicability can produce a useful
-point-of-use tool across object types. See `cabochon-design.md` §§6.2-6.4, 7.3,
-and 8.3.
+point-of-use tool across object types. See `cabochon-design.md` §§7.2-7.4, 8.7,
+and 9.3.
 
 - [ ] 4.2.1. Define addressable scalar and currency selector contracts.
   - Requires 4.1.1.
@@ -280,8 +280,8 @@ whether to adopt its desktop.
 ### 5.1. Integrate with host desktop boundaries
 
 This step answers whether the runtime can rely on normal host facilities
-without diluting Cabochon's object contracts. See `cabochon-design.md` §§4-5,
-7.2, 10, and 13.
+without diluting Cabochon's object contracts. See `cabochon-design.md` §§5-6,
+8.6, 11, and 14.
 
 - [ ] 5.1.1. Implement per-user runtime activation, shutdown, and crash
   recovery.
@@ -306,7 +306,7 @@ without diluting Cabochon's object contracts. See `cabochon-design.md` §§4-5,
 
 This step answers whether the hosted product has earned further investment in a
 full desktop shell. See `terms-of-reference.md` §§6-8 and `cabochon-design.md`
-§§8 and 14.
+§§9 and 15.
 
 - [ ] 5.2.1. Define user-facing, operational, and strategic acceptance
   thresholds from hosted-product evidence.
@@ -327,7 +327,7 @@ consume the proving ground.
 
 This step begins only if 5.2.2 accepts shell work. It tests whether compositor
 ownership materially improves the document and tool experience. See
-`cabochon-design.md` §§5 and 14.
+`cabochon-design.md` §§6 and 15.
 
 - [ ] 6.1.1. Decide the compositor, renderer, and toolkit boundaries through
   ADR-backed spikes.

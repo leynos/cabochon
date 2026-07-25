@@ -52,7 +52,7 @@ become domain dependencies.
 
 ## Supporting evidence
 
-- `cabochon-design.md` §§3-7 define the trust boundary, topology, and component
+- `cabochon-design.md` §§4-8 define the trust boundary, topology, and component
   responsibilities.
 - Wayland assigns rendering to clients and composition to the compositor; it
   does not provide Cabochon's semantic object model.
