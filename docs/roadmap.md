@@ -57,7 +57,7 @@ hosted runtime from becoming disposable scaffolding. See `cabochon-design.md`
   - Define object lifetime, revision semantics, duplication, derivation, and
     presentation identity.
   - Success: the ADR resolves every decided identity item in
-    `cabochon-design.md` §14.
+    `cabochon-design.md` §15.
 - [x] 1.1.2. Record the hosted-runtime and future-shell boundary in an ADR.
   - Define which responsibilities remain in the runtime and which belong to a
     host or shell adapter.
