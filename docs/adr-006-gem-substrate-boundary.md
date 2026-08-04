@@ -8,7 +8,7 @@ remains deferred.
 
 ## Date
 
-2026-07-25.
+2026-08-04.
 
 ## Context and problem statement
 
@@ -35,8 +35,8 @@ that motivates the project.
 ## Decision statement
 
 In the context of proving Cabochon inside GNOME and KDE Plasma before building
-a full shell, facing the risk that Enfilade dominates the design, we decided
-for Clerestory, Lapidary, Burin, and Escutcheon as production contracts from
+a full shell, facing the risk that Enfilade dominates the design, the decision
+is for Clerestory, Lapidary, Burin, and Escutcheon as production contracts from
 the hosted proving ground, and against treating UI, resources, graphics,
 rendering, printing, and export as replaceable adapter details, to preserve
 Cabochon's GEM-derived architecture while still deferring Mullion.

@@ -156,7 +156,8 @@ Escutcheon resources and Lapidary scenes, Lapidary feeds the Burin renderer,
 and Burin produces Wayland, PDF, print, thumbnail, and clipboard output.
 Applications, Clerestory, and Lapidary also connect to a semantic coordination
 layer in which Enfilade reaches the capability broker, transaction coordinator,
-tool registry, object store, and portals.
+and tool registry. Enfilade reaches external storage and portal adapters only
+through domain-owned storage and host-resource ports.
 
 ```mermaid
 flowchart TB
@@ -177,9 +178,11 @@ flowchart TB
         Capabilities[Capability broker]
         Transactions[Transaction coordinator]
         Tools[Tool registry]
-        Store[Object and document store]
+        StoragePort[Storage port]
+        PortalPort[Host-resource port]
     end
 
+    Store[Object and document storage adapter]
     Portals["cabochon-portal and XDG portals"]
     Outputs["Wayland buffers, PDF, CUPS, thumbnails, clipboard"]
 
@@ -201,8 +204,10 @@ flowchart TB
     Enfilade --> Capabilities
     Enfilade --> Transactions
     Enfilade --> Tools
-    Enfilade --> Store
-    Enfilade --> Portals
+    Enfilade --> StoragePort
+    Enfilade --> PortalPort
+    StoragePort --> Store
+    PortalPort --> Portals
 ```
 
 *Figure 1: Cabochon applications live on the GEM substrate; Enfilade enriches
@@ -258,7 +263,7 @@ request types to make the requirement structural.
 A presentation is a boundary object. Enfilade may resolve which presentation
 applies to an object and intent, but Clerestory, Lapidary, and Burin define how
 that presentation becomes an interactive view, geometric scene, exported
-document, or print job.
+document, print job, clipboard geometry, or accessibility geometry.
 
 A provider must not smuggle toolkit-specific or renderer-specific state through
 object descriptors. Geometry, drawing, text, and output intent belong to
@@ -393,8 +398,9 @@ state changes. The provider then receives only a transaction-bound mutation.
 The presentation broker chooses a provider for an object and intent, then
 returns a presentation contract to the requesting application. Rendering
 adapters may target interactive Wayland content, accessibility trees, PDF, SVG,
-raster images, thumbnails, or printing. Screen rendering is one intent, not the
-object model's centre of gravity.
+raster images, thumbnails, clipboard geometry, or printing. Every target
+consumes the same device-independent Lapidary scene and Burin output contracts.
+Screen rendering is one intent, not the object model's centre of gravity.
 
 ### 8.10. Portal adapter
 
@@ -542,8 +548,8 @@ Lapidary and Burin require contract tests independent of Enfilade.
   transforms, layers, hit regions, colour intent, units, and output intent.
 - Output parity tests render the same scene to interactive display,
   PDF-oriented output, raster export, thumbnail, print-oriented output, and
-  accessibility extraction, then compare geometry and metadata within declared
-  tolerances.
+  accessibility and clipboard geometry extraction, then compare geometry and
+  metadata within declared tolerances.
 - Invalidation tests ensure damage regions and clipping never expose stale
   pixels or redraw outside the declared region.
 - Text tests cover shaping, bidirectional text, font fallback, grapheme-aware
@@ -576,8 +582,8 @@ libraries only emit events and metrics.
 | Live relationship lifecycle                | Safety contract decided; transition details open                       | [ADR 005](adr-005-explicit-live-relationship-states.md); validate transitions against later slices. |
 | Runtime wire protocol                      | Open                                                                   | Prototype in-process and local inter-process contracts without changing domain identifiers.         |
 | Storage engine and payload format          | Open                                                                   | Exercise migration, unknown-type preservation, and project export before selection.                 |
-| GEM substrate boundary                     | Proposed: substrate contracts are production boundaries in hosted mode | [ADR 006](adr-006-gem-substrate-boundary.md).                                                       |
-| Rendering authority                        | Proposed: Enfilade resolves applicability but never owns rendering     | [ADR 007](adr-007-enfilade-rendering-authority.md).                                                 |
+| GEM substrate boundary                     | Accepted: substrate contracts are production boundaries in hosted mode | [ADR 006](adr-006-gem-substrate-boundary.md).                                                       |
+| Rendering authority                        | Accepted: Enfilade resolves applicability but never owns rendering     | [ADR 007](adr-007-enfilade-rendering-authority.md).                                                 |
 | Compositor and GPU renderer implementation | Deferred                                                               | Decide only when the hosted proving ground establishes product value.                               |
 
 *Table 3: Design decisions and resolution paths.*
