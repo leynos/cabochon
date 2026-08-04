@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed.
+Accepted on 2026-08-04. Enfilade resolves presentation applicability, while
+Cabochon display, print, export, thumbnail, clipboard, and accessibility
+geometry cross the shared Lapidary and Burin boundary.
 
 ## Date
 

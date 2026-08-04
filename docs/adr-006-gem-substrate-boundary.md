@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed.
+Accepted on 2026-08-04. Clerestory, Lapidary, Burin, and Escutcheon are
+production contracts from the hosted proving ground; only compositor ownership
+remains deferred.
 
 ## Date
 

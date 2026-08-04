@@ -153,8 +153,11 @@ presentation contracts form a usable loop. See `cabochon-design.md` §§7-10.
   - Requires 2.1.2, 1.0.1, and 1.0.2.
   - Present the host inside a Clerestory window whose menu, commands, and
     strings come from Escutcheon resources. See `cabochon-design.md` §9.1.
+  - Render the document presentation containing the currency embed through the
+    Burin contract to print-oriented output.
   - Success: reopening retains object identity and presentation choice rather
-    than importing a rendered copy.
+    than importing a rendered copy, and the print output preserves the embed's
+    scene geometry and metadata.
 
 ### 2.2. Make the first interaction inspectable and recoverable
 
