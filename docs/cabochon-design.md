@@ -400,10 +400,11 @@ object model's centre of gravity.
 
 The portal adapter mediates host-resource access — file selection, capture,
 secrets, notifications, and printing — through XDG Desktop Portal interfaces
-where a suitable portal exists.[^2] It presents permission prompts through
-Clerestory-native surfaces and records the resulting grants with the capability
-broker, so portal decisions become inspectable capabilities rather than ambient
-authority.
+where a suitable portal exists.[^2] Clerestory may initiate a request or
+explain why it is needed, but the external portal backend owns and presents the
+authoritative permission prompt. The adapter records resulting grants with the
+capability broker, so portal decisions become inspectable capabilities rather
+than ambient authority.
 
 ## 9. Initial vertical slices
 
@@ -540,8 +541,9 @@ Lapidary and Burin require contract tests independent of Enfilade.
 - Scene round-trip tests preserve paths, text runs, images, clipping,
   transforms, layers, hit regions, colour intent, units, and output intent.
 - Output parity tests render the same scene to interactive display,
-  PDF-oriented output, raster export, thumbnail, and print-oriented output,
-  then compare geometry and metadata within declared tolerances.
+  PDF-oriented output, raster export, thumbnail, print-oriented output, and
+  accessibility extraction, then compare geometry and metadata within declared
+  tolerances.
 - Invalidation tests ensure damage regions and clipping never expose stale
   pixels or redraw outside the declared region.
 - Text tests cover shaping, bidirectional text, font fallback, grapheme-aware
