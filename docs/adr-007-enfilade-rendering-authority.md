@@ -8,7 +8,7 @@ geometry cross the shared Lapidary and Burin boundary.
 
 ## Date
 
-2026-07-25.
+2026-08-04.
 
 ## Context and problem statement
 
@@ -31,7 +31,7 @@ output devices.
 
 In the context of objects exposing multiple presentations through Enfilade,
 facing the risk that providers smuggle renderer- or toolkit-specific state
-through object descriptors, we decided that Enfilade may resolve object
+through object descriptors, the decision is that Enfilade may resolve object
 identity, presentation applicability, selectors, capabilities, and
 relationships, but presentations intended for Cabochon display, print, export,
 thumbnailing, clipboard geometry, or accessibility geometry must cross through

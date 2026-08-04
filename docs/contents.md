@@ -38,11 +38,11 @@ set.
 - [ADR 005: Expose live-relationship state explicitly](adr-005-explicit-live-relationship-states.md)
   records the persisted dependency and failure-visibility contract.
 - [ADR 006: Make the GEM substrate a production boundary](adr-006-gem-substrate-boundary.md)
-  proposes Clerestory, Lapidary, Burin, and Escutcheon as production contracts
+  records Clerestory, Lapidary, Burin, and Escutcheon as production contracts
   in hosted mode while Mullion stays deferred.
 - [ADR 007: Keep Enfilade out of rendering authority](adr-007-enfilade-rendering-authority.md)
-  proposes that Cabochon display, print, export, thumbnail, and accessibility
-  output crosses Lapidary and Burin contracts.
+  records that Cabochon display, print, export, thumbnail, clipboard, and
+  accessibility output crosses Lapidary and Burin contracts.
 
 ## Rust reference material
 

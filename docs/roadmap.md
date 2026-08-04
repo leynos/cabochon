@@ -38,10 +38,12 @@ per ADR 006. See `cabochon-design.md` §§3 and 8.1-8.4.
   - Cover rectangles, paths, text runs, images, clipping, transforms, hit
     regions, invalidation, physical units, and output intent.
   - Success: one scene renders consistently to display, PDF-oriented output,
-    thumbnail, and raster export.
+    thumbnail, raster export, print-oriented output, accessibility extraction,
+    and clipboard geometry.
 - [ ] 1.0.4. Define the minimum Burin output contract.
   - Cover interactive rendering, PDF export, raster export, thumbnailing,
-    renderer failure, and print-oriented output preparation.
+    accessibility extraction, clipboard geometry, renderer failure, and
+    print-oriented output preparation.
   - Success: output tests compare geometry, text placement, clipping, and
     metadata across targets. See `cabochon-design.md` §13.1.
 
@@ -103,10 +105,11 @@ rewarding first result while preserving a direct Rust path. The result is an
 ADR, not three permanent runtimes. See `cabochon-design.md` §§7.1, 9.1, and 15.
 
 - [ ] 1.3.1. Define one language-neutral currency-object contract fixture.
-  - Requires 1.1.1 and 1.2.1.
-  - Specify identity, base currency, presentations, selectors, and document
-    insertion without committing to syntax.
-  - Success: every candidate authoring path targets the same fixture.
+  - Requires 1.1.1, 1.2.1, and 1.2.2.
+  - Specify identity, base currency, selectors, capabilities, transactions,
+    presentations, and document insertion without committing to syntax.
+  - Success: every candidate authoring path targets the same identity,
+    selector, capability, transaction, and presentation semantics.
 - [ ] 1.3.2. Prototype the currency object through direct Rust and
   selector-declaration prototypes, including one Objective Rust-shaped
   candidate.
@@ -115,9 +118,11 @@ ADR, not three permanent runtimes. See `cabochon-design.md` §§7.1, 9.1, and 15
     access to lower-level capabilities.
 - [ ] 1.3.3. Prototype the same object through one trait-oriented dynamic
   language surface.
-  - Requires 1.3.1.
-  - Preserve the same identifiers and selector contracts as the Rust route.
-  - Success: the dynamic object interoperates with the Rust provider fixture.
+  - Requires 1.3.1 and 1.2.2.
+  - Preserve the same identity, selector, capability, transaction, and
+    presentation semantics as the Rust route.
+  - Success: the dynamic object interoperates with the Rust provider fixture
+    across all five semantics.
 - [ ] 1.3.4. Select the initial authoring path in an ADR.
   - Requires 1.3.2 and 1.3.3.
   - Success: the decision records first-result evidence, rejected alternatives,
@@ -144,20 +149,23 @@ presentation contracts form a usable loop. See `cabochon-design.md` §§7-10.
   - Requires 2.1.1, 1.0.3, and 1.0.4.
   - Use the authoring path selected by 1.3.4 and provide the equivalent direct
     Rust route.
-  - Render at least one presentation through the Lapidary scene and Burin
-    output contracts to an interactive view, a thumbnail, and a PDF-oriented
-    export.
+  - Render at least one shared presentation contract through one Lapidary scene
+    and the Burin output contracts to an interactive view, a thumbnail, a
+    PDF-oriented export, raster export, clipboard geometry, accessibility
+    geometry, and hit-testing output.
   - Success: both routes produce objects satisfying the same provider contract.
 - [ ] 2.1.3. Implement a minimal document host that inserts and reopens a
   currency embed.
   - Requires 2.1.2, 1.0.1, and 1.0.2.
   - Present the host inside a Clerestory window whose menu, commands, and
     strings come from Escutcheon resources. See `cabochon-design.md` §9.1.
-  - Render the document presentation containing the currency embed through the
-    Burin contract to print-oriented output.
+  - Render the document presentation containing that same currency contract
+    through the shared Lapidary scene and Burin output contracts to
+    print-oriented output.
   - Success: reopening retains object identity and presentation choice rather
-    than importing a rendered copy, and the print output preserves the embed's
-    scene geometry and metadata.
+    than importing a rendered copy, and interactive, thumbnail, PDF, print,
+    raster export, clipboard, accessibility, and hit-testing outputs preserve
+    the embed's shared scene geometry and metadata.
 
 ### 2.2. Make the first interaction inspectable and recoverable
 
