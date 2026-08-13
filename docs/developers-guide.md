@@ -18,10 +18,21 @@ container-backed checks in parallel.
 
 ## Tooling
 
-Development builds use Cranelift for debug code generation. On Linux targets,
+Debug builds use the standard LLVM backend. On Linux targets,
 `.cargo/config.toml` configures clang to link with `mold` so debug builds link
 quickly. Coverage generation uses `lld` because LLVM coverage tooling expects
 LLVM-compatible linker behaviour.
+
+`make dev-build` and `make dev-test` offer an opt-in accelerated path that
+applies the Cranelift codegen backend alongside `mold`. `tools/dev-fast/
+config.toml` is what controls that repository-local opt-in activation: Cargo
+only reads it when a command passes `--config tools/dev-fast/config.toml`
+explicitly, so it never affects `.cargo/config.toml`'s repository-wide
+defaults. `rust-toolchain.toml` retains the `llvm-tools-preview` and
+`rustc-codegen-cranelift-preview` components so both the accelerated path and
+`make coverage` have what they need pre-installed. The dev-fast path requires
+a nightly toolchain and is never applied to release, coverage, or
+verification builds.
 
 Install `clang`, `lld`, `mold`, `python3`, and `cargo-audit` before running the
 full generated workflow locally on Linux.
@@ -33,3 +44,25 @@ advisories that affect unused or tooling-only dependency paths. Keep each
 ignore tied to a documented runtime impact analysis, and remove it when the
 affected dependency leaves the graph or the project starts using the advised
 runtime path.
+
+## Lint baseline
+
+`Cargo.toml`'s `[lints.clippy]`, `[lints.rust]`, and `[lints.rustdoc]` tables
+are this repository's copy of the estate's phase 2 Rust baseline. Cabochon is
+a single crate rather than a workspace, so the tables sit directly under
+`[lints]` in the root manifest rather than under `[workspace.lints]` with
+per-member `workspace = true` inheritance. `Cargo.toml` is authoritative for
+the exact entries and levels; this section explains intent rather than
+duplicating the list.
+
+- Violations must be fixed. Where a fix is a genuine deferral, annotate the
+  site with `#[expect(clippy::<lint>, reason = "...")]`, never `allow`: a
+  fixed site's unfulfilled expectation then warns, so the backlog removes
+  itself instead of rotting silently.
+- `clippy.toml` carries the companion thresholds (cognitive complexity,
+  argument count, function length, nesting) and the `disallowed-methods`
+  list that bans direct `std::env` access. Reach for an injected environment
+  reader instead of `std::env::var`/`var_os`/`vars`/`set_var`/`remove_var`.
+- The pinned nightly toolchain in `rust-toolchain.toml` supplies `rustfmt`,
+  `clippy`, and `rust-analyzer`, so `make lint`'s Clippy and rustdoc checks
+  and editor tooling all run consistently for every contributor.
