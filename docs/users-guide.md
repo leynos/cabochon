@@ -15,10 +15,13 @@ Debug builds use the standard LLVM backend. On Linux targets,
 link quickly. Coverage generation uses `lld` instead because LLVM coverage
 tools expect LLVM-compatible linker behaviour.
 
-An opt-in accelerated path, `make dev-build`/`make dev-test`, applies the
-Cranelift codegen backend and `mold` via `tools/dev-fast/config.toml`. It
-requires a nightly toolchain and is never applied to release, coverage, or
-verification builds.
+Only the *default* activation of Cranelift was removed: the Cranelift
+component itself remains part of the pinned nightly toolchain, so the
+capability stays installed and Cargo simply no longer reaches for it
+automatically. An opt-in accelerated path, `make dev-build`/`make dev-test`,
+applies the Cranelift codegen backend and `mold` via `tools/dev-fast/
+config.toml`. It requires a nightly toolchain and is never applied to
+release, coverage, or verification builds.
 
 ## Makefile Targets
 

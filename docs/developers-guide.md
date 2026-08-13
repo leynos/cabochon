@@ -24,9 +24,15 @@ quickly. Coverage generation uses `lld` because LLVM coverage tooling expects
 LLVM-compatible linker behaviour.
 
 `make dev-build` and `make dev-test` offer an opt-in accelerated path that
-applies the Cranelift codegen backend alongside `mold`, via the fragment at
-`tools/dev-fast/config.toml`. They require a nightly toolchain and are never
-applied to release, coverage, or verification builds.
+applies the Cranelift codegen backend alongside `mold`. `tools/dev-fast/
+config.toml` is what controls that repository-local opt-in activation: Cargo
+only reads it when a command passes `--config tools/dev-fast/config.toml`
+explicitly, so it never affects `.cargo/config.toml`'s repository-wide
+defaults. `rust-toolchain.toml` retains the `llvm-tools-preview` and
+`rustc-codegen-cranelift-preview` components so both the accelerated path and
+`make coverage` have what they need pre-installed. The dev-fast path requires
+a nightly toolchain and is never applied to release, coverage, or
+verification builds.
 
 Install `clang`, `lld`, `mold`, `python3`, and `cargo-audit` before running the
 full generated workflow locally on Linux.
