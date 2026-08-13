@@ -38,3 +38,25 @@ advisories that affect unused or tooling-only dependency paths. Keep each
 ignore tied to a documented runtime impact analysis, and remove it when the
 affected dependency leaves the graph or the project starts using the advised
 runtime path.
+
+## Lint baseline
+
+`Cargo.toml`'s `[lints.clippy]`, `[lints.rust]`, and `[lints.rustdoc]` tables
+are this repository's copy of the estate's phase 2 Rust baseline. Cabochon is
+a single crate rather than a workspace, so the tables sit directly under
+`[lints]` in the root manifest rather than under `[workspace.lints]` with
+per-member `workspace = true` inheritance. `Cargo.toml` is authoritative for
+the exact entries and levels; this section explains intent rather than
+duplicating the list.
+
+- Violations must be fixed. Where a fix is a genuine deferral, annotate the
+  site with `#[expect(clippy::<lint>, reason = "...")]`, never `allow`: a
+  fixed site's unfulfilled expectation then warns, so the backlog removes
+  itself instead of rotting silently.
+- `clippy.toml` carries the companion thresholds (cognitive complexity,
+  argument count, function length, nesting) and the `disallowed-methods`
+  list that bans direct `std::env` access. Reach for an injected environment
+  reader instead of `std::env::var`/`var_os`/`vars`/`set_var`/`remove_var`.
+- The pinned nightly toolchain in `rust-toolchain.toml` supplies `rustfmt`,
+  `clippy`, and `rust-analyzer`, so `make lint`'s Clippy and rustdoc checks
+  and editor tooling all run consistently for every contributor.
