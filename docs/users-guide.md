@@ -10,10 +10,15 @@ settings, and documented starter code. Library projects render `src/lib.rs`.
 Application projects render `src/main.rs`, `src/lib.rs`, release automation, and
 `[package.metadata.binstall]` metadata for binary installation.
 
-Development builds use Cranelift for debug code generation. On Linux targets,
+Debug builds use the standard LLVM backend. On Linux targets,
 `.cargo/config.toml` configures clang to link with `mold` so local debug builds
 link quickly. Coverage generation uses `lld` instead because LLVM coverage
 tools expect LLVM-compatible linker behaviour.
+
+An opt-in accelerated path, `make dev-build`/`make dev-test`, applies the
+Cranelift codegen backend and `mold` via `tools/dev-fast/config.toml`. It
+requires a nightly toolchain and is never applied to release, coverage, or
+verification builds.
 
 ## Makefile Targets
 
