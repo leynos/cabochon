@@ -8,8 +8,15 @@
 //! `CARGO_MANIFEST_DIR`-relative path and checks that contract textually,
 //! so an edit that silently drops the wiring fails locally before the
 //! estate-wide audit (Concordat's DF-004 rule) ever runs.
+//!
+//! The standard-target assertions check every `cargo`-invoking recipe
+//! line individually rather than the recipe block as a whole: a target
+//! with several `cargo` lines (for example `test`'s nextest run plus
+//! doc-tests, or `lint`'s `cargo doc` plus `cargo clippy`) would
+//! otherwise pass a whole-block text match even when only one of its
+//! lines carries `--config`, leaving the other silently unwired.
 
-use std::error::Error;
+use std::{error::Error, process::Command};
 
 use cap_std::{ambient_authority, fs_utf8::Dir};
 use rstest::rstest;
@@ -61,6 +68,17 @@ fn mentions_dev_fast(text: &str) -> bool {
     lower.contains("dev-fast") || lower.contains("dev_fast")
 }
 
+/// Returns the subset of `recipe` that actually invokes `cargo`, so
+/// non-`cargo` recipe lines (a `@echo`, the Whitaker invocation) are not
+/// held to the `--config`/dev-fast contract.
+fn cargo_invoking_lines<'a>(recipe: &[&'a str]) -> Vec<&'a str> {
+    recipe
+        .iter()
+        .copied()
+        .filter(|line| line.contains("$(CARGO)") || line.trim_start().starts_with("cargo "))
+        .collect()
+}
+
 /// Standard development targets: (name used in assertion messages, the
 /// Makefile header line whose recipe implements that target). `build`'s
 /// own header carries no recipe — it depends on the `target/%/$(TARGET)`
@@ -88,22 +106,32 @@ fn standard_targets_use_dev_fast_config(
              through --config tools/dev-fast/config.toml"
         )
     })?;
-    let joined = recipe.join("\n");
-    if !joined.contains("--config") {
+    let cargo_lines = cargo_invoking_lines(&recipe);
+    if cargo_lines.is_empty() {
         return Err(format!(
-            "Makefile target `{target}`'s recipe does not pass --config; AGENTS.md's \"Dev-fast \
-             is the standard development profile\" section requires standard \
-             build/test/lint/typecheck targets to route cargo through tools/dev-fast/config.toml"
+            "Makefile target `{target}`'s recipe has no cargo-invoking line to check; AGENTS.md's \
+             \"Dev-fast is the standard development profile\" section expects at least one"
         )
         .into());
     }
-    if !mentions_dev_fast(&joined) {
-        return Err(format!(
-            "Makefile target `{target}`'s recipe does not reference the dev-fast configuration \
-             fragment (tools/dev-fast/config.toml); see AGENTS.md's \"Dev-fast is the standard \
-             development profile\" section"
-        )
-        .into());
+    for line in cargo_lines {
+        if !line.contains("--config") {
+            return Err(format!(
+                "Makefile target `{target}`'s recipe line `{line}` does not pass --config; \
+                 AGENTS.md's \"Dev-fast is the standard development profile\" section requires \
+                 every cargo invocation in the standard build/test/lint/typecheck targets to \
+                 route through tools/dev-fast/config.toml"
+            )
+            .into());
+        }
+        if !mentions_dev_fast(line) {
+            return Err(format!(
+                "Makefile target `{target}`'s recipe line `{line}` does not reference the \
+                 dev-fast configuration fragment (tools/dev-fast/config.toml); see AGENTS.md's \
+                 \"Dev-fast is the standard development profile\" section"
+            )
+            .into());
+        }
     }
     Ok(())
 }
@@ -123,6 +151,66 @@ fn coverage_target_excludes_dev_fast_config() -> Result<(), Box<dyn Error>> {
                     .into(),
             );
         }
+    }
+    Ok(())
+}
+
+/// Runs `make --dry-run <target> CARGO=probe-cargo` against the
+/// repository's own Makefile and returns the printed (not executed)
+/// recipe, so the `dev-build`/`dev-test` targets' `$(CARGO)` wiring can
+/// be checked without needing the pinned nightly toolchain or `mold`
+/// installed.
+fn dry_run_with_probe_cargo(target: &str) -> Result<String, Box<dyn Error>> {
+    let output = Command::new("make")
+        .args(["--dry-run", target, "CARGO=probe-cargo"])
+        .current_dir(env!("CARGO_MANIFEST_DIR"))
+        .output()?;
+    if !output.status.success() {
+        return Err(format!(
+            "`make --dry-run {target} CARGO=probe-cargo` exited with {status}; stderr: {stderr}",
+            status = output.status,
+            stderr = String::from_utf8_lossy(&output.stderr)
+        )
+        .into());
+    }
+    Ok(String::from_utf8(output.stdout)?)
+}
+
+/// `dev-build` and `dev-test` must call `$(CARGO)` rather than a
+/// hard-coded `cargo`, so a caller can inject a probe or wrapper binary.
+/// Checks the dry-run output shows the substituted binary name, then
+/// `--config`, then a dev-fast reference, in that order, proving the
+/// substitution reaches the actual invocation rather than being an inert
+/// variable definition elsewhere in the file.
+#[rstest]
+#[case::dev_build("dev-build")]
+#[case::dev_test("dev-test")]
+fn dev_fast_targets_substitute_cargo_variable(#[case] target: &str) -> Result<(), Box<dyn Error>> {
+    let output = dry_run_with_probe_cargo(target)?;
+    let probe_pos = output.find("probe-cargo").ok_or_else(|| {
+        format!(
+            "`make --dry-run {target} CARGO=probe-cargo` did not substitute the CARGO variable; \
+             the {target} recipe must invoke $(CARGO) rather than a hard-coded cargo"
+        )
+    })?;
+    let after_probe = output
+        .get(probe_pos..)
+        .ok_or("internal error: `probe-cargo` match position was not a valid UTF-8 boundary")?;
+    let config_offset = after_probe.find("--config").ok_or_else(|| {
+        format!(
+            "`make --dry-run {target} CARGO=probe-cargo` output does not show --config after the \
+             substituted CARGO binary"
+        )
+    })?;
+    let after_config = after_probe
+        .get(config_offset..)
+        .ok_or("internal error: `--config` match position was not a valid UTF-8 boundary")?;
+    if !mentions_dev_fast(after_config) {
+        return Err(format!(
+            "`make --dry-run {target} CARGO=probe-cargo` output does not reference the dev-fast \
+             configuration fragment after --config"
+        )
+        .into());
     }
     Ok(())
 }
