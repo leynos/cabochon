@@ -11,6 +11,10 @@ updates:
       interval: "weekly"
 
   # Enable version updates for Cargo
+    groups:
+      github-actions:
+        patterns:
+          - '*'
   - package-ecosystem: "cargo"
     directory: "/"
     open-pull-requests-limit: 5
@@ -19,4 +23,10 @@ updates:
       - "cargo"
     schedule:
       interval: "daily"
-      
+  - package-ecosystem: rust-toolchain
+    directory: /
+    labels:
+      - dependencies
+      - rust-toolchain
+    schedule:
+      interval: weekly
