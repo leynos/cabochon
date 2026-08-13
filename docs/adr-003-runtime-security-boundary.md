@@ -58,7 +58,7 @@ capability grants and host secrets.
 
 ## Supporting evidence
 
-- `cabochon-design.md` §§4, 6.2, 6.4, 7.2-7.4, and 9-13 define the dispatch,
+- `cabochon-design.md` §§5, 7.2, 7.4, 8.6-8.8, and 10-14 define the dispatch,
   transaction, portal, export, audit, and verification contracts.
 - XDG Desktop Portal establishes a host-mediated permission boundary for
   sandboxed desktop resources.

@@ -1,13 +1,13 @@
 # Cabochon — terms of reference
 
-- **Status:** Draft v0.1 with acknowledged open questions
+- **Status:** Draft v0.2 with acknowledged open questions
 - **Audience:** Product owners, engineering leads, contributors, and prospective
   application developers
 - **Companion documents:** `docs/context.md`, `docs/cabochon-design.md`,
   `docs/roadmap.md`, the ADRs indexed in `docs/contents.md`, and
   `references/cabochon-white-paper.md`
-- **Last substantive revision:** 2026-07-23
-- **Version:** 0.1
+- **Last substantive revision:** 2026-07-25
+- **Version:** 0.2
 
 ## 1. Background and motivation
 
@@ -271,6 +271,16 @@ without losing its identity, semantics, editability, or applicable tools.
 Matching or exceeding the practical richness of an established Obsidian setup
 is the comparative goal; the representative workflows and evaluation method
 remain unresolved.
+
+Cabochon's GEM-substrate hypothesis succeeds when a developer can create a
+small resource-defined Cabochon application that opens a window, exposes
+standard menus and commands, renders a Lapidary scene, exports the same scene
+through Burin, and integrates with accessibility and keyboard traversal without
+writing host-desktop-specific code.
+
+The hosted-product hypothesis is not validated unless at least one user-visible
+workflow exercises both halves of Cabochon: the GEM-derived application and
+graphics substrate, and the Enfilade semantic coordination layer.
 
 ## 8. Constraints and assumptions
 

@@ -13,9 +13,9 @@ set.
   top-level files, directories, and ownership boundaries.
 - [Terms of reference](terms-of-reference.md) defines Cabochon's problem
   space, audiences, scope boundaries, constraints, and unresolved questions.
-- [Cabochon technical design](cabochon-design.md) defines the runtime-first
-  architecture, semantic object contracts, security model, and verification
-  invariants.
+- [Cabochon technical design](cabochon-design.md) defines the GEM-inspired
+  application and graphics substrate, Enfilade object contracts, security
+  model, hosted boundary, and verification invariants.
 - [Cabochon context](context.md) defines the shared domain vocabulary used by
   the terms of reference and technical design.
 - [Roadmap](roadmap.md) sequences Cabochon's delivery as GIST-oriented,
@@ -37,6 +37,12 @@ set.
   records the shared object contract for direct Rust and an accessible path.
 - [ADR 005: Expose live-relationship state explicitly](adr-005-explicit-live-relationship-states.md)
   records the persisted dependency and failure-visibility contract.
+- [ADR 006: Make the GEM substrate a production boundary](adr-006-gem-substrate-boundary.md)
+  records Clerestory, Lapidary, Burin, and Escutcheon as production contracts
+  in hosted mode while Mullion stays deferred.
+- [ADR 007: Keep Enfilade out of rendering authority](adr-007-enfilade-rendering-authority.md)
+  records that Cabochon display, print, export, thumbnail, clipboard, and
+  accessibility output crosses Lapidary and Burin contracts.
 
 ## Rust reference material
 

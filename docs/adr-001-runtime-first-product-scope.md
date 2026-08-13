@@ -53,7 +53,7 @@ Desktop work begins only after explicit adoption thresholds are met.
 
 - `terms-of-reference.md` §§1, 2, 4, 6, and 8 define the two audiences, hosted
   boundary, proving ground, and non-goals.
-- `cabochon-design.md` §§1, 2, and 8 map both proofs onto one runtime model.
+- `cabochon-design.md` §§1, 2, and 9 map both proofs onto one runtime model.
 - `roadmap.md` phases 2-5 deliver evidence before phase 6 evaluates a desktop.
 - GNOME and KDE Plasma provide host environments in which the proposition can
   be tested without controlling the shell.
