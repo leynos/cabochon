@@ -83,8 +83,8 @@ compact and omits build output such as `target/`.
 - `tools/dev-fast/config.toml`: Opt-in Cargo configuration fragment that
   applies the Cranelift codegen backend and the `mold` linker for
   `make dev-build` and `make dev-test`. Passed explicitly with `--config`
-  rather than placed under `.cargo/`, so it never affects release, coverage,
-  or verification builds.
+  rather than placed under `.cargo/`, so it never affects release, coverage, or
+  verification builds.
 - `AGENTS.md`: Provides repository-specific working instructions for agents and
   contributors.
 - `Cargo.toml`: Defines package metadata, dependencies, lint policy, and Cargo

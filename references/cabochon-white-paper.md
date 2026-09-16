@@ -426,9 +426,9 @@ capabilities. ([Flatpak][7])
 PipeWire should handle audio, video, and capture plumbing. Its documentation
 describes graph-based processing, flexible media negotiation, and low-latency
 audio/video infrastructure; its portal access documentation describes
-portal-mediated access to PipeWire for sandboxed clients. ([docs.pipewire.org][
-12]) That maps neatly to Cabochon screen sharing, recording, camera access,
-live thumbnails, media workflows, and object previews.
+portal-mediated access to PipeWire for sandboxed clients. (
+[docs.pipewire.org][ 12]) That maps neatly to Cabochon screen sharing,
+recording, camera access, live thumbnails, media workflows, and object previews.
 
 Security model:
 
@@ -673,9 +673,8 @@ boundaries, and ruthless compatibility prioritization.
 The third risk is text and accessibility. These are not optional polish.
 International text requires shaping, bidirectional handling, line breaking,
 font fallback, input methods, caret movement by grapheme cluster, and
-screen-reader semantics. HarfBuzz solves shaping, not the entire text stack
-([harfbuzz.github.io][9]). This paper's cheery little text box hides a deep
-well.
+screen-reader semantics. HarfBuzz solves shaping, not the entire text stack (
+[harfbuzz.github.io][9]). This paper's cheery little text box hides a deep well.
 
 The fourth risk is dynamic object security. An object desktop sounds magical
 until every service can see everything. Capabilities, audit trails, sandbox
