@@ -16,19 +16,50 @@ Idea: if Cabochon settles identity, authority, transaction, and authoring-path
 contracts before application work, each vertical slice can extend one object
 environment instead of building a private framework.
 
+### 1.0. Establish the GEM substrate contracts
+
+This step answers what every Cabochon application can rely on before
+Enfilade-specific behaviour enters the picture. It makes the Clerestory,
+Escutcheon, Lapidary, and Burin boundaries production contracts in hosted mode,
+per ADR 006. See `cabochon-design.md` §§3 and 8.1-8.4.
+
+- [ ] 1.0.1. Define the minimum Clerestory application contract.
+  - Cover windows, menus, commands, standard dialogs, focus, keyboard
+    traversal, inspector panels, accessibility roles, and host-shell
+    adaptation.
+  - Success: a hello-window application can run under the hosted shell
+    adapter without Enfilade.
+- [ ] 1.0.2. Define the minimum Escutcheon resource format.
+  - Cover menus, strings, icons, command metadata, shortcuts, dialog layout,
+    and localization hooks.
+  - Success: the hello-window application loads its UI from resources rather
+    than hard-coded widget construction.
+- [ ] 1.0.3. Define the minimum Lapidary scene contract.
+  - Cover rectangles, paths, text runs, images, clipping, transforms, hit
+    regions, invalidation, physical units, and output intent.
+  - Success: one scene renders consistently to display, PDF-oriented output,
+    thumbnail, raster export, print-oriented output, accessibility extraction,
+    and clipboard geometry.
+- [ ] 1.0.4. Define the minimum Burin output contract.
+  - Cover interactive rendering, PDF export, raster export, thumbnailing,
+    accessibility extraction, clipboard geometry, renderer failure, and
+    print-oriented output preparation.
+  - Success: output tests compare geometry, text placement, clipping, and
+    metadata across targets. See `cabochon-design.md` §13.1.
+
 ### 1.1. Ratify stable identity and runtime boundaries
 
 This step answers what remains stable when Cabochon runs under GNOME, KDE
 Plasma, or its future shell. The outcome fixes crate ownership and prevents the
 hosted runtime from becoming disposable scaffolding. See `cabochon-design.md`
-§§3-6 and §14.
+§§4-7 and §15.
 
 - [ ] 1.1.1. Record stable object identity and presentation separation in an
   ADR.
   - Define object lifetime, revision semantics, duplication, derivation, and
     presentation identity.
   - Success: the ADR resolves every decided identity item in
-    `cabochon-design.md` §14.
+    `cabochon-design.md` §15.
 - [x] 1.1.2. Record the hosted-runtime and future-shell boundary in an ADR.
   - Define which responsibilities remain in the runtime and which belong to a
     host or shell adapter.
@@ -45,8 +76,8 @@ hosted runtime from becoming disposable scaffolding. See `cabochon-design.md`
 
 This step answers whether a tool can be discoverable without receiving ambient
 authority and whether cross-object mutations can recover from provider failure.
-Its outcome gates every tool-aware workflow. See `cabochon-design.md` §§4, 6.2,
-6.4, 7.2-7.4, and 11-12.
+Its outcome gates every tool-aware workflow. See `cabochon-design.md` §§5, 7.2,
+7.4, 8.6-8.8, and 12-13.
 
 - [ ] 1.2.1. Validate selector discovery and capability grants.
   - Requires 1.1.1.
@@ -71,23 +102,27 @@ Its outcome gates every tool-aware workflow. See `cabochon-design.md` §§4, 6.2
 
 This step answers which route gives Python- or JavaScript-aware developers a
 rewarding first result while preserving a direct Rust path. The result is an
-ADR, not three permanent runtimes. See `cabochon-design.md` §§6.1, 8.1, and 14.
+ADR, not three permanent runtimes. See `cabochon-design.md` §§7.1, 9.1, and 15.
 
 - [ ] 1.3.1. Define one language-neutral currency-object contract fixture.
-  - Requires 1.1.1 and 1.2.1.
-  - Specify identity, base currency, presentations, selectors, and document
-    insertion without committing to syntax.
-  - Success: every candidate authoring path targets the same fixture.
-- [ ] 1.3.2. Prototype the currency object through direct Rust and Objective
-  Rust-shaped selector declarations.
+  - Requires 1.1.1, 1.2.1, and 1.2.2.
+  - Specify identity, base currency, selectors, capabilities, transactions,
+    presentations, and document insertion without committing to syntax.
+  - Success: every candidate authoring path targets the same identity,
+    selector, capability, transaction, and presentation semantics.
+- [ ] 1.3.2. Prototype the currency object through direct Rust and
+  selector-declaration prototypes, including one Objective Rust-shaped
+  candidate.
   - Requires 1.3.1.
   - Measure authored concepts, steps to first presentation, diagnostics, and
     access to lower-level capabilities.
 - [ ] 1.3.3. Prototype the same object through one trait-oriented dynamic
   language surface.
-  - Requires 1.3.1.
-  - Preserve the same identifiers and selector contracts as the Rust route.
-  - Success: the dynamic object interoperates with the Rust provider fixture.
+  - Requires 1.3.1 and 1.2.2.
+  - Preserve the same identity, selector, capability, transaction, and
+    presentation semantics as the Rust route.
+  - Success: the dynamic object interoperates with the Rust provider fixture
+    across all five semantics.
 - [ ] 1.3.4. Select the initial authoring path in an ADR.
   - Requires 1.3.2 and 1.3.3.
   - Success: the decision records first-result evidence, rejected alternatives,
@@ -102,7 +137,7 @@ developer model is coherent enough to support richer documents.
 ### 2.1. Deliver a persistent currency object end to end
 
 This step answers whether identity, provider activation, persistence, and
-presentation contracts form a usable loop. See `cabochon-design.md` §§6-9.
+presentation contracts form a usable loop. See `cabochon-design.md` §§7-10.
 
 - [ ] 2.1.1. Implement object envelopes, revisions, and provider-owned payload
   storage.
@@ -111,21 +146,32 @@ presentation contracts form a usable loop. See `cabochon-design.md` §§6-9.
   - Success: property-generated export/import cycles retain object identity and
     reachable links.
 - [ ] 2.1.2. Implement the currency provider and two currency presentations.
-  - Requires 2.1.1.
+  - Requires 2.1.1, 1.0.3, and 1.0.4.
   - Use the authoring path selected by 1.3.4 and provide the equivalent direct
     Rust route.
+  - Render at least one shared presentation contract through one Lapidary scene
+    and the Burin output contracts to an interactive view, a thumbnail, a
+    PDF-oriented export, raster export, clipboard geometry, accessibility
+    geometry, and hit-testing output.
   - Success: both routes produce objects satisfying the same provider contract.
 - [ ] 2.1.3. Implement a minimal document host that inserts and reopens a
   currency embed.
-  - Requires 2.1.2.
+  - Requires 2.1.2, 1.0.1, and 1.0.2.
+  - Present the host inside a Clerestory window whose menu, commands, and
+    strings come from Escutcheon resources. See `cabochon-design.md` §9.1.
+  - Render the document presentation containing that same currency contract
+    through the shared Lapidary scene and Burin output contracts to
+    print-oriented output.
   - Success: reopening retains object identity and presentation choice rather
-    than importing a rendered copy.
+    than importing a rendered copy, and interactive, thumbnail, PDF, print,
+    raster export, clipboard, accessibility, and hit-testing outputs preserve
+    the embed's shared scene geometry and metadata.
 
 ### 2.2. Make the first interaction inspectable and recoverable
 
 This step answers whether the canonical exercise teaches the next layer rather
 than hiding it. It also tests failure behaviour before richer providers arrive.
-See `cabochon-design.md` §§8.1, 10, and 13.
+See `cabochon-design.md` §§9.1, 11, and 14.
 
 - [ ] 2.2.1. Expose object identity, selectors, presentations, and capabilities
   in a developer inspector.
@@ -154,7 +200,7 @@ before becoming a desktop environment.
 
 This step answers whether documents can own structure while embedded objects
 retain independent identity. The result informs editor and project boundaries.
-See `cabochon-design.md` §§6.1, 6.3, 8.2, and 9.
+See `cabochon-design.md` §§7.1, 7.3, 9.2, and 10.
 
 - [ ] 3.1.1. Implement note documents, links, and the project tree.
   - Requires phase 2.
@@ -174,7 +220,7 @@ See `cabochon-design.md` §§6.1, 6.3, 8.2, and 9.
 
 This step answers whether separate applications can edit one document's rich
 objects through shared contracts rather than private file formats. See
-`cabochon-design.md` §§5, 7.5, and 8.2.
+`cabochon-design.md` §§6, 8.9, and 9.2.
 
 - [ ] 3.2.1. Implement a bounded dataframe provider and focused editor.
   - Requires 3.1.2.
@@ -202,7 +248,7 @@ objects through shared contracts rather than private file formats. See
 This step answers whether the proving ground is useful rather than merely
 architecturally interesting. Its evidence decides whether later slices deepen
 the workspace or revisit the product premise. See `terms-of-reference.md` §§5-7
-and `cabochon-design.md` §8.2.
+and `cabochon-design.md` §9.2.
 
 - [ ] 3.3.1. Define representative note, dataframe, diagram, and bitmap
   workflows for evaluation.
@@ -228,7 +274,7 @@ offers value that an application-local plugin system cannot provide.
 
 This step answers what users see when sources update, move, disappear, or lose
 authorization. It closes the largest unresolved user contract before live data
-ships. See `cabochon-design.md` §§6.3, 10, and 14.
+ships. See `cabochon-design.md` §§7.3, 11, and 15.
 
 - [ ] 4.1.1. Validate and refine the live-relationship state machine.
   - Requires 3.3.3.
@@ -247,8 +293,8 @@ ships. See `cabochon-design.md` §§6.3, 10, and 14.
 ### 4.2. Deliver formula discovery and live evaluation
 
 This step answers whether selector-based applicability can produce a useful
-point-of-use tool across object types. See `cabochon-design.md` §§6.2-6.4, 7.3,
-and 8.3.
+point-of-use tool across object types. See `cabochon-design.md` §§7.2-7.4, 8.7,
+and 9.3.
 
 - [ ] 4.2.1. Define addressable scalar and currency selector contracts.
   - Requires 4.1.1.
@@ -280,8 +326,8 @@ whether to adopt its desktop.
 ### 5.1. Integrate with host desktop boundaries
 
 This step answers whether the runtime can rely on normal host facilities
-without diluting Cabochon's object contracts. See `cabochon-design.md` §§4-5,
-7.2, 10, and 13.
+without diluting Cabochon's object contracts. See `cabochon-design.md` §§5-6,
+8.6, 11, and 14.
 
 - [ ] 5.1.1. Implement per-user runtime activation, shutdown, and crash
   recovery.
@@ -306,7 +352,7 @@ without diluting Cabochon's object contracts. See `cabochon-design.md` §§4-5,
 
 This step answers whether the hosted product has earned further investment in a
 full desktop shell. See `terms-of-reference.md` §§6-8 and `cabochon-design.md`
-§§8 and 14.
+§§9 and 15.
 
 - [ ] 5.2.1. Define user-facing, operational, and strategic acceptance
   thresholds from hosted-product evidence.
@@ -327,9 +373,9 @@ consume the proving ground.
 
 This step begins only if 5.2.2 accepts shell work. It tests whether compositor
 ownership materially improves the document and tool experience. See
-`cabochon-design.md` §§5 and 14.
+`cabochon-design.md` §§6 and 15.
 
-- [ ] 6.1.1. Decide the compositor, renderer, and toolkit boundaries through
+- [ ] 6.1.1. Decide the compositor and GPU renderer implementation through
   ADR-backed spikes.
   - Requires 5.2.2 to accept shell work.
   - Compare reuse of the hosted runtime, protocol coverage, accessibility, and

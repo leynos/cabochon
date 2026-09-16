@@ -60,7 +60,7 @@ and visibility contract.
 
 ## Supporting evidence
 
-- `cabochon-design.md` §§6.3, 8.3, 10, and 12 require persisted dependencies,
+- `cabochon-design.md` §§7.3, 9.3, 11, and 13 require persisted dependencies,
   explicit staleness, authorization checks, and failure verification.
 - `terms-of-reference.md` §§2, 6, and 9 identify live cross-document behaviour
   as a visible product promise rather than a storage detail.
