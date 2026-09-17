@@ -16,6 +16,11 @@ The main `.github/workflows/ci.yml` workflow deliberately does not run
 `make test WITH_ACT=1`; the separate Act workflow runs those slower
 container-backed checks in parallel.
 
+Pull-request CI measures lld-backed lcov coverage against the ratchet baseline
+without a CodeScene token, action, or direct CLI call. `coverage-main.yml`
+repeats that source-equivalent measurement after `main` pushes, advances the
+baseline, and publishes it to CodeScene with explicit upload mode.
+
 ## Tooling
 
 Debug builds use the standard LLVM backend. On Linux targets,

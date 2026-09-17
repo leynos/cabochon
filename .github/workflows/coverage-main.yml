@@ -1,0 +1,50 @@
+name: Coverage (main)
+
+# Pull requests run only the local ratchet. Main repeats the lld-backed
+# measurement, advances its baseline, and publishes the lcov report.
+
+'on':
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  coverage-upload:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231
+        with:
+          persist-credentials: false
+      - name: Setup Rust
+        uses: leynos/shared-actions/.github/actions/setup-rust@152d9c4784d0ae5877938a984fe6d1f04d718fd8
+      - name: Install lld coverage linker
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get update \
+            && sudo apt-get install --yes --no-install-recommends clang lld
+      - name: Generate coverage
+        uses: leynos/shared-actions/.github/actions/generate-coverage@152d9c4784d0ae5877938a984fe6d1f04d718fd8
+        env:
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER: clang
+          RUSTFLAGS: -C link-arg=-fuse-ld=lld
+          CFLAGS: -fuse-ld=lld
+          LDFLAGS: -fuse-ld=lld
+        with:
+          output-path: lcov.info
+          format: lcov
+          with-ratchet: 'true'
+      - name: Upload coverage data to CodeScene
+        env:
+          CS_ACCESS_TOKEN: ${{ secrets.CS_ACCESS_TOKEN }}
+        if: ${{ env.CS_ACCESS_TOKEN }}
+        uses: leynos/shared-actions/.github/actions/upload-codescene-coverage@152d9c4784d0ae5877938a984fe6d1f04d718fd8
+        with:
+          format: lcov
+          path: lcov.info
+          mode: upload
+          access-token: ${{ env.CS_ACCESS_TOKEN }}
+          installer-checksum: ${{ vars.CODESCENE_CLI_SHA256 }}
