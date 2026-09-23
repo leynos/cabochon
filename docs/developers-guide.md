@@ -16,11 +16,6 @@ The main `.github/workflows/ci.yml` workflow deliberately does not run
 `make test WITH_ACT=1`; the separate Act workflow runs those slower
 container-backed checks in parallel.
 
-Pull-request CI measures lld-backed lcov coverage against the ratchet baseline
-without a CodeScene token, action, or direct CLI call. `coverage-main.yml`
-repeats that source-equivalent measurement after `main` pushes, advances the
-baseline, and publishes it to CodeScene with explicit upload mode.
-
 ## Tooling
 
 Debug builds use the standard LLVM backend. On Linux targets,
@@ -49,6 +44,35 @@ advisories that affect unused or tooling-only dependency paths. Keep each
 ignore tied to a documented runtime impact analysis, and remove it when the
 affected dependency leaves the graph or the project starts using the advised
 runtime path.
+
+## Coverage publication
+
+Coverage has two workflows, and the split is a contract (concordat's CV-005,
+`main-owned-codescene-coverage`), not a convention.
+
+- `ci.yml` measures lld-linked lcov coverage on every pull request with the
+  shared `generate-coverage` action, `with-ratchet: 'true'` and
+  `publish-artefact: 'false'`. A drop against the ratchet baseline fails the
+  pull request. The lane holds no CodeScene credential, has no upload step, and
+  never contacts CodeScene.
+- `coverage-main.yml` runs on every push to `main` (and on dispatch). It
+  measures the same source with the same action, format, output path and
+  default baseline files, which writes the ratchet baseline every pull request
+  compares against, then uploads the report to CodeScene in explicit upload
+  mode. The upload step alone binds `CS_ACCESS_TOKEN`, its `if:` carries
+  `github.ref == 'refs/heads/main'` as its own conjunct (a dispatch can name
+  any branch), and the workflow's concurrency group never cancels a run in
+  progress, so a burst of merges cannot abandon a baseline write.
+
+The reasons are both quiet failures: a pull request from a fork cannot read the
+secret, so an upload there is silently skipped, and CodeScene accepts an upload
+only for a branch it analyses, which a pull request head is not.
+
+`tests/coverage_workflows.rs` enforces the split over every workflow a pull
+request can reach, following local reusable-workflow calls transitively, and
+drives each rule against breaching fixtures under `tests/coverage_workflows/`.
+When adding a workflow, keep CodeScene, `cs-coverage` and the token out of it
+unless it is the publisher; the contract names the clause a change breaks.
 
 ## Lint baseline
 
