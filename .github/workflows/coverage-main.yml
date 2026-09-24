@@ -46,7 +46,7 @@ jobs:
       - name: Setup Rust
         # The pull-request lane's revision, so both measurements share one
         # toolchain setup.
-        uses: leynos/shared-actions/.github/actions/setup-rust@927edd45ae77be4251a8a18ca9eb5613a2e32cbd
+        uses: leynos/shared-actions/.github/actions/setup-rust@3822201c597078a5ed1939bdf067fe06a3d78a9d
       - name: Install coverage linkers
         # The same packages as the pull-request lane: `.cargo/config.toml`
         # names clang and mold, and the coverage step below selects lld.
