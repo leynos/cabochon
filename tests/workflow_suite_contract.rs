@@ -76,6 +76,8 @@ fn suite_runs(found: &[(String, String)]) -> Vec<(&str, &str, &str)> {
 #[case::make_directory("make -C . test", true)]
 #[case::make_all("make all", true)]
 #[case::make_default_goal("make", true)]
+#[case::make_coverage("make coverage", true)]
+#[case::make_dev_test("make dev-test", true)]
 #[case::quoted_target("make \"test\"", true)]
 #[case::cargo("cargo test --all-features", true)]
 #[case::cargo_config("cargo --config tools/dev-fast/config.toml test", true)]
