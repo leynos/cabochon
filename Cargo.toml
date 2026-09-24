@@ -106,3 +106,4 @@ cap-std = { version = "4.0.2", features = ["fs_utf8"] }
 proptest = "1.11"
 rstest = "0.26.1"
 serde_norway = "0.9.42"
+toml = "1.1.4"
