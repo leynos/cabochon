@@ -37,6 +37,9 @@ set.
   records the shared object contract for direct Rust and an accessible path.
 - [ADR 005: Expose live-relationship state explicitly](adr-005-explicit-live-relationship-states.md)
   records the persisted dependency and failure-visibility contract.
+- [ADR 006: `main` owns coverage publication](adr-006-main-owns-coverage-publication.md)
+  records the split between the pull-request ratchet and the CodeScene
+  publisher on `main`.
 
 ## Rust reference material
 

@@ -91,7 +91,16 @@ jobs:
           echo "Coverage CFLAGS: -fuse-ld=lld"
           echo "Coverage LDFLAGS: -fuse-ld=lld"
       - name: Test and Measure Coverage
-        uses: leynos/shared-actions/.github/actions/generate-coverage@455d9ed03477c0026da96c2541ca26569a74acac
+        # Coverage here is for the local ratchet and nothing else. The report
+        # is neither archived (`publish-artefact: 'false'`) nor sent to
+        # CodeScene: a pull request from a fork cannot read
+        # `secrets.CS_ACCESS_TOKEN`, so an upload here is silently inert for
+        # exactly the changes that most need reviewing, and CodeScene accepts
+        # an upload only for a branch it analyses, which a pull request head
+        # is not. `coverage-main.yml` owns both persistent outputs, and the
+        # baseline paths are the action's defaults on both sides, so this
+        # ratchet reads the baseline that workflow writes.
+        uses: leynos/shared-actions/.github/actions/generate-coverage@a5765019912a8ab6882b12db049c7cde635f3a85
         env:
           CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER: clang
           RUSTFLAGS: -C link-arg=-fuse-ld=lld
@@ -100,12 +109,5 @@ jobs:
         with:
           output-path: lcov.info
           format: lcov
-      - name: Upload coverage data to CodeScene
-        env:
-          CS_ACCESS_TOKEN: ${{ secrets.CS_ACCESS_TOKEN }}
-        if: ${{ env.CS_ACCESS_TOKEN }}
-        uses: leynos/shared-actions/.github/actions/upload-codescene-coverage@927edd45ae77be4251a8a18ca9eb5613a2e32cbd
-        with:
-          format: lcov
-          access-token: ${{ env.CS_ACCESS_TOKEN }}
-          installer-checksum: ${{ vars.CODESCENE_CLI_SHA256 }}
+          with-ratchet: 'true'
+          publish-artefact: 'false'
