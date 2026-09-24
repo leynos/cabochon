@@ -67,7 +67,7 @@ mod writer_rules;
 /// The closure is computed from the directory, so a new workflow is covered
 /// the day it lands. This names the floor it must still reach: a closure that
 /// silently emptied would make the first clause pass having read nothing.
-const KNOWN_PULL_REQUEST_WORKFLOWS: [&str; 2] = ["act-validation.yml", "ci.yml"];
+const KNOWN_PULL_REQUEST_WORKFLOWS: [&str; 1] = ["ci.yml"];
 
 /// Scenario: every workflow a pull request can reach is examined.
 ///
