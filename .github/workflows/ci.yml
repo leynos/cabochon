@@ -42,7 +42,7 @@ jobs:
         with:
           globs: '**/*.md'
       - name: Setup uv
-        uses: astral-sh/setup-uv@12d13f90bc3a5a1971bebad4beb09a4dfa962e91
+        uses: astral-sh/setup-uv@525b679e452c7448382f444e3b6e7b0784d5b793
       - name: Install test runner
         env:
           RUSTFLAGS: ""
