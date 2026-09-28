@@ -39,13 +39,17 @@ per ADR 006. See `cabochon-design.md` §§3 and 8.1-8.4.
     regions, invalidation, physical units, and output intent.
   - Success: one scene renders consistently to display, PDF-oriented output,
     thumbnail, raster export, print-oriented output, accessibility extraction,
-    and clipboard geometry.
+    clipboard geometry, and hit-testing output. Generated scenes varying
+    clipping, text, transforms, hit regions, and output intents preserve scene
+    semantics on round trip and agree across targets within declared
+    tolerances; invalidation leaves no stale pixels or redraw outside damage.
 - [ ] 1.0.4. Define the minimum Burin output contract.
   - Cover interactive rendering, PDF export, raster export, thumbnailing,
     accessibility extraction, clipboard geometry, renderer failure, and
     print-oriented output preparation.
   - Success: output tests compare geometry, text placement, clipping, and
-    metadata across targets. See `cabochon-design.md` §13.1.
+    metadata across targets, including hit-testing geometry against shared
+    scene hit regions. See `cabochon-design.md` §13.1.
 
 ### 1.1. Ratify stable identity and runtime boundaries
 

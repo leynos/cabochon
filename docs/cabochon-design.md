@@ -548,8 +548,13 @@ Lapidary and Burin require contract tests independent of Enfilade.
   transforms, layers, hit regions, colour intent, units, and output intent.
 - Output parity tests render the same scene to interactive display,
   PDF-oriented output, raster export, thumbnail, print-oriented output, and
-  accessibility and clipboard geometry extraction, then compare geometry and
-  metadata within declared tolerances.
+  accessibility and clipboard geometry extraction, and hit-testing output. They
+  compare geometry and metadata within declared tolerances, including
+  hit-testing geometry against the shared scene's hit regions.
+- Property-based tests generate scenes varying paths, text, images, clipping,
+  transforms, hit regions, and output intents. They check scene round trips,
+  cross-target geometry and text parity within declared tolerances, and damage
+  invalidation without stale pixels or redraw outside the declared region.
 - Invalidation tests ensure damage regions and clipping never expose stale
   pixels or redraw outside the declared region.
 - Text tests cover shaping, bidirectional text, font fallback, grapheme-aware
