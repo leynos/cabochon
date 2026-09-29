@@ -26,7 +26,7 @@ name: Coverage (main)
 # uploads land in commit order. A manual re-run of an older main run is an
 # operator action: it republishes that commit's coverage and baseline until
 # the next push. Keying on the event too would let an earlier dispatch finish
-# after a newer push and upload older coverage last. `tests/coverage_workflows.rs` pins this group.
+# after a newer push and upload older coverage last. `make test-workflow-contracts` pins this group.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
