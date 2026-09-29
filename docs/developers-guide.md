@@ -23,21 +23,16 @@ second time and was removed. The crate declares no features, so `make test`'s
 
 ## Tooling
 
-Debug builds use the standard LLVM backend. On Linux targets,
-`.cargo/config.toml` configures clang to link with `mold` so debug builds link
-quickly. Coverage generation uses `lld` because LLVM coverage tooling expects
-LLVM-compatible linker behaviour.
-
-`make dev-build` and `make dev-test` offer an opt-in accelerated path that
-applies the Cranelift codegen backend alongside `mold`.
-`tools/dev-fast/ config.toml` is what controls that repository-local opt-in
-activation: Cargo only reads it when a command passes
-`--config tools/dev-fast/config.toml` explicitly, so it never affects
-`.cargo/config.toml`'s repository-wide defaults. `rust-toolchain.toml` retains
-the `llvm-tools-preview` and `rustc-codegen-cranelift-preview` components so
-both the accelerated path and `make coverage` have what they need
-pre-installed. The dev-fast path requires a nightly toolchain and is never
-applied to release, coverage, or verification builds.
+Development builds use the build standard below: `-Zthreads=8` and, on Linux,
+clang linking with `mold`, from `.cargo/config.toml`. The standard make targets
+also select the Cranelift backend by passing
+`--config tools/dev-fast/config.toml`, as do `make dev-build` and
+`make dev-test`; that fragment holds only the backend selection, and it is
+never applied to release, coverage, or verification builds. Coverage generation
+uses `lld` and LLVM because coverage tooling expects them.
+`rust-toolchain.toml` retains the `llvm-tools-preview` and
+`rustc-codegen-cranelift-preview` components so both paths have what they need
+pre-installed.
 
 Install `clang`, `lld`, `mold`, `python3`, and `cargo-audit` before running the
 full generated workflow locally on Linux.
@@ -49,6 +44,41 @@ advisories that affect unused or tooling-only dependency paths. Keep each
 ignore tied to a documented runtime impact analysis, and remove it when the
 affected dependency leaves the graph or the project starts using the advised
 runtime path.
+
+## The build standard
+
+Development, test, lint and typecheck builds use the parallel `rustc` frontend
+(`-Zthreads=8`) and, on Linux, the `mold` linker (`-Clink-arg=-fuse-ld=mold`).
+These are defaults in `.cargo/config.toml`, which Cargo discovers on its own,
+so a bare `cargo build` gets them. `mold` ships for Linux only, so the linker
+flag lives in a Linux-only table and macOS and Windows keep their platform
+linker. Cargo selects one `rustflags` source rather than merging them, so every
+source repeats the same flags apart from the linker.
+
+An assigned `RUSTFLAGS` replaces the configuration's flags, so the Makefile
+recipes that set it compose the standard's flags onto any inherited value (CI's
+`setup-rust` exports one). Two builds are deliberately excluded: coverage
+assigns `RUSTFLAGS` without the fast flags, because a measurement should not
+depend on them, and release builds keep the platform linker.
+
+### Cranelift
+
+Exception: Cranelift is not the default backend in `.cargo/config.toml`. The
+repository pins `nightly-2026-05-28`, but the release workflow
+(`cross +stable build --release`) builds on a stable toolchain against
+`.cargo/config.toml`, and stable Cargo refuses a
+`[profile.dev] codegen-backend` key ("config profile `dev` is not valid"), so a
+backend selected there would break every release (recorded 2026-09-29). The
+standard make targets select Cranelift instead, by passing
+`--config tools/dev-fast/config.toml`, which holds only the backend selection;
+coverage and release builds never pass it. A contract fails if a
+`codegen-backend` key reaches `.cargo/config.toml` while the release builds on
+`+stable`. Revisit if the release moves to the pinned nightly.
+
+The make targets' Cranelift rests on thin evidence: the crate is still the
+template stub, and its suite is one stub test and one doctest. When real tests
+land, re-measure the full suite under Cranelift, and if any test fails, record
+it here and drop the backend from `tools/dev-fast/config.toml`.
 
 ## Coverage publication
 
