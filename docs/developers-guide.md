@@ -39,8 +39,8 @@ both the accelerated path and `make coverage` have what they need
 pre-installed. The dev-fast path requires a nightly toolchain and is never
 applied to release, coverage, or verification builds.
 
-Install `clang`, `lld`, `mold`, `python3`, and `cargo-audit` before running the
-full generated workflow locally on Linux.
+Install `clang`, `lld`, `mold`, `python3`, `uv`, and `cargo-audit` before
+running the full generated workflow locally on Linux.
 
 ### Security audit ignores
 
@@ -110,7 +110,8 @@ then on the baseline protects them.
 `cv005-contracts check`, the shared contract library in `leynos/shared-actions`
 (`packages/cv005-contracts`), from a full commit named by `CV005_CONTRACTS_REF`
 in the Makefile; CI runs it in a "Check the CV-005 contracts" step. A fix to
-the rules is therefore a pin bump. The repository's parameters are in
+the rules is therefore a pin bump. The target needs `uv`, which fetches the
+Python 3.13 the library runs under. The repository's parameters are in
 `.github/cv005.toml`: its `repository` name and the `[selection]` the baseline
 measures, which the publisher's generator must carry and every pull-request
 lane must match. The library's own suite proves each rule refuses the shape it
