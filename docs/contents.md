@@ -40,10 +40,10 @@ set.
 - [ADR 006: `main` owns coverage publication](adr-006-main-owns-coverage-publication.md)
   records the split between the pull-request ratchet and the CodeScene
   publisher on `main`.
-- [ADR 006: Make the GEM substrate a production boundary](adr-006-gem-substrate-boundary.md)
+- [ADR 007: Make the GEM substrate a production boundary](adr-007-gem-substrate-boundary.md)
   records Clerestory, Lapidary, Burin, and Escutcheon as production contracts
   in hosted mode while Mullion stays deferred.
-- [ADR 007: Keep Enfilade out of rendering authority](adr-007-enfilade-rendering-authority.md)
+- [ADR 008: Keep Enfilade out of rendering authority](adr-008-enfilade-rendering-authority.md)
   records that Cabochon display, print, export, thumbnail, clipboard, and
   accessibility output crosses Lapidary and Burin contracts.
 

@@ -21,7 +21,7 @@ environment instead of building a private framework.
 This step answers what every Cabochon application can rely on before
 Enfilade-specific behaviour enters the picture. It makes the Clerestory,
 Escutcheon, Lapidary, and Burin boundaries production contracts in hosted mode,
-per ADR 006. See `cabochon-design.md` §§3 and 8.1-8.4.
+per ADR 007. See `cabochon-design.md` §§3 and 8.1-8.4.
 
 - [ ] 1.0.1. Define the minimum Clerestory application contract.
   - Cover windows, menus, commands, standard dialogs, focus, keyboard

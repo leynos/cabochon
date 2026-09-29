@@ -1,4 +1,4 @@
-# Architectural decision record (ADR) 006: Make the GEM substrate a production boundary
+# Architectural decision record (ADR) 007: Make the GEM substrate a production boundary
 
 ## Status
 

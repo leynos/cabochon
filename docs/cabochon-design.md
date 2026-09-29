@@ -587,8 +587,8 @@ libraries only emit events and metrics.
 | Live relationship lifecycle                | Safety contract decided; transition details open                       | [ADR 005](adr-005-explicit-live-relationship-states.md); validate transitions against later slices. |
 | Runtime wire protocol                      | Open                                                                   | Prototype in-process and local inter-process contracts without changing domain identifiers.         |
 | Storage engine and payload format          | Open                                                                   | Exercise migration, unknown-type preservation, and project export before selection.                 |
-| GEM substrate boundary                     | Accepted: substrate contracts are production boundaries in hosted mode | [ADR 006](adr-006-gem-substrate-boundary.md).                                                       |
-| Rendering authority                        | Accepted: Enfilade resolves applicability but never owns rendering     | [ADR 007](adr-007-enfilade-rendering-authority.md).                                                 |
+| GEM substrate boundary                     | Accepted: substrate contracts are production boundaries in hosted mode | [ADR 007](adr-007-gem-substrate-boundary.md).                                                       |
+| Rendering authority                        | Accepted: Enfilade resolves applicability but never owns rendering     | [ADR 008](adr-008-enfilade-rendering-authority.md).                                                 |
 | Compositor and GPU renderer implementation | Deferred                                                               | Decide only when the hosted proving ground establishes product value.                               |
 
 *Table 3: Design decisions and resolution paths.*

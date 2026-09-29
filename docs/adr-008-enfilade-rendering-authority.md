@@ -1,4 +1,4 @@
-# Architectural decision record (ADR) 007: Keep Enfilade out of rendering authority
+# Architectural decision record (ADR) 008: Keep Enfilade out of rendering authority
 
 ## Status
 
@@ -60,7 +60,7 @@ interactive view, geometric scene, exported document, or print job.
 - `cabochon-design.md` §§3, 7.1, 8.3-8.4, 8.9, and 13.1 define the
   invariants, the presentation boundary, the scene and renderer contracts, and
   the conformance tests.
-- ADR 006 establishes the substrate contracts this decision protects.
+- ADR 007 establishes the substrate contracts this decision protects.
 
 ## Consequences
 
