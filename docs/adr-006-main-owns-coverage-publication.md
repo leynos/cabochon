@@ -43,11 +43,12 @@ run in progress, so triggered runs upload in commit order; a manual re-run of
 an older run republishes that commit's coverage and baseline until the next
 push.
 
-`tests/coverage_workflows.rs` enforces the split: it reads every workflow a
-pull request can reach as a closure through local reusable-workflow calls,
-every workflow a push can start for second baseline writers, and every other
-workflow for stray CodeScene access, and drives each rule against breaching
-fixtures.
+`make test-workflow-contracts` enforces the split by running the shared
+`cv005-contracts` library from shared-actions. It reads every workflow a pull
+request can reach as a closure through local reusable-workflow calls, every
+workflow a push can start for second baseline writers, and every other workflow
+for stray CodeScene access. The library's own suite drives each rule against
+breaching fixtures.
 
 ## Options considered
 
