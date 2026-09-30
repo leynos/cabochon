@@ -50,8 +50,12 @@ jobs:
       - name: Setup Rust
         # The pull-request lane's revision, so both measurements share one
         # toolchain setup.
-        uses: leynos/shared-actions/.github/actions/setup-rust@4fb8eb7ad52454678a0662865d81d3cd17aa6e0e
+        uses: leynos/shared-actions/.github/actions/setup-rust@8a83824b29dfe8f861714b544dc85fb925ed010c
         with:
+          expect-cache: any
+          # One sccache lane with ci.yml's build-test: only a push to main saves,
+          # so pull requests warm from the lane main's publisher writes.
+          sccache-cache-discriminator: coverage
           install-mold: 'true'
       - name: Install coverage linkers
         # The same packages as the pull-request lane: `.cargo/config.toml`

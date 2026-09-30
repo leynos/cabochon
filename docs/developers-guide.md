@@ -70,6 +70,7 @@ request reads the cache and never writes one.
   `tests/sccache_lane.rs` holds all three clauses (`expect-cache`, the shared
   discriminator, and the release switch) by action name and inputs, never by a
   revision.
+
 ## The build standard
 
 Development, test, lint, and typecheck builds use the parallel `rustc` frontend
