@@ -2,7 +2,10 @@
 
 ## Status
 
-Accepted. Adopts concordat's CV-005, `main-owned-codescene-coverage`.
+Accepted design. Adopts concordat's CV-005, `main-owned-codescene-coverage`.
+The environment's main-only deployment policy is verified; token placement and
+removal of repository-level exposure still need owner evidence before the
+rollout is complete.
 
 ## Date
 
@@ -38,16 +41,18 @@ the report in explicit upload mode, passing the secret as the action's
 `access-token` input and guarded on exactly
 `steps.codescene-token.outputs.available == 'true' && github.ref == 'refs/heads/main'`,
 where a check step reports whether the secret is set and no step holds it in
-its `env`, in a concurrency group keyed on the ref alone that never cancels a
-run in progress, so triggered runs upload in commit order; a manual re-run of
-an older run republishes that commit's coverage and baseline until the next
-push.
+its `env`. The uploading job declares the `codescene` environment. A GitHub API
+read-back on 2026-09-29 confirmed that it exists with custom deployment branch
+policies and exactly one permitted branch, `main`. Environment-secret and
+repository-secret name read-backs returned HTTP 403, so the location of
+`CS_ACCESS_TOKEN` and removal of any repository-level exposure remain
+unverified. The publisher uses a never-cancelling concurrency group keyed on
+workflow and ref; a manual re-run of an older run can republish older coverage.
 
-`tests/coverage_workflows.rs` enforces the split: it reads every workflow a
-pull request can reach as a closure through local reusable-workflow calls,
-every workflow a push can start for second baseline writers, and every other
-workflow for stray CodeScene access, and drives each rule against breaching
-fixtures.
+`make test-workflow-contracts` runs the pinned shared `cv005-contracts check`.
+`.github/cv005.toml` holds this repository's parameters. The shared contract
+checks workflow reachability, coverage parity, token handling, and baseline
+writer uniqueness; its own suite tests the failure cases.
 
 ## Options considered
 
@@ -56,26 +61,16 @@ fixtures.
 - Drop CodeScene coverage altogether. Rejected: the trunk figure is still
   wanted, and the ratchet needs a trunk-written baseline anyway.
 - Protect the publisher with a deployment environment restricted to `main`.
-  Deferred: it is a repository-settings change awaiting the owner's decision.
-  Until then, a writer who dispatches an edited copy of the publisher on a
-  branch could reach the token, as any writer already could by pushing a new
-  workflow; the ref guard stops only unedited dispatches.
+  Selected. The workflow declaration and main-only deployment policy are
+  verified. Token placement and removal of repository-level exposure remain
+  administrative prerequisites.
 
 ## Consequences
 
 - A pull request's coverage is judged only by the ratchet; CodeScene sees
   `main`.
-- A dispatch measures without advancing the baseline; one that replaces a
-  pending push leaves the baseline a commit behind until the next push.
+- An eligible `main` dispatch measures without advancing the baseline; one that
+  replaces a pending push leaves the baseline a commit behind until the next
+  push. Other branch dispatches are refused by the protected environment.
 - Adding a workflow that touches CodeScene, runs ratcheted coverage on a push,
   or changes the coverage selection fails the contract, which names the clause.
-
-## Addendum, 2026-09-29: the contract moved to a shared library
-
-The contract that enforces this decision no longer lives in this repository.
-`make test-workflow-contracts` runs `cv005-contracts check`, the shared
-contract library in `leynos/shared-actions` (`packages/cv005-contracts`), from
-a full commit pinned in the Makefile, and `.github/cv005.toml` holds this
-repository's parameters. The clauses are unchanged, and the library's own suite
-proves each one. The paragraphs above name the repository-local copy this
-replaces.

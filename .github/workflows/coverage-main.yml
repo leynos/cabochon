@@ -34,9 +34,9 @@ concurrency:
 jobs:
   coverage-upload:
     runs-on: ubuntu-latest
-    # The CodeScene token lives in this environment, whose deployment policy
-    # admits `main` alone; the codescene environment contract holds it to
-    # this job.
+    # The environment's deployment policy admits `main` alone. Its token
+    # placement still needs owner evidence; the workflow contract holds this
+    # environment declaration to the publishing job.
     environment: codescene
     permissions:
       contents: read
@@ -80,7 +80,7 @@ jobs:
           output-path: lcov.info
           format: lcov
           with-ratchet: 'true'
-      - name: Check for the CodeScene token
+      - name: Check CodeScene token
         id: codescene-token
         # The expression is evaluated before the shell runs, so this step reports
         # whether the secret is set while holding nothing in its `env`. No step
