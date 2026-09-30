@@ -294,7 +294,7 @@ fn the_workflow_reader_wants_the_input_on_each_step(
     1,
     Some("-Zthreads=8")
 )]
-#[case::missing_mold(
+#[case::missing_linker(
     "- name: Run doctests\n  env:\n    RUSTFLAGS: -D warnings -Zthreads=8\n  run: cargo test \
      --doc --workspace --all-features\n",
     1,

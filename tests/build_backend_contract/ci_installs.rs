@@ -10,6 +10,7 @@ use super::{
     MARKDOWNLINT_ACTION,
     PUBLISHER,
     SETUP_RUST,
+    SETUP_UV,
     action_step,
     field,
     is_binding,
@@ -17,6 +18,24 @@ use super::{
     steps,
     suite_jobs,
 };
+
+/// Correct order of uv provisioning and the spelling gate in the CI fixture.
+const UV_THEN_SPELLING: &str = concat!(
+    "      - name: Setup uv\n",
+    "        uses: astral-sh/setup-uv@",
+    "12d13f90bc3a5a1971bebad4beb09a4dfa962e91\n",
+    "      - name: Spelling\n",
+    "        run: make spelling",
+);
+
+/// Reversed order used to prove that CI rejects late provisioning.
+const SPELLING_THEN_UV: &str = concat!(
+    "      - name: Spelling\n",
+    "        run: make spelling\n",
+    "      - name: Setup uv\n",
+    "        uses: astral-sh/setup-uv@",
+    "12d13f90bc3a5a1971bebad4beb09a4dfa962e91",
+);
 
 /// Checks that each pinned installer precedes its consumer without a soft skip.
 fn install_order_problems(steps: &[Value]) -> Vec<String> {
@@ -126,6 +145,28 @@ fn binary_tool_problems(steps: &[Value]) -> Vec<String> {
     problems
 }
 
+/// Checks that uv setup is binding and precedes the spelling gate.
+fn spelling_setup_is_valid(uv_at: usize, uv: &Value, gate_at: usize) -> bool {
+    uv_at < gate_at && is_binding(uv)
+}
+
+/// Checks that the spelling step runs its binding Make gate.
+fn spelling_gate_is_valid(gate: &Value) -> bool {
+    is_binding(gate) && gate.get("run").and_then(Value::as_str) == Some("make spelling")
+}
+
+/// Reports missing, late or non-binding spelling setup and gate steps.
+fn spelling_problems(steps: &[Value]) -> Vec<String> {
+    match (action_step(steps, SETUP_UV), named_step(steps, "Spelling")) {
+        (Some((uv_at, uv)), Some((gate_at, gate)))
+            if spelling_setup_is_valid(uv_at, uv, gate_at) && spelling_gate_is_valid(gate) =>
+        {
+            Vec::new()
+        }
+        _ => vec!["CI must run the binding spelling gate after setup-uv".to_owned()],
+    }
+}
+
 /// Checks action ordering and binding inputs in the PR CI job.
 fn ci_install_problems(text: &str) -> Result<Vec<String>, String> {
     let workflow: Value = serde_norway::from_str(text).map_err(|error| error.to_string())?;
@@ -133,6 +174,7 @@ fn ci_install_problems(text: &str) -> Result<Vec<String>, String> {
     let mut problems = install_order_problems(steps);
     problems.extend(installer_input_problems(steps));
     problems.extend(binary_tool_problems(steps));
+    problems.extend(spelling_problems(steps));
     Ok(problems)
 }
 
@@ -157,7 +199,7 @@ fn ci_installers_precede_their_consumers() {
 #[case::suite_pinned("cranelift: true", "cranelift: true\n          suite-version: '1.0'")]
 #[case::cranelift_disabled("cranelift: true", "cranelift: false")]
 #[case::cranelift_absent("cranelift: true", "")]
-#[case::cranelift_unrecognised("cranelift: true", "cranelift: maybe")]
+#[case::cranelift_unrecognized("cranelift: true", "cranelift: maybe")]
 #[case::installer_conditional(
     INSTALL_WHITAKER,
     "leynos/shared-actions/.github/actions/install-whitaker@\
@@ -177,6 +219,12 @@ fn ci_installers_precede_their_consumers() {
 #[case::audit_source_fallback(
     "cargo binstall --no-confirm --disable-strategies compile cargo-audit",
     "cargo binstall --no-confirm cargo-audit"
+)]
+#[case::spelling_removed("run: make spelling", "run: true")]
+#[case::spelling_before_setup(UV_THEN_SPELLING, SPELLING_THEN_UV)]
+#[case::spelling_soft_failed(
+    "run: make spelling",
+    "run: make spelling\n        continue-on-error: true"
 )]
 fn ci_install_mutations_are_detected(#[case] old: &str, #[case] new: &str) {
     let mutated = CI.replacen(old, new, 1);

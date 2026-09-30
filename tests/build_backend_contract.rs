@@ -39,6 +39,7 @@ const INSTALL_MDTABLEFIX: &str = "leynos/shared-actions/.github/actions/install-
                                   c5a54701c8603a0fa756a6b34c49bc2af75a6c11";
 const MARKDOWNLINT_ACTION: &str =
     "DavidAnson/markdownlint-cli2-action@2df9e28eb87988518ef3880c34edad45d65b1668";
+const SETUP_UV: &str = "astral-sh/setup-uv@12d13f90bc3a5a1971bebad4beb09a4dfa962e91";
 
 /// Returns a YAML job's steps, rejecting absent or empty lists.
 fn steps<'a>(workflow: &'a Value, job: &str) -> Result<&'a [Value], String> {
@@ -279,25 +280,25 @@ fn release_builder_problems(
 }
 
 /// Checks that packaged artefacts retain their matrix path and checksum.
-fn release_artifact_problems(steps: &[Value]) -> Result<Vec<String>, String> {
-    let (_, prepare) = named_step(steps, "Prepare artifact")
-        .ok_or_else(|| "release artifact preparation is missing".to_owned())?;
+fn release_artefact_problems(steps: &[Value]) -> Result<Vec<String>, String> {
+    let (_, prepare) = named_step(steps, "Prepare artefact")
+        .ok_or_else(|| "release artefact preparation is missing".to_owned())?;
     let prepare_run = prepare
         .get("run")
         .and_then(Value::as_str)
         .unwrap_or_default();
     let mut problems = Vec::new();
-    if !prepare_run.contains("mkdir -p artifacts/${{ matrix.os }}-${{ matrix.arch }}")
+    if !prepare_run.contains("mkdir -p artefacts/${{ matrix.os }}-${{ matrix.arch }}")
         || !prepare_run.contains("shasum -a 256")
     {
         problems.push(
-            "release artifacts must retain the matrix path and macOS checksum tool".to_owned(),
+            "release artefacts must retain the matrix path and macOS checksum tool".to_owned(),
         );
     }
-    let (_, upload) = named_step(steps, "Upload release artifact")
-        .ok_or_else(|| "release artifact upload is missing".to_owned())?;
-    if field(upload, "with", "path") != Some("artifacts/${{ matrix.os }}-${{ matrix.arch }}") {
-        problems.push("release upload must retain the matrix artifact path".to_owned());
+    let (_, upload) = named_step(steps, "Upload release artefact")
+        .ok_or_else(|| "release artefact upload is missing".to_owned())?;
+    if field(upload, "with", "path") != Some("artefacts/${{ matrix.os }}-${{ matrix.arch }}") {
+        problems.push("release upload must retain the matrix artefact path".to_owned());
     }
     Ok(problems)
 }
@@ -310,7 +311,7 @@ fn release_problems(text: &str) -> Result<Vec<String>, String> {
     for (builder, executable) in [("native", "cargo"), ("cross", "cross")] {
         problems.extend(release_builder_problems(steps, builder, executable)?);
     }
-    problems.extend(release_artifact_problems(steps)?);
+    problems.extend(release_artefact_problems(steps)?);
     Ok(problems)
 }
 
@@ -339,7 +340,7 @@ fn stable_release_uses_external_working_directory() {
     "cargo +stable build --release --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\"",
     "cargo +stable build --release"
 )]
-#[case::artifact_path("path: artifacts/${{ matrix.os }}-${{ matrix.arch }}", "path: lost")]
+#[case::artefact_path("path: artefacts/${{ matrix.os }}-${{ matrix.arch }}", "path: lost")]
 #[case::mac_checksum("shasum -a 256", "sha256sum")]
 fn release_mutations_are_detected(#[case] old: &str, #[case] new: &str) {
     let mutated = RELEASE.replacen(old, new, 1);

@@ -22,17 +22,17 @@ set -euo pipefail
 probe_dir=$(mktemp -d)
 trap 'rm -rf -- "$probe_dir"' EXIT
 
-if [[ $FIXTURE_CASE != missing_mold ]]; then
+if [[ $FIXTURE_CASE != missing_linker_binary ]]; then
   cat > "$probe_dir/mold" <<'MOULD'
 #!/usr/bin/env bash
-printf 'mold %s\n' "$FAKE_MOLD_VERSION"
+printf 'mold %s\n' "$FAKE_LINKER_VERSION"
 MOULD
   chmod +x "$probe_dir/mold"
 fi
 
 if [[ $FIXTURE_CASE == different_binary ]]; then
   cp "$probe_dir/mold" "$probe_dir/ld.mold"
-elif [[ $FIXTURE_CASE != missing_linker && $FIXTURE_CASE != missing_mold ]]; then
+elif [[ $FIXTURE_CASE != missing_linker && $FIXTURE_CASE != missing_linker_binary ]]; then
   ln -s mold "$probe_dir/ld.mold"
 fi
 
@@ -57,9 +57,9 @@ else
   fi
   case "$FIXTURE_CASE" in
     stale_version) grep -Fq 'does not match pinned' "$probe_dir/check.err" ;;
-    missing_mold) grep -Fq 'Pinned mold is unavailable on PATH' "$probe_dir/check.err" ;;
+    missing_linker_binary) grep -Fq 'Pinned `mold` is unavailable on PATH' "$probe_dir/check.err" ;;
     missing_linker|different_binary)
-      grep -Fq 'must resolve to the mold binary' "$probe_dir/check.err"
+      grep -Fq 'must resolve to the `mold` binary' "$probe_dir/check.err"
       ;;
   esac
 fi
@@ -82,7 +82,7 @@ fn cargo_and_make_share_the_pinned_linker() {
 #[rstest]
 #[case::valid_pair("good", "pinned")]
 #[case::stale_pair("stale_version", "0.0.0")]
-#[case::missing_mold("missing_mold", "pinned")]
+#[case::missing_linker_binary("missing_linker_binary", "pinned")]
 #[case::missing_linker("missing_linker", "pinned")]
 #[case::different_binary("different_binary", "pinned")]
 fn launcher_uses_only_the_pinned_linker(#[case] fixture_case: &str, #[case] version: &str) {
@@ -95,7 +95,7 @@ fn launcher_uses_only_the_pinned_linker(#[case] fixture_case: &str, #[case] vers
         .args(["-c", PROBE])
         .env("LAUNCHER", LAUNCHER)
         .env("FIXTURE_CASE", fixture_case)
-        .env("FAKE_MOLD_VERSION", selected_version)
+        .env("FAKE_LINKER_VERSION", selected_version)
         .output()
         .expect("run controlled linker probe");
     assert!(

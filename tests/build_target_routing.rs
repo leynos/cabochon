@@ -203,7 +203,7 @@ fn failed_route(output: &MakeOutput, diagnostic: &str) -> Result<(), String> {
     Ok(())
 }
 
-/// Native Linux build: preflight and Cargo both select mold and threads.
+/// Native Linux build: preflight and Cargo both select `mold` and threads.
 #[test]
 fn native_build_selects_mold_and_threads() {
     let output = dry_run("build", &[], None).expect("run the native build dry-run");
@@ -321,7 +321,7 @@ fn clippy_stops_target_routing_at_the_cargo_separator() {
         .expect("arguments after Clippy's separator must not change Cargo routing");
 }
 
-/// Mutation contract: removing threads or leaking mold into a cross route fails.
+/// Mutation contract: removing threads or leaking `mold` into a cross route fails.
 #[test]
 fn command_contract_rejects_missing_threads_and_cross_target_mold() {
     let output = dry_run(
@@ -360,7 +360,7 @@ fn command_contract_rejects_missing_threads_and_cross_target_mold() {
         linker_problem
             .as_ref()
             .is_err_and(|problem| problem.contains("expected mold=false")),
-        "adding mold to a cross target was not detected: {linker_problem:?}"
+        "adding `mold` to a cross target was not detected: {linker_problem:?}"
     );
 }
 

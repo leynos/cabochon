@@ -153,8 +153,7 @@ fn whitaker_denies_warnings_without_development_flags() {
 
 /// Scenario: Make is asked to run all gates with parallel jobs.
 ///
-/// Invariant: the composite recipe still reaches formatting before lint and
-/// lint before the test suite.
+/// Invariant: the composite recipe keeps every gate in order.
 #[test]
 fn all_orders_its_gates_even_with_parallel_make() {
     let output = make(&[
@@ -174,19 +173,53 @@ fn all_orders_its_gates_even_with_parallel_make() {
         String::from_utf8_lossy(&output.stderr)
     );
     let stdout = String::from_utf8(output.stdout).expect("read Make output");
-    let positions = ["check-fmt", "markdownlint", "lint", "test"]
-        .map(|target| stdout.find(&format!("make {target}")));
+    let positions = [
+        "check-fmt",
+        "markdownlint",
+        "spelling",
+        "lint",
+        "test",
+        "test-workflow-contracts",
+    ]
+    .map(|target| stdout.find(&format!("make {target}")));
     let [
         Some(format_at),
         Some(markdown_at),
+        Some(spelling_at),
         Some(lint_at),
         Some(test_at),
+        Some(contracts_at),
     ] = positions
     else {
-        panic!("did not read all four gates in {stdout}");
+        panic!("did not read all six gates in {stdout}");
     };
     assert!(
-        format_at < markdown_at && markdown_at < lint_at && lint_at < test_at,
+        format_at < markdown_at
+            && markdown_at < spelling_at
+            && spelling_at < lint_at
+            && lint_at < test_at
+            && test_at < contracts_at,
         "{stdout}"
+    );
+}
+
+/// Scenario: spelling uses the pinned builder gate and propagates failure.
+#[test]
+fn spelling_gate_is_binding() {
+    let dry_run =
+        make(&["--dry-run", "spelling", "UVX=probe-uvx"]).expect("read evaluated spelling recipe");
+    assert!(dry_run.status.success());
+    let command = String::from_utf8(dry_run.stdout).expect("read spelling command");
+    assert!(
+        command.contains(concat!(
+            "probe-uvx --from \"git+https://github.com/leynos/typos-config-builder.git@v0.1.3\" ",
+            "typos-config-builder gate --scope all"
+        )),
+        "{command}"
+    );
+    let failed = make(&["--silent", "spelling", "UVX=false"]).expect("run failing spelling probe");
+    assert!(
+        !failed.status.success(),
+        "spelling failure did not propagate"
     );
 }

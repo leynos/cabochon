@@ -25,8 +25,8 @@ the developer guide for local build-tool installation and routing details.
 
 The generated `Makefile` exposes these public targets:
 
-- `make all` runs formatting checks, linting, tests and the workflow contract
-  check below.
+- `make all` runs formatting checks, Markdown lint, spelling, Rust lint, tests,
+  and the workflow contract check below in order.
 - `make check-fmt` verifies Rust formatting.
 - `make lint` runs rustdoc, Clippy, and Whitaker with warnings denied.
 - `make test` runs `cargo nextest run` when cargo-nextest is installed and
@@ -40,6 +40,8 @@ The generated `Makefile` exposes these public targets:
   (`cv005-contracts check`, pinned in the Makefile) over the repository's
   workflows. It needs `uv`, which fetches Python 3.13 itself.
 - `make markdownlint` checks Markdown files.
+- `make spelling` regenerates the spelling configuration and checks source and
+  prose with the pinned builder.
 - `make nixie` validates Mermaid diagrams.
 
 Install `clang`, `lld`, `mold`, `python3`, and `cargo-audit` before running the

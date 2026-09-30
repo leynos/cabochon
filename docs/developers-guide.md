@@ -5,9 +5,9 @@ This guide explains the contributor workflow for the generated Cabochon project.
 ## Local Workflow
 
 Use `make all` as the public entrypoint for non-mutating formatting checks,
-Markdown linting, Rust linting, and tests. It runs these gates in that order,
-including when Make receives `-j`. `make lint` runs rustdoc, Clippy, and
-Whitaker. `make test` prefers `cargo nextest run` and falls back to
+Markdown linting, spelling, Rust linting, and tests. It runs these gates in
+that order, including when Make receives `-j`. `make lint` runs rustdoc,
+Clippy, and Whitaker. `make test` prefers `cargo nextest run` and falls back to
 `cargo test` when cargo-nextest is not available. `make audit` derives the Rust
 workspace root with `cargo metadata`, logs workspace member manifests, and runs
 `cargo audit` once from the workspace root. `make coverage` uses
@@ -48,6 +48,11 @@ Check `mdtablefix --version` and put that bin directory on `PATH`. Install
 `markdownlint-cli2` with `bun install --global markdownlint-cli2@0.22.1`, with
 its bin directory on `PATH`. `make markdownlint` checks the same globs as CI.
 
+`make spelling` runs the pinned `typos-config-builder` v0.1.3 gate over source
+and prose. It regenerates `typos.toml` from the live shared dictionary and
+`typos.local.toml` before checking spelling; CI runs the same target after
+setting up `uv`. A successful release pin alone does not freeze the dictionary.
+
 The repository owns `scripts/install-build-tools.sh` and
 `scripts/check-build-tools.sh` solely as entrypoints for their corresponding
 Make targets. `scripts/resolve-build-target.sh` is Make's private route reader:
@@ -86,8 +91,8 @@ builds six targets in one matrix, each leg with a `builder`.
   <checkout>/Cargo.toml --target <target>`
   from the checkout's parent on `ubuntu-latest`.
 - **Linker for the x86_64 Linux leg.** `.cargo/config.toml` names `clang` as
-  that triple's linker for the development build (with mold). The `cross` image
-  has gcc and no clang, so the cross step sets
+  that triple's linker for the development build (with `mold`). The `cross`
+  image has gcc and no clang, so the cross step sets
   `CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=cc`. An environment value beats
   the configuration file and `cross` forwards `CARGO_*` variables into its
   container. The development configuration is untouched.

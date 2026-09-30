@@ -1,4 +1,4 @@
-.PHONY: help all clean test build release coverage lint lint-clippy lint-whitaker typecheck fmt check-fmt markdownlint nixie audit rust-audit install-build-tools check-build-tools test-workflow-contracts
+.PHONY: help all clean test build release coverage lint lint-clippy lint-whitaker typecheck fmt check-fmt markdownlint spelling nixie audit rust-audit install-build-tools check-build-tools test-workflow-contracts
 
 SHELL := bash
 
@@ -24,6 +24,7 @@ TEST_CMD := $(if $(shell command -v cargo-nextest 2>/dev/null),nextest run,test)
 COVERAGE_LINKER_FLAGS ?= -fuse-ld=lld
 COVERAGE_RUST_FLAGS ?= $(RUST_FLAGS) -C link-arg=$(COVERAGE_LINKER_FLAGS)
 MDLINT ?= markdownlint-cli2
+UVX ?= uvx
 # `make fmt` and `make check-fmt` call mdtablefix directly. `--git` selects the
 # Markdown files Git tracks and `--include-untracked` adds the untracked files
 # Git does not ignore, so a new document is formatted before it is staged.
@@ -87,6 +88,7 @@ release: target/release/$(TARGET) ## Build release binary
 all: ## Perform a comprehensive check of code
 	$(MAKE) check-fmt
 	$(MAKE) markdownlint
+	$(MAKE) spelling
 	$(MAKE) lint
 	$(MAKE) test
 	$(MAKE) test-workflow-contracts
@@ -147,6 +149,9 @@ check-fmt: ## Verify formatting
 
 markdownlint: ## Lint Markdown files
 	$(MDLINT) '**/*.md'
+
+spelling: ## Regenerate the spelling configuration and check source and prose
+	$(UVX) --from "git+https://github.com/leynos/typos-config-builder.git@v0.1.3" typos-config-builder gate --scope all
 
 nixie: ## Validate Mermaid diagrams
 	$(NIXIE) --no-sandbox

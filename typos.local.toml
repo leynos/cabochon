@@ -1,0 +1,42 @@
+schema = 1
+
+[patterns]
+ignore = [
+  # The linker, its documented flags and the shared setup-rust input have fixed names.
+  '`mold`',
+  '\\?`mold\\?`',
+  'ld\.mold',
+  'fuse-ld=mold',
+  'install[-_]mold',
+  'installs_mold',
+  'clang lld mold',
+  # Product paths, release assets, shell commands, and identifiers are fixed.
+  'tools/mold/',
+  'clang-pinned-mold\.sh',
+  'rui314/mold/',
+  'mold-[0-9]+\.[0-9]+\.[0-9]+-(x86_64|aarch64)-linux\.tar\.gz',
+  'mold-\$mold_version',
+  'mold_version',
+  'mold_arch',
+  'MOLD_RELEASE_BASE_URL',
+  'command -v mold',
+  'mold --version',
+  'probe_dir/mold',
+  'ln -s mold',
+  'mold %s',
+  'mold=',
+  '\bmold:\s*(true|false|bool|preflight_value)',
+  'uses_mold',
+  'leaked_mold',
+  'matrix_linux_suite_jobs_need_mold',
+  'native_build_selects_mold_and_threads',
+  'newly_reachable_linux_suite_jobs_need_mold',
+  'command_contract_rejects_missing_threads_and_cross_target_mold',
+  'mold_removed',
+  'expected\.mold',
+  # These are external workflow keys and action slugs, not local prose.
+  'CARGO_TERM_COLOR',
+  'upload-artifact',
+  # Keep the cited protocol title byte-for-byte with its source.
+  'Color management protocol',
+]
