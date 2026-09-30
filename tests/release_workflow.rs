@@ -314,6 +314,7 @@ fn a_dropped_or_duplicated_leg_is_refused(#[case] target: &str) {
     })
     .expect("the workflow should be readable");
     assert_reports(&duplicated, "exactly");
+    assert_reports(&duplicated, target);
 }
 
 #[rstest]
