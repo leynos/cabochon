@@ -1,263 +1,382 @@
-//! Holds `.cargo/config.toml` free of a codegen backend while the release
-//! builds on stable.
+//! Holds Cabochon's development backend and explicit non-development routes.
 //!
-//! The release workflow builds with `cross +stable build --release`, and stable
-//! Cargo reads `.cargo/config.toml` like any other Cargo. It refuses a
-//! `codegen-backend` key there ("config profile `dev` is not valid") and stops,
-//! so a backend selected in that file breaks every release build. The Cranelift
-//! selection therefore lives in `tools/dev-fast/config.toml`, which only the
-//! development make targets pass with `--config`. The judgement is driven
-//! against fixtures first, because a rule exercised only over this repository's
-//! own compliant files would pass whether or not it detects anything, and then
-//! applied to the real files. Both are read as text so the contract needs no
-//! parser dependency.
+//! These tests cover repository-specific Cargo and workflow wiring. They use
+//! breaching fixtures so deleting an installer or an exclusion cannot pass over
+//! an empty set. The compiler invocation itself is checked separately with a
+//! verbose pinned-nightly build.
+
+use std::process::Command;
 
 use rstest::rstest;
+use serde_norway::Value;
 
-const CARGO_CONFIG: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/.cargo/config.toml"));
-const RELEASE_WORKFLOW: &str = include_str!(concat!(
+#[path = "build_backend_contract/ci_installs.rs"]
+mod ci_installs;
+#[path = "build_backend_contract/pinned_linker.rs"]
+mod pinned_linker;
+#[path = "build_backend_contract/suite_jobs.rs"]
+mod suite_jobs;
+
+const CONFIG: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/.cargo/config.toml"));
+const CI: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/.github/workflows/ci.yml"
+));
+const PUBLISHER: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/.github/workflows/coverage-main.yml"
+));
+const RELEASE: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/.github/workflows/release.yml"
 ));
 
-/// Returns the lines of `text` with comments removed and blanks dropped.
-///
-/// A `#` starts a comment in both TOML and YAML, unless it sits inside a quoted
-/// string, where it is part of the value and a later key must still be seen.
-fn code_lines(text: &str) -> impl Iterator<Item = &str> {
-    text.lines()
-        .map(without_comment)
-        .filter(|line| !line.is_empty())
+const SETUP_RUST: &str =
+    "leynos/shared-actions/.github/actions/setup-rust@6cec89bac47a21cf756d68d638a9a510998e57f8";
+const INSTALL_WHITAKER: &str = "leynos/shared-actions/.github/actions/install-whitaker@\
+                                6dea5677a84fec60ca51b07202570e3af12ffdb4";
+const INSTALL_MDTABLEFIX: &str = "leynos/shared-actions/.github/actions/install-mdtablefix@\
+                                  c5a54701c8603a0fa756a6b34c49bc2af75a6c11";
+const MARKDOWNLINT_ACTION: &str =
+    "DavidAnson/markdownlint-cli2-action@2df9e28eb87988518ef3880c34edad45d65b1668";
+
+/// Returns a YAML job's steps, rejecting absent or empty lists.
+fn steps<'a>(workflow: &'a Value, job: &str) -> Result<&'a [Value], String> {
+    workflow
+        .get("jobs")
+        .and_then(|jobs| jobs.get(job))
+        .and_then(|job_value| job_value.get("steps"))
+        .and_then(Value::as_sequence)
+        .filter(|steps| !steps.is_empty())
+        .map(Vec::as_slice)
+        .ok_or_else(|| format!("{job} has no readable steps"))
 }
 
-/// Returns a line up to a `#` that starts a comment, ignoring one inside a
-/// quoted string, without surrounding space.
-fn without_comment(line: &str) -> &str {
-    let mut quote: Option<char> = None;
-    for (index, c) in line.char_indices() {
-        match (quote, c) {
-            (None, '"' | '\'') => quote = Some(c),
-            (Some(open), _) if c == open => quote = None,
-            (None, '#') => return line.get(..index).unwrap_or(line).trim(),
-            _ => {}
-        }
-    }
-    line.trim()
-}
-
-/// Returns the toolchain override (`+stable`, `+nightly-2026-05-28`) a command
-/// line gives Cargo or `cross` as its first argument, without the `+`.
-///
-/// Only that shape counts: `+stable` in an `echo`, a URL or a comment is not a
-/// build, and reading it as one would report a key the release never reads.
-fn cargo_override(line: &str) -> Option<&str> {
-    let words: Vec<&str> = line.split_whitespace().collect();
-    words.windows(2).find_map(|pair| {
-        let [program, first_argument] = pair else {
-            return None;
-        };
-        let name = program.rsplit('/').next().unwrap_or_default();
-        matches!(name, "cargo" | "cross")
-            .then(|| first_argument.strip_prefix('+'))
-            .flatten()
+/// Returns the first step using a pinned action prefix.
+fn action_step<'a>(steps: &'a [Value], action: &str) -> Option<(usize, &'a Value)> {
+    steps.iter().enumerate().find(|(_, step)| {
+        step.get("uses")
+            .and_then(Value::as_str)
+            .is_some_and(|uses| uses == action)
     })
 }
 
-/// Returns whether the workflow builds on the stable toolchain.
-///
-/// The toolchain override on the build command decides when the workflow gives
-/// one, because that is the toolchain Cargo runs; only a workflow whose commands
-/// name none falls back to the `toolchain` a setup action installs.
-fn builds_on_stable(workflow: &str) -> bool {
-    let overrides: Vec<&str> = code_lines(workflow).filter_map(cargo_override).collect();
-    if overrides.is_empty() {
-        let squeezed = |line: &str| line.replace([' ', '\t', '"', '\''], "");
-        return code_lines(workflow).any(|line| squeezed(line) == "toolchain:stable");
-    }
-    overrides.contains(&"stable")
+/// Returns the first named step.
+fn named_step<'a>(steps: &'a [Value], name: &str) -> Option<(usize, &'a Value)> {
+    steps
+        .iter()
+        .enumerate()
+        .find(|(_, step)| step.get("name").and_then(Value::as_str) == Some(name))
 }
 
-/// Splits a configuration line into its top-level entries, dropping spaces and
-/// quote marks: an inline table's entries and its comma-separated pairs, with
-/// anything inside a quoted string kept whole.
-fn entries(line: &str) -> Vec<String> {
-    let mut found = vec![String::new()];
-    let mut quote: Option<char> = None;
-    for c in line.chars() {
-        match (quote, c) {
-            (None, '"' | '\'') => quote = Some(c),
-            (Some(open), _) if c == open => quote = None,
-            (None, '{' | ',') => found.push(String::new()),
-            (None, ' ') => {}
-            _ => {
-                if let Some(current) = found.last_mut() {
-                    current.push(c);
-                }
-            }
+/// Returns one environment or action-input value as a string.
+fn field<'a>(step: &'a Value, table: &str, key: &str) -> Option<&'a str> {
+    step.get(table)?.get(key)?.as_str()
+}
+
+/// Checks that a step cannot be skipped or softened.
+fn is_binding(step: &Value) -> bool {
+    step.get("if").is_none() && step.get("continue-on-error").is_none()
+}
+
+/// Checks that a coverage action selects LLVM and excludes development flags.
+fn coverage_route(step: &Value) -> Vec<String> {
+    let mut problems = Vec::new();
+    for key in ["DEV", "TEST"] {
+        let env_key = format!("CARGO_PROFILE_{key}_CODEGEN_BACKEND");
+        if field(step, "env", &env_key) != Some("llvm") {
+            problems.push(format!("{env_key} must select llvm"));
         }
     }
-    found
-}
-
-/// Returns whether a configuration line sets a `codegen-backend` key. A string
-/// value that merely contains the words, such as an `[env]` entry, is not one.
-fn sets_backend_key(line: &str) -> bool {
-    entries(line)
-        .iter()
-        .any(|entry| entry.starts_with("codegen-backend="))
-}
-
-/// Returns the configuration lines that select or enable a codegen backend.
-///
-/// The key is matched wherever it sits in the file, so a nested table such as
-/// `[profile.dev.package.foo]` or `[profile.dev.build-override]`, an inline
-/// table, and a quoted key are reported as well as `[profile.dev]` and
-/// `[unstable]`. Cargo refuses every one of them on stable.
-fn backend_keys(config: &str) -> Vec<&str> {
-    code_lines(config)
-        .filter(|line| sets_backend_key(line))
-        .collect()
-}
-
-/// Returns the reasons the configuration would break a stable release build.
-fn findings(config: &str, release: &str) -> Vec<String> {
-    if !builds_on_stable(release) {
-        return Vec::new();
-    }
-    backend_keys(config)
+    let flags = field(step, "env", "RUSTFLAGS").unwrap_or_default();
+    let has_development_flag = ["-Zthreads", "-fuse-ld=mold", "cranelift"]
         .into_iter()
-        .map(|key| format!("`{key}` is set while the release builds on stable, which refuses it"))
-        .collect()
+        .any(|flag| flags.contains(flag));
+    if !flags.contains("-fuse-ld=lld") || has_development_flag {
+        problems.push("coverage RUSTFLAGS must select lld without development flags".to_owned());
+    }
+    if field(step, "env", "CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER") != Some("clang") {
+        problems.push("coverage must drive lld through clang".to_owned());
+    }
+    problems
 }
 
-/// A release workflow building on stable, as this repository's does.
-const STABLE_RELEASE: &str = "steps:\n  - run: cross +stable build --release\n";
-/// A release workflow building on the pinned nightly.
-const NIGHTLY_RELEASE: &str = "steps:\n  - run: cross +nightly-2026-05-28 build --release\n";
-/// A release workflow installing stable through a toolchain action.
-const STABLE_TOOLCHAIN_ACTION: &str = concat!(
-    "steps:\n  - uses: actions-rust-lang/setup-rust-toolchain@abc\n",
-    "    with:\n      toolchain: stable\n  - run: cargo build --release\n"
-);
-/// A release workflow installing the pinned nightly through a toolchain action.
-const NIGHTLY_TOOLCHAIN_ACTION: &str = concat!(
-    "steps:\n  - uses: actions-rust-lang/setup-rust-toolchain@abc\n",
-    "    with:\n      toolchain: nightly-2026-05-28\n  - run: cargo build --release\n"
-);
-/// A release workflow that installs stable but builds with a nightly override,
-/// so the command, not the action, names the toolchain Cargo runs.
-const STABLE_ACTION_NIGHTLY_COMMAND: &str = concat!(
-    "steps:\n  - uses: actions-rust-lang/setup-rust-toolchain@abc\n",
-    "    with:\n      toolchain: stable\n  - run: cross +nightly-2026-05-28 build --release\n"
-);
-/// A release workflow installing stable through a toolchain action, with the
-/// value quoted.
-const STABLE_TOOLCHAIN_QUOTED: &str = concat!(
-    "steps:\n  - uses: actions-rust-lang/setup-rust-toolchain@abc\n",
-    "    with:\n      toolchain: \"stable\"\n  - run: cargo build --release\n"
-);
-/// A release workflow that mentions `+stable` in a command that builds nothing.
-const STABLE_IN_AN_ECHO: &str =
-    "steps:\n  - run: echo +stable is not a toolchain\n  - run: cargo build --release\n";
-/// A release workflow invoking Cargo by absolute path on stable.
-const STABLE_BY_PATH: &str = "steps:\n  - run: /root/.cargo/bin/cargo +stable build --release\n";
-/// A release workflow that mentions stable only in a comment.
-const STABLE_IN_A_COMMENT: &str =
-    "steps:\n  # Was: cross +stable build --release\n  - run: cross build --release\n";
-/// The configuration shape a Cranelift default takes.
-const CRANELIFT: &str =
-    "[unstable]\ncodegen-backend = true\n\n[profile.dev]\ncodegen-backend = \"cranelift\"\n";
-/// A configuration with a linker table and a comment naming the key.
-const LINKER_ONLY: &str = concat!(
-    "# codegen-backend = \"cranelift\" is deliberately absent.\n",
-    "[target.x86_64-unknown-linux-gnu]\nlinker = \"clang\"\n"
-);
+/// Reports gaps in one coverage workflow's suite job.
+fn coverage_problems(text: &str, job: &str) -> Result<Vec<String>, String> {
+    let workflow: Value = serde_norway::from_str(text).map_err(|error| error.to_string())?;
+    let steps = steps(&workflow, job)?;
+    let coverage = steps
+        .iter()
+        .enumerate()
+        .filter(|(_, step)| {
+            step.get("uses")
+                .and_then(Value::as_str)
+                .is_some_and(|uses| uses.contains("/generate-coverage@"))
+        })
+        .collect::<Vec<_>>();
+    if coverage.len() != 1 {
+        return Err(format!("{job} must run exactly one coverage action"));
+    }
+    let Some(&(coverage_at, action)) = coverage.first() else {
+        return Err(format!("{job} has no coverage action"));
+    };
+    let mut problems = coverage_route(action);
+    let isolation = named_step(steps, "Check coverage flag isolation");
+    if !isolation.is_some_and(|(at, step)| {
+        at < coverage_at
+            && is_binding(step)
+            && step.get("run").and_then(Value::as_str).is_some_and(|run| {
+                run.contains("[[ -v CARGO_ENCODED_RUSTFLAGS ]]") && run.contains("exit 1")
+            })
+    }) {
+        problems.push("coverage must reject inherited encoded Rust flags before use".to_owned());
+    }
+    Ok(problems)
+}
 
-/// Scenario: a configuration with and without a backend key, against release
-/// workflows that build on stable or on the pinned nightly.
-///
-/// Invariant: only a backend key beside a stable release build is reported,
-/// once per key, and a comment naming either is not, so the rule is as narrow
-/// as it is sufficient.
+/// Scenario: the two live coverage lanes use the same excluded backend.
 #[rstest]
-#[case::cranelift_with_stable_release(CRANELIFT, STABLE_RELEASE, 2)]
-#[case::cranelift_with_stable_toolchain_action(CRANELIFT, STABLE_TOOLCHAIN_ACTION, 2)]
-#[case::profile_key_alone("[profile.dev]\ncodegen-backend = \"cranelift\"\n", STABLE_RELEASE, 1)]
-#[case::release_profile_key("[profile.release]\ncodegen-backend=\"llvm\"\n", STABLE_RELEASE, 1)]
-#[case::nested_package_table(
-    "[profile.dev.package.foo]\ncodegen-backend = \"llvm\"\n",
-    STABLE_RELEASE,
-    1
-)]
-#[case::build_override_table(
-    "[profile.dev.build-override]\ncodegen-backend=\"llvm\"\n",
-    STABLE_RELEASE,
-    1
-)]
-#[case::inline_table(
-    "profile = { dev = { codegen-backend = \"cranelift\" } }\n",
-    STABLE_RELEASE,
-    1
-)]
-#[case::quoted_key(
-    "[profile.dev]\n\"codegen-backend\" = \"cranelift\"\n",
-    STABLE_RELEASE,
-    1
-)]
-#[case::cargo_invoked_by_path(CRANELIFT, STABLE_BY_PATH, 2)]
-#[case::stable_toolchain_action_with_a_quoted_value(CRANELIFT, STABLE_TOOLCHAIN_QUOTED, 2)]
-#[case::key_after_a_hash_inside_a_quoted_value(
-    "profile = { hint = \"value # text\", codegen-backend = \"cranelift\" }\n",
-    STABLE_RELEASE,
-    1
-)]
-#[case::comment_after_the_key(
-    "[profile.dev]\ncodegen-backend = \"cranelift\" # a comment\n",
-    STABLE_RELEASE,
-    1
-)]
-#[case::inline_table_entry_after_a_comma(
-    "profile = { dev = { opt-level = 1, codegen-backend = \"cranelift\" } }\n",
-    STABLE_RELEASE,
-    1
-)]
-#[case::string_value_naming_the_key(
-    "[env]\nBACKEND_HINT = \"codegen-backend=cranelift\"\n",
-    STABLE_RELEASE,
-    0
-)]
-#[case::string_value_holding_a_comma_and_the_key(
-    "[env]\nHINT = \"opt-level=1, codegen-backend=cranelift\"\n",
-    STABLE_RELEASE,
-    0
-)]
-#[case::stable_action_with_a_nightly_command(CRANELIFT, STABLE_ACTION_NIGHTLY_COMMAND, 0)]
-#[case::linker_only_with_stable_release(LINKER_ONLY, STABLE_RELEASE, 0)]
-#[case::cranelift_with_nightly_toolchain_action(CRANELIFT, NIGHTLY_TOOLCHAIN_ACTION, 0)]
-#[case::stable_named_only_in_an_echo(CRANELIFT, STABLE_IN_AN_ECHO, 0)]
-#[case::cranelift_with_nightly_release(CRANELIFT, NIGHTLY_RELEASE, 0)]
-#[case::stable_named_only_in_a_comment(CRANELIFT, STABLE_IN_A_COMMENT, 0)]
-fn a_backend_key_is_refused_only_beside_a_stable_release(
-    #[case] config: &str,
-    #[case] release: &str,
-    #[case] expected: usize,
-) {
-    let found = findings(config, release);
-    assert_eq!(found.len(), expected, "saw {found:?}");
+#[case::pull_request(CI, "build-test")]
+#[case::publisher(PUBLISHER, "coverage-upload")]
+fn coverage_uses_llvm_in_both_lanes(#[case] workflow: &str, #[case] job: &str) {
+    let found = coverage_problems(workflow, job).expect("read coverage workflow");
+    assert!(found.is_empty(), "{job}: {found:?}");
 }
 
-/// Scenario: this repository's own configuration and release workflow.
+/// Scenario: a coverage lane drops one exclusion or inherits a dev flag.
 ///
-/// Invariant: the release builds on stable, so `.cargo/config.toml` selects no
-/// backend. The first check keeps the rule from passing vacuously should the
-/// release move off stable without this contract being revisited.
+/// Invariant: each mutation is detected at the actual action step.
+#[rstest]
+#[case::missing_dev("CARGO_PROFILE_DEV_CODEGEN_BACKEND: llvm", "")]
+#[case::missing_test("CARGO_PROFILE_TEST_CODEGEN_BACKEND: llvm", "")]
+#[case::leaked_cranelift(
+    "          RUSTFLAGS: -C link-arg=-fuse-ld=lld",
+    "          RUSTFLAGS: -Zthreads=8 -Clink-arg=-fuse-ld=mold"
+)]
+#[case::encoded_guard_removed("[[ -v CARGO_ENCODED_RUSTFLAGS ]]", "[[ false ]]")]
+fn coverage_mutations_are_detected(#[case] old: &str, #[case] new: &str) {
+    let mutated = CI.replacen(old, new, 1);
+    assert_ne!(mutated, CI, "fixture did not mutate the workflow");
+    let problems = coverage_problems(&mutated, "build-test").expect("read mutated coverage");
+    assert!(!problems.is_empty());
+}
+
+/// Scenario: the publisher cannot silently fall back to development routing.
+#[rstest]
+#[case::llvm_removed("CARGO_PROFILE_DEV_CODEGEN_BACKEND: llvm", "")]
+#[case::encoded_guard_removed("[[ -v CARGO_ENCODED_RUSTFLAGS ]]", "[[ false ]]")]
+fn publisher_exclusion_mutations_are_detected(#[case] old: &str, #[case] new: &str) {
+    let mutated = PUBLISHER.replacen(old, new, 1);
+    assert_ne!(mutated, PUBLISHER, "fixture did not mutate the publisher");
+    let problems =
+        coverage_problems(&mutated, "coverage-upload").expect("read mutated publisher workflow");
+    assert!(!problems.is_empty());
+}
+
+/// Checks the default backend in Cargo's parsed configuration.
+fn default_backend_problems(config: &str) -> Result<Vec<String>, String> {
+    let parsed: toml::Value = toml::from_str(config).map_err(|error| error.to_string())?;
+    let mut problems = Vec::new();
+    if parsed
+        .get("unstable")
+        .and_then(|table| table.get("codegen-backend"))
+        .and_then(toml::Value::as_bool)
+        != Some(true)
+    {
+        problems.push("unstable.codegen-backend must be enabled".to_owned());
+    }
+    if parsed
+        .get("profile")
+        .and_then(|table| table.get("dev"))
+        .and_then(|table| table.get("codegen-backend"))
+        .and_then(toml::Value::as_str)
+        != Some("cranelift")
+    {
+        problems.push("profile.dev must select cranelift".to_owned());
+    }
+    Ok(problems)
+}
+
+/// Scenario: Cargo auto-discovers this file for development commands.
 #[test]
-fn the_configuration_selects_no_backend_while_the_release_builds_on_stable() {
-    assert!(
-        builds_on_stable(RELEASE_WORKFLOW),
-        "the release no longer builds on stable; revisit this contract and the Cranelift \
-         exception in docs/developers-guide.md"
-    );
-    let found = findings(CARGO_CONFIG, RELEASE_WORKFLOW);
+fn cargo_configuration_selects_cranelift() {
+    let found = default_backend_problems(CONFIG).expect("read Cargo configuration");
     assert!(found.is_empty(), "{found:?}");
+}
+
+/// Scenario: a default key is removed or changed.
+#[rstest]
+#[case::backend_removed(CONFIG.replace("codegen-backend = \"cranelift\"", ""))]
+#[case::feature_removed(CONFIG.replace("codegen-backend = true", ""))]
+fn missing_cranelift_default_is_detected(#[case] config: String) {
+    let problems = default_backend_problems(&config).expect("read mutated Cargo configuration");
+    assert!(!problems.is_empty());
+}
+
+/// Checks that the cross installer cannot discover development configuration.
+fn cross_installer_problems(steps: &[Value]) -> Result<Vec<String>, String> {
+    let (_, installer) = named_step(steps, "Install cross")
+        .ok_or_else(|| "cross installer step is missing".to_owned())?;
+    let install_command = installer
+        .get("run")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    let installer_requirements = [
+        install_command.contains("cd \"$(dirname \"$GITHUB_WORKSPACE\")\""),
+        install_command.contains("cargo +stable install cross"),
+        install_command.contains(
+            "unset CARGO_ENCODED_RUSTFLAGS CARGO_PROFILE_DEV_CODEGEN_BACKEND \
+             CARGO_PROFILE_TEST_CODEGEN_BACKEND CARGO_PROFILE_RELEASE_CODEGEN_BACKEND",
+        ),
+        field(installer, "env", "RUSTFLAGS") == Some(""),
+    ];
+    let mut problems = Vec::new();
+    if installer_requirements.contains(&false) {
+        problems.push("cross installation must use the isolated stable route".to_owned());
+    }
+    Ok(problems)
+}
+
+/// Checks one release builder's stable toolchain and explicit config exclusion.
+fn release_builder_problems(
+    steps: &[Value],
+    builder: &str,
+    executable: &str,
+) -> Result<Vec<String>, String> {
+    let step_name = format!("Build release binary ({builder})");
+    let (_, build) =
+        named_step(steps, &step_name).ok_or_else(|| format!("{step_name} step is missing"))?;
+    let command = build.get("run").and_then(Value::as_str).unwrap_or_default();
+    let expected = format!(
+        "{executable} +stable build --release --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\" \
+         --target ${{{{ matrix.target }}}}"
+    );
+    let mut problems = Vec::new();
+    if !command.contains("cd \"$(dirname \"$GITHUB_WORKSPACE\")\"") || !command.contains(&expected)
+    {
+        problems.push(format!(
+            "stable {builder} must run outside config discovery with an absolute manifest and \
+             matrix target"
+        ));
+    }
+    if field(build, "env", "RUSTFLAGS") != Some("") {
+        problems.push(format!("stable {builder} must clear development RUSTFLAGS"));
+    }
+    if field(build, "env", "CARGO_TARGET_DIR") != Some("${{ github.workspace }}/target") {
+        problems.push(format!(
+            "stable {builder} must write to the checkout target directory"
+        ));
+    }
+    if !command.contains(
+        "unset CARGO_ENCODED_RUSTFLAGS CARGO_PROFILE_DEV_CODEGEN_BACKEND \
+         CARGO_PROFILE_TEST_CODEGEN_BACKEND CARGO_PROFILE_RELEASE_CODEGEN_BACKEND",
+    ) {
+        problems.push(format!(
+            "stable {builder} must remove inherited encoded flags and backend overrides"
+        ));
+    }
+    Ok(problems)
+}
+
+/// Checks that packaged artefacts retain their matrix path and checksum.
+fn release_artifact_problems(steps: &[Value]) -> Result<Vec<String>, String> {
+    let (_, prepare) = named_step(steps, "Prepare artifact")
+        .ok_or_else(|| "release artifact preparation is missing".to_owned())?;
+    let prepare_run = prepare
+        .get("run")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    let mut problems = Vec::new();
+    if !prepare_run.contains("mkdir -p artifacts/${{ matrix.os }}-${{ matrix.arch }}")
+        || !prepare_run.contains("shasum -a 256")
+    {
+        problems.push(
+            "release artifacts must retain the matrix path and macOS checksum tool".to_owned(),
+        );
+    }
+    let (_, upload) = named_step(steps, "Upload release artifact")
+        .ok_or_else(|| "release artifact upload is missing".to_owned())?;
+    if field(upload, "with", "path") != Some("artifacts/${{ matrix.os }}-${{ matrix.arch }}") {
+        problems.push("release upload must retain the matrix artifact path".to_owned());
+    }
+    Ok(problems)
+}
+
+/// Checks both stable release builders' explicit configuration-discovery route.
+fn release_problems(text: &str) -> Result<Vec<String>, String> {
+    let workflow: Value = serde_norway::from_str(text).map_err(|error| error.to_string())?;
+    let steps = steps(&workflow, "build")?;
+    let mut problems = cross_installer_problems(steps)?;
+    for (builder, executable) in [("native", "cargo"), ("cross", "cross")] {
+        problems.extend(release_builder_problems(steps, builder, executable)?);
+    }
+    problems.extend(release_artifact_problems(steps)?);
+    Ok(problems)
+}
+
+/// Scenario: the release keeps stable/cross and isolates the nightly config.
+#[test]
+fn stable_release_uses_external_working_directory() {
+    let found = release_problems(RELEASE).expect("read release workflow");
+    assert!(found.is_empty(), "{found:?}");
+}
+
+/// Scenario: the release invocation loses one part of the isolation.
+#[rstest]
+#[case::no_cwd(
+    "cd \"$(dirname \"$GITHUB_WORKSPACE\")\"\n          cross +stable",
+    "cross +stable"
+)]
+#[case::installer_uses_unpinned_cargo("cargo +stable install cross", "cargo install cross")]
+#[case::no_manifest("--manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\"", "")]
+#[case::no_target_dir("CARGO_TARGET_DIR: ${{ github.workspace }}/target", "")]
+#[case::encoded_flags_inherited("unset CARGO_ENCODED_RUSTFLAGS", "echo CARGO_ENCODED_RUSTFLAGS")]
+#[case::native_cwd(
+    "cd \"$(dirname \"$GITHUB_WORKSPACE\")\"\n          cargo +stable",
+    "cargo +stable"
+)]
+#[case::native_manifest(
+    "cargo +stable build --release --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\"",
+    "cargo +stable build --release"
+)]
+#[case::artifact_path("path: artifacts/${{ matrix.os }}-${{ matrix.arch }}", "path: lost")]
+#[case::mac_checksum("shasum -a 256", "sha256sum")]
+fn release_mutations_are_detected(#[case] old: &str, #[case] new: &str) {
+    let mutated = RELEASE.replacen(old, new, 1);
+    assert_ne!(mutated, RELEASE);
+    let problems = release_problems(&mutated).expect("read mutated release workflow");
+    assert!(!problems.is_empty());
+}
+
+/// Scenario: evaluated Make release routing preserves the packaging path.
+#[test]
+fn make_release_uses_external_config_and_local_target_dir() {
+    let output = Command::new("make")
+        .args(["--dry-run", "--always-make", "release", "CARGO=probe-cargo"])
+        .current_dir(env!("CARGO_MANIFEST_DIR"))
+        .output()
+        .expect("read evaluated Make release recipe");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let command = String::from_utf8(output.stdout).expect("read Make release command");
+    let checkout = env!("CARGO_MANIFEST_DIR");
+    assert!(command.contains("cd \""), "{command}");
+    assert!(
+        command.contains(&format!("CARGO_TARGET_DIR=\"{checkout}/target\"")),
+        "{command}"
+    );
+    assert!(
+        command.contains(&format!("--manifest-path \"{checkout}/Cargo.toml\"")),
+        "{command}"
+    );
+    assert!(command.contains("RUSTFLAGS=\"\""), "{command}");
+    assert!(command.contains("-u CARGO_ENCODED_RUSTFLAGS"), "{command}");
+    assert!(
+        command.contains("-u CARGO_PROFILE_RELEASE_CODEGEN_BACKEND"),
+        "{command}"
+    );
+    assert!(command.contains("probe-cargo +stable build"), "{command}");
 }

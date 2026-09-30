@@ -133,33 +133,11 @@ This repository is written in Rust and uses Cargo for building and dependency
 management. Contributors should follow these best practices when working on the
 project:
 
-- Run `make check-fmt`, `make lint`, and `make test` before committing. These
-  targets wrap the following commands, so contributors understand the exact
-  behaviour and policy enforced:
-  - `make check-fmt` executes:
-
-    ```sh
-    cargo fmt --workspace -- --check
-    ```
-
-    validating formatting across the entire workspace without modifying files.
-  - `make lint` executes:
-
-    ```sh
-    cargo clippy --workspace --all-targets --all-features -- -D warnings
-    ```
-
-    linting every target with all features enabled and denying all Clippy
-    warnings.
-  - `make test` executes:
-
-    ```sh
-    cargo test --workspace
-    ```
-
-    running the full workspace test suite. Use `make fmt`
-    (`cargo fmt --workspace`) to apply formatting fixes reported by the
-    formatter check.
+- Run `make check-fmt`, `make lint`, and `make test` sequentially before
+  committing. `check-fmt` checks Rust formatting and Markdown table and prose
+  layout without changing files. `lint` runs Clippy, rustdoc, and Whitaker;
+  `test` runs the workspace suite and doctests. Use `make fmt` to apply Rust
+  and Markdown formatting fixes, then repeat the non-mutating checks.
 - Clippy warnings MUST be disallowed.
 - Fix any warnings emitted during tests in the code itself rather than
   silencing them.
@@ -379,28 +357,18 @@ The following tooling is available in this environment:
 These practices help maintain a high-quality codebase and facilitate
 collaboration.
 
-## Fast development builds
+## Development builds
 
-`make dev-build` and `make dev-test` compile with the Cranelift backend
-selected in `tools/dev-fast/config.toml`. They require the pinned nightly
-toolchain. The fragment is passed explicitly with `--config`, so release,
-coverage, and verification builds are unaffected. Never copy it into
-`.cargo/config.toml`: the release builds on stable, and stable Cargo refuses a
-`codegen-backend` key there. The build standard's `mold` linker (on Linux) and
-`-Zthreads=8` do live in `.cargo/config.toml`, so every development build gets
-them, with or without the fragment.
+Bare Cargo commands from the repository root and the standard `make build`,
+`make test`, `make lint`, and `make typecheck` targets use the development
+defaults in `.cargo/config.toml`. The pinned nightly toolchain selects
+Cranelift for the development profile, the parallel rustc frontend, and the
+`mold` linker on Linux. Make restates the development flags when a recipe sets
+`RUSTFLAGS`, so its commands use the same backend and frontend as bare Cargo.
 
-## Dev-fast is the standard development profile
-
-The standard `make build`, `make test`, `make lint`, and `make typecheck`
-targets already pass `--config tools/dev-fast/config.toml` to every `cargo`
-invocation they run, so day-to-day development builds, tests, lints, and
-type-checks use the Cranelift backend by default (the mold linker and the
-parallel frontend come from `.cargo/config.toml` for every build). An agent or
-human calling `cargo` directly for a development build, test, lint, or
-type-check must pass `--config tools/dev-fast/config.toml` explicitly to match.
-The fragment must never be applied to `make coverage`, release builds, or
-verification builds — those keep the standard LLVM backend and platform linker.
-Mixing direct-`cargo` and `make` invocations without the flag thrashes the
-incremental build cache, because the two paths produce different compilation
-fingerprints.
+Run `make install-build-tools` to install the pinned nightly components and, on
+Linux, the pinned `mold` binary. Standard development targets run
+`check-build-tools` before compiling and report missing prerequisites.
+Coverage, release, packaging, verification, and Whitaker use their explicit
+toolchain and backend routes; installed development tools need not be active in
+those jobs.

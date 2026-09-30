@@ -10,11 +10,15 @@ settings, and documented starter code. Library projects render `src/lib.rs`.
 Application projects render `src/main.rs`, `src/lib.rs`, release automation, and
 `[package.metadata.binstall]` metadata for binary installation.
 
-The standard `make` targets build with the Cranelift backend and, on Linux,
-link with `mold` (see the developer guide). Coverage generation uses LLVM and
-`lld` instead because LLVM coverage tools expect LLVM-compatible linker
-behaviour. See the developer guide for local build tooling and linker
-configuration.
+Bare development Cargo commands and standard Make build, test and typecheck
+targets use Cranelift and the parallel `rustc` frontend (`-Zthreads=8`). On
+Linux, they link with the pinned `mold` binary. The Rustdoc and Clippy parts of
+`make lint` use the same standard; Whitaker uses its installer-managed
+toolchain.
+
+Coverage uses LLVM and `lld`, while `make release` uses stable Cargo and the
+production linker. Neither adds the development frontend or linker flags. See
+the developer guide for local build-tool installation and routing details.
 
 ## Makefile Targets
 

@@ -1,6 +1,6 @@
-//! Readers for the Makefile half of the build standard: the commands `make -n`
-//! prints for each development, coverage and release target, judged against a
-//! toolchain pin and a host.
+//! Readers for the Makefile half of the build standard: the commands
+//! `make -n` prints for each development, coverage and release target, judged
+//! against a toolchain pin and a host.
 
 use std::process::Command;
 
@@ -10,17 +10,10 @@ use super::config::{Flags, LINKER_FLAG, Pin, Problems, THREADS_FLAG};
 /// `RUSTFLAGS` with the standard flags or assigns none and so takes the
 /// configuration's. The list is this repository's own, and a target that stops
 /// being defined fails the contract rather than dropping out of it.
-const DEVELOPMENT_TARGETS: &[&str] = &[
-    "test",
-    "typecheck",
-    "lint",
-    "build",
-    "dev-build",
-    "dev-test",
-];
+const DEVELOPMENT_TARGETS: &[&str] = &["test", "typecheck", "lint-clippy", "build"];
 /// Makefile targets that measure or ship, so every command assigns `RUSTFLAGS`
 /// and none carries a standard flag.
-const HELD_OUT_TARGETS: &[&str] = &["coverage", "release"];
+const HELD_OUT_TARGETS: &[&str] = &["coverage", "release", "lint-whitaker"];
 
 /// The host `make` is told it runs on, through `BUILD_HOST_OS`.
 #[derive(Clone, Copy)]
@@ -38,7 +31,7 @@ impl Host {
         }
     }
 
-    /// Returns whether the host takes mold, which ships for Linux alone.
+    /// Returns whether the host takes `mold`, which ships for Linux alone.
     const fn takes_linker_flag(self) -> bool { matches!(self, Self::Linux) }
 }
 
@@ -59,13 +52,12 @@ pub enum Assignment {
 /// assigned_rustflags("RUSTFLAGS=\"${RUSTFLAGS:+$RUSTFLAGS }-Zthreads=8\" cargo test") -> inherits: true
 /// assigned_rustflags("cargo test")                           -> Unassigned
 /// assigned_rustflags("RUSTFLAGS=-Zthreads=8 cargo test")     -> Err
-/// assigned_rustflags("RUSTFLAGS=\"${RUSTFLAGS-}-Zthreads=8\" cargo test") -> Err (glued)
 /// ```
 ///
 /// # Errors
 ///
-/// Returns the reason when an assignment is unquoted, unterminated, or glues the
-/// caller's flags to the next one.
+/// Returns the reason when an assignment is unquoted, unterminated, or glues
+/// inherited flags to the next flag.
 pub fn assigned_rustflags(line: &str) -> Result<Assignment, String> {
     let Some((_, rest)) = line.split_once("RUSTFLAGS=\"") else {
         if line.contains("RUSTFLAGS=") {
@@ -76,9 +68,8 @@ pub fn assigned_rustflags(line: &str) -> Result<Assignment, String> {
     let (assigned, _) = rest
         .split_once('"')
         .ok_or_else(|| format!("unterminated RUSTFLAGS in `{line}`"))?;
-    // The recipes prepend the caller's own flags with these expansions; they are
-    // not standard flags. `${RUSTFLAGS-}` adds no separator, so glued to the next
-    // word it makes one token with it (`-Dwarnings-Zthreads=8`) and hides the flag.
+    // `${RUSTFLAGS-}` adds no separator, so glued to the next word it hides
+    // the standard flag inside one combined token.
     let glued = assigned
         .split("${RUSTFLAGS-}")
         .skip(1)
@@ -117,14 +108,23 @@ pub fn commands_from(stdout: &str) -> Result<Vec<Assignment>, String> {
 
 /// Runs `make -n` for a target on a host and reads its commands.
 fn make_commands(target: &str, host: Host) -> Result<Vec<Assignment>, String> {
-    let output = Command::new("make")
-        .args([
-            "-n",
-            "-B",
-            &format!("BUILD_HOST_OS={}", host.make_value()),
-            target,
-        ])
-        .current_dir(env!("CARGO_MANIFEST_DIR"))
+    let mut command = Command::new("make");
+    command.args([
+        "-n",
+        "-B",
+        &format!("BUILD_HOST_OS={}", host.make_value()),
+        target,
+    ]);
+    // A dry run on this Linux test host needs a non-Linux target when it
+    // simulates macOS; the resolver deliberately refuses a Linux target on a
+    // non-Linux host.
+    if matches!(host, Host::Darwin) {
+        command.env("CARGO_BUILD_TARGET", "aarch64-apple-darwin");
+    } else {
+        command.env_remove("CARGO_BUILD_TARGET");
+    }
+    let output = command
+        .current_dir(concat!(env!("CARGO_MANIFEST_DIR"), ""))
         .output()
         .map_err(|error| format!("running make: {error}"))?;
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -138,7 +138,7 @@ fn make_commands(target: &str, host: Host) -> Result<Vec<Assignment>, String> {
 
 /// Returns the complaint about one development command, if any: an assigned
 /// `RUSTFLAGS` keeps the caller's own flags and restates the frontend flag on a
-/// nightly pin, and mold on Linux.
+/// nightly pin, and `mold` on Linux.
 fn development_problem(
     target: &str,
     host: Host,
@@ -169,6 +169,10 @@ pub fn development_problems(host: Host, pin: Pin) -> Result<(Problems, usize), S
     let mut read = 0;
     for target in DEVELOPMENT_TARGETS {
         let commands = make_commands(target, host)?;
+        if commands.is_empty() {
+            problems.push(format!("`make {target}` runs no Cargo command"));
+            continue;
+        }
         read += commands
             .iter()
             .filter(|command| **command != Assignment::Unassigned)
@@ -182,8 +186,8 @@ pub fn development_problems(host: Host, pin: Pin) -> Result<(Problems, usize), S
     Ok((problems, read))
 }
 
-/// Returns every complaint about one held-out command: it assigns nothing, so
-/// it takes the configuration's flags, or the assignment names a standard flag.
+/// Returns every complaint about one held-out command: it assigns nothing, so it
+/// takes the configuration's flags, or the assignment names a standard flag.
 fn held_out_command_problems(target: &str, assignment: &Assignment) -> Problems {
     let Assignment::Flags(flags, _) = assignment else {
         return vec![format!(

@@ -7,8 +7,7 @@ pub const CONFIG: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/.car
 pub const TOOLCHAIN: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/rust-toolchain.toml"));
 
-/// The parallel-frontend flag every `rustflags` source carries on a nightly
-/// pin.
+/// The parallel-frontend flag every `rustflags` source carries on a nightly pin.
 pub const THREADS_FLAG: &str = "-Zthreads=8";
 /// The linker flag the Linux source adds, normalized to one token.
 pub const LINKER_FLAG: &str = "-Clink-arg=-fuse-ld=mold";
@@ -23,59 +22,110 @@ pub enum Pin {
     Stable,
 }
 
+/// Why a toolchain file cannot select a supported channel.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum PinError {
+    Missing,
+    Malformed(String),
+    Unsupported(String),
+}
+
 impl Pin {
     /// Reads the pin from a `rust-toolchain.toml`.
     ///
-    /// The channel must be named exactly once and be one the standard knows: a
-    /// `nightly` (dated or not), `stable`, `beta`, or a numbered release.
-    /// Anything else, and a missing or repeated `channel`, is an error rather
-    /// than a guess that lets a malformed file pass as stable.
-    ///
     /// ```text
-    /// Pin::read("channel = \"nightly-2026-05-28\"") == Ok(Pin::Nightly)
-    /// Pin::read("channel = \"1.94.0\"")             == Ok(Pin::Stable)
-    /// Pin::read("[toolchain]")                       == Err(..)
+    /// Pin::read("[toolchain]\nchannel = \"nightly-2026-05-28\"") == Ok(Pin::Nightly)
+    /// Pin::read("[toolchain]\nchannel = \"1.94.0\"") == Ok(Pin::Stable)
     /// ```
     ///
     /// # Errors
     ///
-    /// Returns the reason when the channel is missing, repeated or unsupported.
-    pub fn read(toolchain: &str) -> Result<Self, String> {
-        let channels: Vec<&str> = toolchain
-            .lines()
-            .map(str::trim)
-            .filter(|line| line.starts_with("channel"))
-            .filter_map(|line| line.split('"').nth(1))
-            .collect();
-        match channels.as_slice() {
-            [] => Err("rust-toolchain.toml names no channel".to_owned()),
-            [channel] => Self::classify(channel),
-            _ => Err(format!(
-                "rust-toolchain.toml names more than one channel: {channels:?}"
-            )),
+    /// Returns a typed reason when the toolchain table lacks a channel, its
+    /// declaration is malformed, or the channel is not a stable or nightly
+    /// route the development standard supports.
+    pub fn read(toolchain: &str) -> Result<Self, PinError> {
+        let channel = toolchain_channel(toolchain)?;
+        if channel == "nightly"
+            || channel
+                .strip_prefix("nightly-")
+                .is_some_and(|date| !date.is_empty())
+        {
+            return Ok(Self::Nightly);
         }
-    }
-
-    /// Classifies one channel name.
-    fn classify(channel: &str) -> Result<Self, String> {
-        let is_nightly = channel == "nightly" || channel.starts_with("nightly-");
-        let is_release = channel.split('.').count() >= 2
-            && channel
-                .split('.')
-                .all(|part| !part.is_empty() && part.chars().all(|c| c.is_ascii_digit()));
-        if is_nightly {
-            Ok(Self::Nightly)
-        } else if is_release || matches!(channel, "stable" | "beta") {
-            Ok(Self::Stable)
-        } else {
-            Err(format!(
-                "the channel `{channel}` is not one the standard knows"
-            ))
+        if is_stable_channel(channel) {
+            return Ok(Self::Stable);
         }
+        Err(PinError::Unsupported(channel.to_owned()))
     }
 
     /// Returns whether the pin takes `-Zthreads`, which is a nightly flag.
     pub const fn takes_threads(self) -> bool { matches!(self, Self::Nightly) }
+}
+
+/// Returns whether a channel names the stable alias or a release version.
+fn is_stable_channel(channel: &str) -> bool {
+    if channel == "stable" {
+        return true;
+    }
+    let mut parts = channel.split('.');
+    let Some(major) = parts.next() else {
+        return false;
+    };
+    let Some(minor) = parts.next() else {
+        return false;
+    };
+    let Some(patch) = parts.next() else {
+        return false;
+    };
+    parts.next().is_none()
+        && [major, minor, patch]
+            .iter()
+            .all(|part| !part.is_empty() && part.bytes().all(|byte| byte.is_ascii_digit()))
+}
+
+/// Returns whether a channel name is empty or contains an embedded quote.
+fn is_malformed_channel_name(channel_name: &str) -> bool {
+    channel_name.is_empty() || channel_name.contains('"')
+}
+
+/// Records the first channel name and reports whether one was already present.
+const fn is_duplicate_channel<'a>(channel: &mut Option<&'a str>, channel_name: &'a str) -> bool {
+    channel.replace(channel_name).is_some()
+}
+
+/// Reads the channel declaration from the `[toolchain]` table.
+fn toolchain_channel(toolchain: &str) -> Result<&str, PinError> {
+    let mut in_toolchain_table = false;
+    let mut channel = None;
+    for raw_line in toolchain.lines() {
+        let line = raw_line.split('#').next().unwrap_or_default().trim();
+        if line.starts_with('[') {
+            in_toolchain_table = line == "[toolchain]";
+            continue;
+        }
+        if !in_toolchain_table || !line.starts_with("channel") {
+            continue;
+        }
+        let Some((key, assigned)) = line.split_once('=') else {
+            return Err(PinError::Malformed(line.to_owned()));
+        };
+        if key.trim() != "channel" {
+            continue;
+        }
+        let declaration = assigned.trim();
+        let Some(channel_name) = declaration
+            .strip_prefix('"')
+            .and_then(|quoted| quoted.strip_suffix('"'))
+        else {
+            return Err(PinError::Malformed(line.to_owned()));
+        };
+        if is_malformed_channel_name(channel_name)
+            || is_duplicate_channel(&mut channel, channel_name)
+        {
+            return Err(PinError::Malformed(line.to_owned()));
+        }
+    }
+    channel.ok_or(PinError::Missing)
 }
 
 /// A list of compiler flags, with `-C value` pairs joined into `-Cvalue` so
@@ -106,11 +156,18 @@ impl Flags {
     /// Returns whether the list names the frontend flag.
     pub fn names_threads(&self) -> bool { self.names(THREADS_FLAG) }
 
+    /// Returns whether the list denies warnings in either Cargo spelling.
+    pub fn names_warning_deny(&self) -> bool {
+        self.names("-Dwarnings")
+            || self.0.windows(2).any(
+                |pair| matches!(pair, [deny, warnings] if deny == "-D" && warnings == "warnings"),
+            )
+    }
+
     /// Returns whether the list names the linker flag.
     pub fn names_linker(&self) -> bool { self.names(LINKER_FLAG) }
 
-    /// Returns the list without the linker flag, which is the one that may
-    /// differ.
+    /// Returns the list without the linker flag, which is the one that may differ.
     fn without_linker_flag(&self) -> Vec<&String> {
         self.0.iter().filter(|flag| *flag != LINKER_FLAG).collect()
     }
@@ -130,7 +187,7 @@ impl Flags {
             return Err(format!("gets {THREADS_FLAG} wrong: {:?}", self.0));
         }
         if self.names_linker() != takes_linker_flag {
-            return Err(format!("gets mold wrong: {:?}", self.0));
+            return Err(format!("gets `mold` wrong: {:?}", self.0));
         }
         Ok(())
     }
@@ -146,8 +203,8 @@ impl Source {
     /// Returns whether the table applies on Linux alone.
     fn is_linux(&self) -> bool { self.table.starts_with("target.") && self.table.contains("linux") }
 
-    /// Returns what is wrong with the source's flags for a pin: the frontend
-    /// flag on a nightly pin only, and mold in a Linux table only.
+    /// Returns what is wrong with the source's flags for a pin: the frontend flag
+    /// on a nightly pin only, and `mold` in a Linux table only.
     fn problem(&self, pin: Pin) -> Option<String> {
         let reason = self.flags.meets(pin, self.is_linux()).err()?;
         Some(format!("[{}] {reason}", self.table))
@@ -164,14 +221,13 @@ enum Line {
 /// Returns the quoted strings in one line, in order.
 fn quoted(line: &str) -> Vec<&str> { line.split('"').skip(1).step_by(2).collect() }
 
-/// Returns a line up to a `#` that starts a comment, ignoring a `#` inside a
-/// quoted string, and without trailing space.
+/// Removes a TOML comment without treating a hash inside a quoted value as one.
 fn without_comment(line: &str) -> &str {
     let mut quote: Option<char> = None;
-    for (index, c) in line.char_indices() {
-        match (quote, c) {
-            (None, '"' | '\'') => quote = Some(c),
-            (Some(open), _) if c == open => quote = None,
+    for (index, character) in line.char_indices() {
+        match (quote, character) {
+            (None, '"' | '\'') => quote = Some(character),
+            (Some(open), _) if character == open => quote = None,
             (None, '#') => return line.get(..index).unwrap_or(line).trim_end(),
             _ => {}
         }
@@ -185,8 +241,6 @@ fn without_comment(line: &str) -> &str {
 ///
 /// ```text
 /// read_line("[build]")                     -> Line::Table("build")
-/// read_line("[build] # hosts")             -> Line::Table("build")
-/// read_line("rustflags-extra = [\"x\"]")   -> Line::Other
 /// read_line("rustflags = [\"-Zthreads=8\"]") -> Line::Rustflags(..)
 /// ```
 fn read_line(raw: &str) -> Result<Line, String> {
@@ -252,8 +306,8 @@ fn shape_problems(found: &[Source], pin: Pin) -> Problems {
         .collect()
 }
 
-/// Returns a complaint when the sources differ in anything but the linker,
-/// since Cargo applies one source rather than merging them.
+/// Returns a complaint when the sources differ in anything but the linker, since
+/// Cargo applies one source rather than merging them.
 fn drift_problem(found: &[Source]) -> Option<String> {
     let mut stripped: Vec<Vec<&String>> = found
         .iter()

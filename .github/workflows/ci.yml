@@ -34,7 +34,7 @@ jobs:
         run: |
           set -euo pipefail
           export DEBIAN_FRONTEND=noninteractive
-          # setup-rust installs mold (install-mold above); coverage uses lld for llvm-tools
+          # setup-rust installs `mold` (install-mold above); coverage uses lld for llvm-tools
           # compatibility.
           sudo apt-get update \
             && sudo apt-get install --yes --no-install-recommends clang lld
@@ -58,11 +58,11 @@ jobs:
       - name: Install test runner
         env:
           RUSTFLAGS: ""
-        run: cargo binstall --no-confirm cargo-nextest
+        run: cargo binstall --no-confirm --disable-strategies compile cargo-nextest
       - name: Install cargo-audit
         env:
           RUSTFLAGS: ""
-        run: cargo binstall --no-confirm cargo-audit
+        run: cargo binstall --no-confirm --disable-strategies compile cargo-audit
       - name: Setup Python for audit manifest extraction
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
@@ -81,6 +81,12 @@ jobs:
           echo "Coverage RUSTFLAGS: -C link-arg=-fuse-ld=lld"
           echo "Coverage CFLAGS: -fuse-ld=lld"
           echo "Coverage LDFLAGS: -fuse-ld=lld"
+      - name: Check coverage flag isolation
+        run: |
+          if [[ -v CARGO_ENCODED_RUSTFLAGS ]]; then
+            echo 'Inherited CARGO_ENCODED_RUSTFLAGS would override coverage instrumentation; remove it before this job' >&2
+            exit 1
+          fi
       - name: Test and Measure Coverage
         # Coverage here is for the local ratchet and nothing else. The report
         # is neither archived (`publish-artefact: 'false'`) nor sent to
@@ -94,6 +100,8 @@ jobs:
         uses: leynos/shared-actions/.github/actions/generate-coverage@a5765019912a8ab6882b12db049c7cde635f3a85
         env:
           CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER: clang
+          CARGO_PROFILE_DEV_CODEGEN_BACKEND: llvm
+          CARGO_PROFILE_TEST_CODEGEN_BACKEND: llvm
           RUSTFLAGS: -C link-arg=-fuse-ld=lld
           CFLAGS: -fuse-ld=lld
           LDFLAGS: -fuse-ld=lld

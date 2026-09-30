@@ -1,29 +1,26 @@
-.PHONY: help all clean test build release coverage lint fmt check-fmt markdownlint nixie audit rust-audit test-workflow-contracts
+.PHONY: help all clean test build release coverage lint lint-clippy lint-whitaker typecheck fmt check-fmt markdownlint nixie audit rust-audit install-build-tools check-build-tools test-workflow-contracts
 
 SHELL := bash
 
 
 TARGET ?= cabochon
 
-# Standard build/test/lint/typecheck targets use the dev-fast profile
-# (Cranelift) through tools/dev-fast/config.toml; the build standard's
-# mold and -Zthreads flags live in .cargo/config.toml. See AGENTS.md.
-# Declared here too so the standard targets below see it even though the
-# defining Wave 1 block appears later in this file.
-DEV_FAST_CONFIG ?= tools/dev-fast/config.toml
-
-USER_WHITAKER := $(HOME)/.local/bin/whitaker
-USER_BIN_PATH := $(HOME)/.cargo/bin:$(HOME)/.local/bin:$(HOME)/.bun/bin
+# Prefer the verified local linker installation for both the preflight and
+# Cargo, so a system package cannot shadow the repository's pinned version.
+BUILD_TOOLS_PREFIX ?= $(HOME)/.local
+export PATH := $(BUILD_TOOLS_PREFIX)/bin:$(HOME)/.cargo/bin:$(HOME)/.bun/bin:$(PATH)
+INSTALL_BUILD_TOOLS ?= scripts/install-build-tools.sh
+CHECK_BUILD_TOOLS ?= scripts/check-build-tools.sh
 CARGO ?= cargo
 BUILD_JOBS ?=
 RUST_FLAGS ?=
 RUST_FLAGS := -D warnings $(RUST_FLAGS)
 RUSTDOC_FLAGS ?=
-RUSTDOC_FLAGS := -D warnings $(RUSTDOC_FLAGS)
-CARGO_FLAGS ?= --all-targets --all-features
+RUSTDOC_FLAGS := --cfg docsrs -D warnings $(RUSTDOC_FLAGS)
+CARGO_FLAGS ?= --workspace --all-targets --all-features
 CLIPPY_FLAGS ?= $(CARGO_FLAGS) -- $(RUST_FLAGS)
 TEST_FLAGS ?= $(CARGO_FLAGS)
-TEST_CMD := $(if $(shell $(CARGO) nextest --version 2>/dev/null),nextest run,test)
+TEST_CMD := $(if $(shell command -v cargo-nextest 2>/dev/null),nextest run,test)
 COVERAGE_LINKER_FLAGS ?= -fuse-ld=lld
 COVERAGE_RUST_FLAGS ?= $(RUST_FLAGS) -C link-arg=$(COVERAGE_LINKER_FLAGS)
 MDLINT ?= markdownlint-cli2
@@ -36,7 +33,7 @@ MDTABLEFIX ?= mdtablefix
 MDTABLEFIX_SELECT = --git --include-untracked
 MDTABLEFIX_RULES = --wrap --renumber --breaks --ellipsis --fences
 NIXIE ?= nixie
-WHITAKER ?= $(or $(shell command -v whitaker 2>/dev/null),$(wildcard $(USER_WHITAKER)),whitaker)
+WHITAKER ?= whitaker
 
 UV ?= uv
 UV_ENV = UV_CACHE_DIR=.uv-cache UV_TOOL_DIR=.uv-tools
@@ -51,48 +48,96 @@ CV005_CONTRACTS = $(UV_ENV) $(UV) tool run --python 3.13 \
 test-workflow-contracts: ## Check the CV-005 CodeScene workflow contracts
 	$(CV005_CONTRACTS) check --repository .
 # The development build standard (concordat rule `rust-build-defaults`):
-# the parallel rustc frontend and, on Linux, the mold linker. An assigned
-# RUSTFLAGS replaces every `rustflags` table in .cargo/config.toml, so each
+# Cranelift is selected by the dev profile in .cargo/config.toml; the flags
+# below restate the parallel frontend and target-scoped Linux `mold` linker.
+# An assigned RUSTFLAGS replaces every `rustflags` table in .cargo/config.toml, so each
 # recipe that sets it composes these onto any inherited value (CI's
-# setup-rust exports one), except coverage, which stays on LLVM and the
-# platform linker.
+# setup-rust exports one). Coverage, release, and Whitaker select LLVM.
 BUILD_HOST_OS := $(shell uname -s)
-STANDARD_RUSTFLAGS := -Zthreads=8$(if $(filter Linux,$(BUILD_HOST_OS)), -Clink-arg=-fuse-ld=mold)
+
+# The resolver follows Cargo's --target precedence, stops at a Clippy `--`,
+# and asks the pinned rustc for target_os. An unreadable target stops Make.
+# Pass its result through `call` once; supported Ubuntu runners ship Make 4.3,
+# which does not provide the newer `let` function.
+TARGET_ROUTE = $(call CHECK_TARGET_ROUTE,$(shell BUILD_HOST_OS="$(BUILD_HOST_OS)" scripts/resolve-build-target.sh $(1) || printf route-error),$(1))
+CHECK_TARGET_ROUTE = $(if $(filter route-error,$(1)),$(error Cannot classify Cargo target for $(2)),$(1))
+NEEDS_MOULD = $(filter linux linux-clang,$(call TARGET_ROUTE,$(1)))
+NEEDS_CLANG = $(filter linux-clang,$(call TARGET_ROUTE,$(1)))
+STANDARD_RUSTFLAGS = -Zthreads=8$(if $(call NEEDS_MOULD,$(1)), -Clink-arg=-fuse-ld=mold)
+
+# Target-specific values reach the prerequisite before each compilation route.
+# A test's nextest and doctest commands can select different targets.
+MOULD_REQUIRED = $(call NEEDS_MOULD,)
+CLANG_REQUIRED = $(call NEEDS_CLANG,)
+# `strip` expands both routes, so a bad later Cargo target cannot be hidden by
+# an earlier route that already needs a tool.
+test: MOULD_REQUIRED = $(strip $(call NEEDS_MOULD,$(TEST_FLAGS) $(BUILD_JOBS)) $(call NEEDS_MOULD,$(BUILD_JOBS)))
+test: CLANG_REQUIRED = $(strip $(call NEEDS_CLANG,$(TEST_FLAGS) $(BUILD_JOBS)) $(call NEEDS_CLANG,$(BUILD_JOBS)))
+target/debug/$(TARGET): MOULD_REQUIRED = $(call NEEDS_MOULD,$(BUILD_JOBS))
+target/debug/$(TARGET): CLANG_REQUIRED = $(call NEEDS_CLANG,$(BUILD_JOBS))
+lint-clippy: MOULD_REQUIRED = $(strip $(call NEEDS_MOULD,) $(call NEEDS_MOULD,$(CLIPPY_FLAGS)))
+lint-clippy: CLANG_REQUIRED = $(strip $(call NEEDS_CLANG,) $(call NEEDS_CLANG,$(CLIPPY_FLAGS)))
+typecheck: MOULD_REQUIRED = $(call NEEDS_MOULD,$(CARGO_FLAGS))
+typecheck: CLANG_REQUIRED = $(call NEEDS_CLANG,$(CARGO_FLAGS))
 
 build: target/debug/$(TARGET) ## Build debug binary
 release: target/release/$(TARGET) ## Build release binary
 
-all: check-fmt lint test test-workflow-contracts ## Perform a comprehensive check of code
+# Keep composite gates ordered even when the caller passes `make -j`.
+all: ## Perform a comprehensive check of code
+	$(MAKE) check-fmt
+	$(MAKE) markdownlint
+	$(MAKE) lint
+	$(MAKE) test
+	$(MAKE) test-workflow-contracts
 
-clean: ## Remove build artifacts
+install-build-tools: ## Install the pinned Rust toolchain and verified `mold` binary
+	@$(INSTALL_BUILD_TOOLS)
+	@$(MAKE) check-build-tools
+
+check-build-tools: ## Verify development build prerequisites
+	@CHECK_MOULD="$(if $(MOULD_REQUIRED),yes,no)" CHECK_CLANG="$(if $(CLANG_REQUIRED),yes,no)" $(CHECK_BUILD_TOOLS)
+
+clean: ## Remove build artefacts
 	$(CARGO) clean
 
-test: ## Run tests with warnings treated as errors
-	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(STANDARD_RUSTFLAGS)" $(CARGO) --config "$(DEV_FAST_CONFIG)" $(TEST_CMD) $(TEST_FLAGS) $(BUILD_JOBS)
-	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(STANDARD_RUSTFLAGS)" $(CARGO) --config "$(DEV_FAST_CONFIG)" test --doc --workspace --all-features
+test: check-build-tools ## Run tests with warnings treated as errors
+	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(call STANDARD_RUSTFLAGS,$(TEST_FLAGS) $(BUILD_JOBS))" $(CARGO) $(TEST_CMD) $(TEST_FLAGS) $(BUILD_JOBS)
+	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(call STANDARD_RUSTFLAGS,$(BUILD_JOBS))" $(CARGO) test --doc --workspace --all-features $(BUILD_JOBS)
 
-target/%/$(TARGET): ## Build binary in debug or release mode
-	$(if $(findstring release,$(@)),RUSTFLAGS="$${RUSTFLAGS-}",RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(STANDARD_RUSTFLAGS)") $(CARGO) $(if $(findstring release,$(@)),,--config "$(DEV_FAST_CONFIG)") build $(BUILD_JOBS) $(if $(findstring release,$(@)),--release) --bin $(TARGET)
+target/debug/$(TARGET): | check-build-tools ## Build the debug binary
+	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(call STANDARD_RUSTFLAGS,$(BUILD_JOBS))" $(CARGO) build $(BUILD_JOBS) --bin $(TARGET)
+
+target/release/$(TARGET): ## Build the release binary with LLVM and the platform linker
+	cd "$(dir $(CURDIR))" && env -u CARGO_ENCODED_RUSTFLAGS -u CARGO_PROFILE_DEV_CODEGEN_BACKEND -u CARGO_PROFILE_TEST_CODEGEN_BACKEND -u CARGO_PROFILE_RELEASE_CODEGEN_BACKEND RUSTFLAGS="" CARGO_TARGET_DIR="$(CURDIR)/target" $(CARGO) +stable build $(BUILD_JOBS) --release --manifest-path "$(CURDIR)/Cargo.toml" --bin $(TARGET)
 
 coverage: ## Generate lcov coverage with lld for llvm-tools compatibility
 	@echo "coverage linker flags: $(COVERAGE_LINKER_FLAGS)"
-	CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=clang \
+	env -u CARGO_ENCODED_RUSTFLAGS \
+		CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=clang \
+		CARGO_PROFILE_DEV_CODEGEN_BACKEND=llvm \
+		CARGO_PROFILE_TEST_CODEGEN_BACKEND=llvm \
 		RUSTFLAGS="$(COVERAGE_RUST_FLAGS)" \
 		CFLAGS="$(COVERAGE_LINKER_FLAGS)" \
 		LDFLAGS="$(COVERAGE_LINKER_FLAGS)" \
 		$(CARGO) llvm-cov --lcov --output-path lcov.info $(TEST_FLAGS)
 
-lint: ## Run Clippy with warnings denied
-	RUSTDOCFLAGS="$(RUSTDOC_FLAGS)" RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(STANDARD_RUSTFLAGS)" $(CARGO) --config "$(DEV_FAST_CONFIG)" doc --no-deps
-	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(STANDARD_RUSTFLAGS)" $(CARGO) --config "$(DEV_FAST_CONFIG)" clippy $(CLIPPY_FLAGS)
-	@echo "Whitaker binary: $(WHITAKER)"
-	PATH="$(USER_BIN_PATH):$(PATH)" RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(STANDARD_RUSTFLAGS)" $(WHITAKER) --all -- $(CARGO_FLAGS)
+lint: ## Run rustdoc, Clippy, then Whitaker sequentially
+	$(MAKE) lint-clippy
+	$(MAKE) lint-whitaker
 
-typecheck: ## Type-check without building
-	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(STANDARD_RUSTFLAGS)" $(CARGO) --config "$(DEV_FAST_CONFIG)" check $(CARGO_FLAGS)
+lint-clippy: check-build-tools ## Run rustdoc and Clippy under the development standard
+	RUSTDOCFLAGS="$(RUSTDOC_FLAGS)" RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(call STANDARD_RUSTFLAGS,)" $(CARGO) doc --workspace --no-deps
+	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(call STANDARD_RUSTFLAGS,$(CLIPPY_FLAGS))" $(CARGO) clippy $(CLIPPY_FLAGS)
+
+lint-whitaker: ## Run the installer-managed rolling Whitaker suite
+	CARGO_ENCODED_RUSTFLAGS= RUSTFLAGS="" DYLINT_RUSTFLAGS="-D warnings" CARGO_PROFILE_DEV_CODEGEN_BACKEND=llvm CARGO_PROFILE_TEST_CODEGEN_BACKEND=llvm $(WHITAKER) --all -- $(CARGO_FLAGS)
+
+typecheck: check-build-tools ## Type-check without building
+	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(call STANDARD_RUSTFLAGS,$(CARGO_FLAGS))" $(CARGO) check $(CARGO_FLAGS)
 
 fmt: ## Format Rust and Markdown sources
-	$(CARGO) +nightly fmt --all
+	$(CARGO) fmt --all
 	$(MDTABLEFIX) --in-place $(MDTABLEFIX_SELECT) $(MDTABLEFIX_RULES)
 	$(MDLINT) --fix "**/*.md"
 
@@ -131,14 +176,3 @@ rust-audit: ## Audit the Rust workspace for known vulnerabilities
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?##' $(MAKEFILE_LIST) | \
 	awk 'BEGIN {FS=":"; printf "Available targets:\n"} {printf "  %-20s %s\n", $$1, $$2}'
-
-# Debug builds with the Cranelift backend; requires the pinned nightly
-# toolchain. See AGENTS.md and tools/dev-fast/config.toml.
-DEV_FAST_CONFIG ?= tools/dev-fast/config.toml
-
-.PHONY: dev-build dev-test
-dev-build: ## Build debug binaries with Cranelift
-	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(STANDARD_RUSTFLAGS)" $(CARGO) --config "$(DEV_FAST_CONFIG)" build
-
-dev-test: ## Run tests with Cranelift
-	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(STANDARD_RUSTFLAGS)" $(CARGO) --config "$(DEV_FAST_CONFIG)" test

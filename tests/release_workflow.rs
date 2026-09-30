@@ -12,6 +12,9 @@
 use cap_std::{ambient_authority, fs_utf8::Dir};
 use rstest::rstest;
 use serde_norway::{Mapping, Value};
+#[path = "release_workflow/routing.rs"]
+mod routing;
+use routing::{CROSS_BUILD, NATIVE_BUILD, PUBLISH_IF};
 
 /// Every release leg: its target, its builder and the runner it builds on.
 const MATRIX: [(&str, &str, &str); 6] = [
@@ -23,12 +26,6 @@ const MATRIX: [(&str, &str, &str); 6] = [
     ("aarch64-apple-darwin", "cargo", "macos-latest"),
 ];
 const LINKER_VARIABLE: &str = "CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER";
-const NATIVE_BUILD: &str = "cargo +stable build --release --target ${{ matrix.target }}";
-const CROSS_BUILD: &str = "cross +stable build --release --target ${{ matrix.target }}";
-const PUBLISH_IF: &str = concat!(
-    "github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && ",
-    "inputs.dry-run == false && startsWith(github.ref, 'refs/tags/'))"
-);
 
 /// Reads the release workflow.
 fn read_release() -> Result<Value, String> {
