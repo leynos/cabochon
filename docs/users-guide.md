@@ -20,7 +20,8 @@ configuration.
 
 The generated `Makefile` exposes these public targets:
 
-- `make all` runs formatting checks, linting, and tests.
+- `make all` runs formatting checks, linting, tests and the workflow contract
+  check below.
 - `make check-fmt` verifies Rust formatting.
 - `make lint` runs rustdoc, Clippy, and Whitaker with warnings denied.
 - `make test` runs `cargo nextest run` when cargo-nextest is installed and
@@ -30,6 +31,9 @@ The generated `Makefile` exposes these public targets:
 - `make coverage` writes `lcov.info` using `cargo llvm-cov` and `lld`.
 - `make audit` derives the Rust workspace root with `cargo metadata` and runs
   `cargo audit` once from that root.
+- `make test-workflow-contracts` runs the shared CV-005 CodeScene contract
+  (`cv005-contracts check`, pinned in the Makefile) over the repository's
+  workflows. It needs `uv`, which fetches Python 3.13 itself.
 - `make markdownlint` checks Markdown files.
 - `make nixie` validates Mermaid diagrams.
 

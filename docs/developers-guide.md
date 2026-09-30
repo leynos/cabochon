@@ -34,8 +34,8 @@ uses `lld` and LLVM because coverage tooling expects them.
 `rustc-codegen-cranelift-preview` components so both paths have what they need
 pre-installed.
 
-Install `clang`, `lld`, `mold`, `python3`, and `cargo-audit` before running the
-full generated workflow locally on Linux.
+Install `clang`, `lld`, `mold`, `python3`, `uv`, and `cargo-audit` before
+running the full generated workflow locally on Linux.
 
 ### Security audit ignores
 
@@ -45,6 +45,31 @@ ignore tied to a documented runtime impact analysis, and remove it when the
 affected dependency leaves the graph or the project starts using the advised
 runtime path.
 
+### Compiler cache (sccache)
+
+The shared `setup-rust` action gives sccache a local-disk directory under
+`runner.temp` on a GitHub-hosted runner. The directory is restored with
+`actions/cache` on every event and saved only on a push to `main`, so a pull
+request reads the cache and never writes one.
+
+- **One shared lane.** `ci.yml`'s `build-test` and `coverage-main.yml`'s
+  `coverage-upload` both set `sccache-cache-discriminator: coverage`. The
+  action's default discriminator is the job ID, which would give the two jobs
+  different lanes and leave the pull-request lane without a writer. Only
+  `coverage-upload` runs on a push to `main`, so it is the writer and
+  `build-test` is the reader. Keep the two values equal.
+- **What it warms.** The lane holds the artefacts of the coverage build, so the
+  coverage step of `build-test` restores from it. The lint step compiles a
+  different graph and gains almost nothing from it; measured on frankie, lint
+  hit 2.5 % and the coverage step hit 100 %.
+- **`expect-cache: any`.** A GitHub-hosted job accepts whichever cache backend
+  the runner offers, so the input is set explicitly.
+- **`release.yml` disables it.** The release job builds with `cross` inside a
+  container that receives neither `RUSTC_WRAPPER` nor `SCCACHE_PATH`, so
+  sccache is switched off there with `use-sccache: 'false'`. The contract
+  `tests/sccache_lane.rs` holds all three clauses (`expect-cache`, the shared
+  discriminator, and the release switch) by action name and inputs, never by a
+  revision.
 ## The build standard
 
 Development, test, lint, and typecheck builds use the parallel `rustc` frontend
@@ -156,21 +181,30 @@ than calling the crate. The ratchet is therefore inert until real code lands.
 The first feature pull request adds tests that exercise the crate, and from
 then on the baseline protects them.
 
-`tests/coverage_workflows.rs` enforces the split over every workflow a pull
-request can reach, following local reusable-workflow calls transitively, and
-over every other workflow too: only the publisher may hold the token, reach a
-secret by a computed name, name the CodeScene host, run the CLI or the
-uploader, or touch the retired `CODESCENE_CLI_SHA256` variable. It drives each
-rule against breaching fixtures under `tests/coverage_workflows/`. The
-pull-request surface is seeded by every event that runs a workflow for a pull
-request (`pull_request`, `pull_request_target`, `merge_group`, the two review
-events, `issue_comment`, `workflow_run`, and any push not limited to exactly
-`branches: [main]` or to tags, where a `branches-ignore` beside `tags` still
-counts unless it lists `'**'`), and the push side is followed the same way: a
+`make test-workflow-contracts` enforces the split by running
+`cv005-contracts check`, the shared contract library in `leynos/shared-actions`
+(`packages/cv005-contracts`), from a full commit named by `CV005_CONTRACTS_REF`
+in the Makefile; CI runs it in a "Check the CV-005 contracts" step. A fix to
+the rules is therefore a pin bump. The target needs `uv`, which fetches the
+Python 3.13 the library runs under. The repository's parameters are in
+`.github/cv005.toml`: its `repository` name and the `[selection]` the baseline
+measures, which the publisher's generator must carry and every pull-request
+lane must match. The library's own suite proves each rule refuses the shape it
+exists to refuse, so this repository keeps no copy of the readers or the
+refusal cases.
+
+The rule covers every workflow a pull request can reach, following local
+reusable-workflow calls transitively, and every other workflow too: only the
+publisher may hold the token, reach a secret by a computed name, name the
+CodeScene host, run the CLI or the uploader, or touch the retired
+`CODESCENE_CLI_SHA256` variable. Workflows are read strictly: a duplicate key,
+or a workflow declaring both `on` and `true`, is refused rather than silently
+resolved, and a reading failure exits 2 rather than passing. The pull-request
+surface is seeded by every event that runs a workflow for a pull request, and a
 workflow a push starts, or one it calls, may run a ratcheted coverage step only
 behind `if: github.event_name == 'pull_request'`, so the publisher stays the
 baseline's only writer. When adding a workflow, keep CodeScene, `cs-coverage`,
-and the token out of it unless it is the publisher; the contract names the
+and the token out of it unless it is the publisher; the library names the
 clause a change breaks.
 
 ## Lint baseline

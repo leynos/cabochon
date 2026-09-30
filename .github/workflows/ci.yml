@@ -19,7 +19,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Setup Rust
-        uses: leynos/shared-actions/.github/actions/setup-rust@8a83824b29dfe8f861714b544dc85fb925ed010c
+        uses: leynos/shared-actions/.github/actions/setup-rust@4fb8eb7ad52454678a0662865d81d3cd17aa6e0e
         with:
           install-mold: 'true'
       - name: Install the stable toolchain
@@ -50,6 +50,8 @@ jobs:
           globs: '**/*.md'
       - name: Setup uv
         uses: astral-sh/setup-uv@12d13f90bc3a5a1971bebad4beb09a4dfa962e91
+      - name: Check the CV-005 contracts
+        run: make test-workflow-contracts
       - name: Install test runner
         env:
           RUSTFLAGS: ""
