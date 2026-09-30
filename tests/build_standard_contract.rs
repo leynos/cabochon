@@ -118,16 +118,6 @@ const SIBLING_KEY_OK: &str = concat!(
 /// A `rustflags` array spread over several lines, which the reader refuses.
 const SPREAD_ARRAY: &str = "[build]\nrustflags = [\n  \"-Zthreads=8\",\n]\n";
 
-/// Checks that a fixture configuration draws the expected number of complaints.
-fn draws(config: &str, pin: Pin, expected: usize) -> Result<(), String> {
-    let found = config_problems(config, pin)?.len();
-    if found == expected {
-        Ok(())
-    } else {
-        Err(format!("{config:?}: {found} problems, not {expected}"))
-    }
-}
-
 /// Scenario: configurations of each shape, read on a nightly and a stable pin.
 ///
 /// Invariant: a compliant nightly file passes, and each way of losing the
@@ -149,8 +139,10 @@ fn the_configuration_reader_reports_each_defect(
     #[case] config: &str,
     #[case] pin: Pin,
     #[case] expected: usize,
-) -> Result<(), String> {
-    draws(config, pin, expected)
+) {
+    let problems =
+        config_problems(config, pin).expect("the static configuration fixture should be readable");
+    assert_eq!(problems.len(), expected, "{config:?}: {problems:?}");
 }
 
 /// Scenario: a `rustflags` array spread over several lines.
@@ -158,11 +150,11 @@ fn the_configuration_reader_reports_each_defect(
 /// Invariant: the reader refuses it, because reading half of an entry would let
 /// a lost flag pass.
 #[test]
-fn a_rustflags_array_spread_over_lines_is_refused() -> Result<(), String> {
-    match config_problems(SPREAD_ARRAY, Pin::Nightly) {
-        Ok(_) => Err("a rustflags array spread over lines was read".to_owned()),
-        Err(_) => Ok(()),
-    }
+fn a_rustflags_array_spread_over_lines_is_refused() {
+    assert!(
+        config_problems(SPREAD_ARRAY, Pin::Nightly).is_err(),
+        "a rustflags array spread over several lines was read"
+    );
 }
 
 /// Scenario: toolchain files pinning each kind of channel.
@@ -207,15 +199,9 @@ fn flags(words: &[&str], inherits: bool) -> Assignment {
 #[case::inherited_flags_only("RUSTFLAGS=\"${RUSTFLAGS-}\" cargo build --release", flags(&[], true))]
 #[case::inherited_with_separator("RUSTFLAGS=\"${RUSTFLAGS-} -Zthreads=8\" cargo check", flags(&[THREADS_FLAG], true))]
 #[case::no_assignment("cargo clippy --all-targets", Assignment::Unassigned)]
-fn the_command_reader_reads_each_assignment(
-    #[case] line: &str,
-    #[case] expected: Assignment,
-) -> Result<(), String> {
-    if assigned_rustflags(line)? == expected {
-        Ok(())
-    } else {
-        Err(format!("`{line}` was read wrongly"))
-    }
+fn the_command_reader_reads_each_assignment(#[case] line: &str, #[case] expected: Assignment) {
+    let actual = assigned_rustflags(line).expect("the static command fixture should be readable");
+    assert_eq!(actual, expected, "`{line}` was read wrongly");
 }
 
 /// Scenario: `make -n` output lines whose assignment the reader cannot parse.
@@ -226,11 +212,11 @@ fn the_command_reader_reads_each_assignment(
 #[case::unquoted("RUSTFLAGS=-Zthreads=8 cargo test")]
 #[case::unterminated("RUSTFLAGS=\"-Zthreads=8 cargo test")]
 #[case::inherited_flags_glued_to_a_flag("RUSTFLAGS=\"${RUSTFLAGS-}-Zthreads=8\" cargo test")]
-fn the_command_reader_refuses_what_it_cannot_parse(#[case] line: &str) -> Result<(), String> {
-    match assigned_rustflags(line) {
-        Ok(_) => Err(format!("`{line}` was read, not refused")),
-        Err(_) => Ok(()),
-    }
+fn the_command_reader_refuses_what_it_cannot_parse(#[case] line: &str) {
+    assert!(
+        assigned_rustflags(line).is_err(),
+        "`{line}` was read, not refused"
+    );
 }
 
 /// A workflow step that passes the input, quoted.
@@ -351,29 +337,30 @@ fn the_doctest_reader_reports_missing_flags_once(
 /// whose workflows do not set up Rust through `setup-rust` lists none, and the
 /// check then reads nothing; a listed workflow must have a step to read.
 #[test]
-fn every_setup_rust_step_installs_mold() -> Result<(), String> { none_of(&workflow_problems()) }
+fn every_setup_rust_step_installs_mold() {
+    let problems = workflow_problems();
+    assert!(problems.is_empty(), "{problems:#?}");
+}
 
 /// Scenario: a recipe continued over lines, beside an `echo` and another command.
 ///
 /// Invariant: the continued command is one command, and lines that are not a
 /// Cargo or Whitaker command are ignored.
 #[test]
-fn a_continued_command_is_one_command() -> Result<(), String> {
+fn a_continued_command_is_one_command() {
     let joined = commands_from(concat!(
         "RUSTFLAGS=\"-A\" \\\n",
         "cargo test\necho cargo test\nmake other\n"
-    ))?;
-    if joined == vec![flags(&["-A"], false)] {
-        Ok(())
-    } else {
-        Err(format!("read wrongly: {joined:?}"))
-    }
+    ))
+    .expect("the continued command fixture should be readable");
+    assert_eq!(joined, vec![flags(&["-A"], false)]);
 }
 
 #[test]
-fn every_rustflags_source_is_consistent_with_the_pin() -> Result<(), String> {
-    let pin = Pin::read(TOOLCHAIN).map_err(|error| format!("{error:?}"))?;
-    none_of(&config_problems(CONFIG, pin)?)
+fn every_rustflags_source_is_consistent_with_the_pin() {
+    let pin = Pin::read(TOOLCHAIN).expect("the checked-in toolchain pin should be readable");
+    let problems = config_problems(CONFIG, pin).expect("checked-in Cargo config is readable");
+    assert!(problems.is_empty(), "{problems:#?}");
 }
 
 #[test]

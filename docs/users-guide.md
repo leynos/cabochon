@@ -8,7 +8,8 @@ it from the template.
 Generated projects use Rust 2024, a pinned nightly toolchain, strict lint
 settings, and documented starter code. Library projects render `src/lib.rs`.
 Application projects render `src/main.rs`, `src/lib.rs`, release automation, and
-`[package.metadata.binstall]` metadata for binary installation.
+`[package.metadata.binstall]` metadata for binary installation. The starter
+application prints `Hello from Cabochon!` followed by a newline when run.
 
 Bare development Cargo commands and standard Make build, test and typecheck
 targets use Cranelift and the parallel `rustc` frontend (`-Zthreads=8`). On
