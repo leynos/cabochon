@@ -257,13 +257,12 @@ The reasons are both quiet failures: a pull request from a fork cannot read the
 secret, so an upload there is silently skipped, and CodeScene accepts an upload
 only for a branch it analyses, which a pull request head is not.
 
-Coverage currently measures 0%, and that figure is honest. The crate is still
-the generated template stub, and no instrumented test exercises it: its one
-library function is covered only by a doctest, which the coverage run does not
-instrument, and the integration tests read workflow and Makefile files rather
-than calling the crate. The ratchet is therefore inert until real code lands.
-The first feature pull request adds tests that exercise the crate, and from
-then on the baseline protects them.
+The integration test `tests/cli_greeting.rs` launches the generated `cabochon`
+executable and checks its greeting. The coverage job builds all targets, so
+this test runs the executable with the profiling environment. Even so, the
+latest hosted result for the configured selection reported 0% coverage (0 hits
+and 790 misses). The ratchet is active against that selection; the reported
+result does not yet show covered lines.
 
 `make test-workflow-contracts` enforces the split by running
 `cv005-contracts check`, the shared contract library in `leynos/shared-actions`
