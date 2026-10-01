@@ -21,9 +21,6 @@
   related code (e.g., models + utilities + fixtures) close together.
 - **Group by feature, not layer.** Colocate views, logic, fixtures, and helpers
   related to a domain concept rather than splitting by type.
-- **Use consistent spelling and grammar.** Comments must use en-GB-oxendict
-  ("-ize" / "-yse" / "-our") spelling and grammar, with the exception of
-  references to external APIs.
 - **Illustrate with clear examples.** Function documentation must include clear
   examples demonstrating the usage and outcome of the function. Test
   documentation should omit examples where the example serves only to reiterate
@@ -133,33 +130,11 @@ This repository is written in Rust and uses Cargo for building and dependency
 management. Contributors should follow these best practices when working on the
 project:
 
-- Run `make check-fmt`, `make lint`, and `make test` before committing. These
-  targets wrap the following commands, so contributors understand the exact
-  behaviour and policy enforced:
-  - `make check-fmt` executes:
-
-    ```sh
-    cargo fmt --workspace -- --check
-    ```
-
-    validating formatting across the entire workspace without modifying files.
-  - `make lint` executes:
-
-    ```sh
-    cargo clippy --workspace --all-targets --all-features -- -D warnings
-    ```
-
-    linting every target with all features enabled and denying all Clippy
-    warnings.
-  - `make test` executes:
-
-    ```sh
-    cargo test --workspace
-    ```
-
-    running the full workspace test suite. Use `make fmt`
-    (`cargo fmt --workspace`) to apply formatting fixes reported by the
-    formatter check.
+- Run `make check-fmt`, `make lint`, and `make test` sequentially before
+  committing. `check-fmt` checks Rust formatting and Markdown table and prose
+  layout without changing files. `lint` runs Clippy, rustdoc, and Whitaker;
+  `test` runs the workspace suite and doctests. Use `make fmt` to apply Rust
+  and Markdown formatting fixes, then repeat the non-mutating checks.
 - Clippy warnings MUST be disallowed.
 - Fix any warnings emitted during tests in the code itself rather than
   silencing them.
@@ -324,6 +299,22 @@ project:
 - Use GitHub-flavoured Markdown footnotes (`[^1]`) for references and
   footnotes.
 
+<!-- typos-config-builder:agents-md:start -->
+
+## Spelling
+
+- `make spelling` runs the pinned `typos-config-builder gate`, which
+  regenerates `typos.toml` from the shared en-GB-oxendict dictionary and
+  `typos.local.toml`, then checks spelling and the shared phrase corrections.
+- `typos.toml` is generated: never edit it by hand. Put narrow
+  repository-specific exceptions in `typos.local.toml`, as exact or full-line
+  patterns rather than bare accepted words.
+- When `make spelling` changes `typos.toml`, commit the regenerated file. If
+  the change is unrelated to your work, commit it in a separate base pull
+  request and stack your branch on it, so each review diff stays focused.
+
+<!-- typos-config-builder:agents-md:end -->
+
 ## Project documentation
 
 Record design decisions in the design document. Where a decision is
@@ -379,25 +370,18 @@ The following tooling is available in this environment:
 These practices help maintain a high-quality codebase and facilitate
 collaboration.
 
-## Fast development builds
+## Development builds
 
-`make dev-build` and `make dev-test` compile with the opt-in Cranelift backend
-and the mold linker configured in `tools/dev-fast/config.toml`. They require a
-nightly toolchain and, on Linux, a `mold` binary on the `PATH`. The fragment is
-passed explicitly with `--config`, so release, coverage, and verification
-builds are unaffected; never copy its contents into `.cargo/config.toml`, which
-Cargo applies to every build.
+Bare Cargo commands from the repository root and the standard `make build`,
+`make test`, `make lint`, and `make typecheck` targets use the development
+defaults in `.cargo/config.toml`. The pinned nightly toolchain selects
+Cranelift for the development profile, the parallel rustc frontend, and the
+`mold` linker on Linux. Make restates the development flags when a recipe sets
+`RUSTFLAGS`, so its commands use the same backend and frontend as bare Cargo.
 
-## Dev-fast is the standard development profile
-
-The standard `make build`, `make test`, `make lint`, and `make typecheck`
-targets already pass `--config tools/dev-fast/config.toml` to every `cargo`
-invocation they run, so day-to-day development builds, tests, lints, and
-type-checks use the Cranelift backend and the mold linker by default. An agent
-or human calling `cargo` directly for a development build, test, lint, or
-type-check must pass `--config tools/dev-fast/config.toml` explicitly to match.
-The fragment must never be applied to `make coverage`, release builds, or
-verification builds — those keep the standard LLVM backend and platform linker.
-Mixing direct-`cargo` and `make` invocations without the flag thrashes the
-incremental build cache, because the two paths produce different compilation
-fingerprints.
+Run `make install-build-tools` to install the pinned nightly components and, on
+Linux, the pinned `mold` binary. Standard development targets run
+`check-build-tools` before compiling and report missing prerequisites.
+Coverage, release, packaging, verification, and Whitaker use their explicit
+toolchain and backend routes; installed development tools need not be active in
+those jobs.

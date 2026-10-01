@@ -8,18 +8,25 @@ it from the template.
 Generated projects use Rust 2024, a pinned nightly toolchain, strict lint
 settings, and documented starter code. Library projects render `src/lib.rs`.
 Application projects render `src/main.rs`, `src/lib.rs`, release automation, and
-`[package.metadata.binstall]` metadata for binary installation.
+`[package.metadata.binstall]` metadata for binary installation. The starter
+application prints `Hello from Cabochon!` followed by a newline when run.
 
-Debug builds use the standard LLVM backend. Coverage generation uses `lld`
-instead because LLVM coverage tools expect LLVM-compatible linker behaviour.
-See the developer guide for local build tooling and linker configuration.
+Bare development Cargo commands and standard Make build, test and typecheck
+targets use Cranelift and the parallel `rustc` frontend (`-Zthreads=8`). On
+Linux, they link with the pinned `mold` binary. The Rustdoc and Clippy parts of
+`make lint` use the same standard; Whitaker uses its installer-managed
+toolchain.
+
+Coverage uses LLVM and `lld`, while `make release` uses stable Cargo and the
+production linker. Neither adds the development frontend or linker flags. See
+the developer guide for local build-tool installation and routing details.
 
 ## Makefile Targets
 
 The generated `Makefile` exposes these public targets:
 
-- `make all` runs formatting checks, linting, tests and the workflow contract
-  check below.
+- `make all` runs formatting checks, Markdown lint, spelling, Rust lint, tests,
+  and the workflow contract check below in order.
 - `make check-fmt` verifies Rust formatting.
 - `make lint` runs rustdoc, Clippy, and Whitaker with warnings denied.
 - `make test` runs `cargo nextest run` when cargo-nextest is installed and
@@ -33,8 +40,10 @@ The generated `Makefile` exposes these public targets:
   (`cv005-contracts check`, pinned in the Makefile) over the repository's
   workflows. It needs `uv`, which fetches Python 3.13 itself.
 - `make markdownlint` checks Markdown files.
+- `make spelling` regenerates the spelling configuration and checks source and
+  prose with the pinned builder.
 - `make nixie` validates Mermaid diagrams.
 
-Install `clang`, `lld`, `python3`, and `cargo-audit` before running the full
-generated workflow locally on Linux. See the developer guide for the local
+Install `clang`, `lld`, `mold`, `python3`, and `cargo-audit` before running the
+full generated workflow locally on Linux. See the developer guide for the local
 build-tooling installs beyond these.

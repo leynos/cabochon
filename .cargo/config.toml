@@ -1,3 +1,32 @@
+# Repository-wide Cargo defaults for the development build standard
+# (concordat rule `rust-build-defaults`).
+#
+# Cranelift, the parallel `rustc` frontend and (on Linux) `mold` are the
+# defaults for development, test, lint and typecheck builds. Cargo discovers
+# this file from the working directory, so bare Cargo commands at this root
+# take the same standard as Make.
+#
+# Cargo selects a single `rustflags` source rather than merging them: a
+# matching `[target.*]` table replaces `[build] rustflags` outright, and an
+# assigned `RUSTFLAGS` replaces both. Every flag is therefore repeated in each
+# source here, and the Makefile composes them into the `RUSTFLAGS` its
+# recipes set. Coverage and release explicitly select their LLVM route.
+[unstable]
+codegen-backend = true
+
+# The test profile inherits dev. Release retains Cargo's production LLVM
+# backend; the stable cross workflow runs from outside this config's discovery
+# path because stable Cargo cannot parse the nightly-only profile key.
+[profile.dev]
+codegen-backend = "cranelift"
+
+[build]
+rustflags = ["-Zthreads=8"]
+
+# The launcher makes clang find the pinned `ld.mold` alongside `mold` on PATH.
 [target.x86_64-unknown-linux-gnu]
-linker = "clang"
-rustflags = ["-C", "link-arg=-fuse-ld=mold"]
+linker = "scripts/clang-pinned-mold.sh"
+
+# `mold` is Linux-only. Other targets keep the platform linker and frontend flag.
+[target.'cfg(target_os = "linux")']
+rustflags = ["-Zthreads=8", "-Clink-arg=-fuse-ld=mold"]

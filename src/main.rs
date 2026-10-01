@@ -1,12 +1,10 @@
 //! `Cabochon` application entry point.
 
-// TODO: Remove when replacing app scaffolding
-// (docs/execplans/rust-project-enhancements.md).
+use std::io::{self, Write};
+
 /// Application entry point.
-#[expect(
-    clippy::print_stdout,
-    reason = "temporary app stub tracked in docs/execplans/rust-project-enhancements.md"
-)]
-fn main() {
-    println!("Hello from Cabochon!");
+fn main() -> io::Result<()> {
+    let stdout = io::stdout();
+    let mut output = stdout.lock();
+    writeln!(output, "{}", cabochon::greet())
 }

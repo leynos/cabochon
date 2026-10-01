@@ -34,9 +34,9 @@ const MAKE_VALUE_OPTIONS: [&str; 8] = [
 const SUITE_SUBCOMMANDS: [&str; 3] = ["test", "nextest", "llvm-cov"];
 
 /// Make targets that run the suite: `test`, `all` (which runs it),
-/// `coverage` (under `cargo llvm-cov`) and the fast local variants. A bare
+/// `coverage` (under `cargo llvm-cov`). A bare
 /// `make` runs the default goal, which is `all`, so it counts as well.
-const SUITE_TARGETS: [&str; 5] = ["test", "all", "coverage", "dev-test", "test-fast"];
+const SUITE_TARGETS: [&str; 3] = ["test", "all", "coverage"];
 
 /// Opens the crate manifest directory as a capability-scoped handle.
 pub(crate) fn manifest_dir() -> std::io::Result<Dir> {

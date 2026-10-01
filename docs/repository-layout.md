@@ -17,25 +17,27 @@ compact and omits build output such as `target/`.
 │   ├── dependabot.yml
 │   └── workflows/
 │       ├── ci.yml
-
+│       ├── coverage-main.yml
 │       └── release.yml
-
 ├── docs/
 │   ├── contents.md
 │   ├── developers-guide.md
 │   ├── repository-layout.md
 │   ├── users-guide.md
 │   └── ...
+├── scripts/
+│   ├── check-build-tools.sh
+│   ├── install-build-tools.sh
+│   └── resolve-build-target.sh
 ├── src/
-
 │   ├── lib.rs
 │   └── main.rs
-
 ├── tests/
-│   └── stub.rs
+│   └── ...
 ├── tools/
-│   └── dev-fast/
-│       └── config.toml
+│   └── mold/
+│       ├── SHA256SUMS
+│       └── VERSION
 ├── AGENTS.md
 ├── Cargo.toml
 ├── LICENSE
@@ -48,15 +50,16 @@ compact and omits build output such as `target/`.
 
 ## Path responsibilities
 
-- `.cargo/config.toml`: Configures Cargo defaults for local development,
-  including the Linux linker.
+- `.cargo/config.toml`: Configures the default Cranelift development backend,
+  parallel frontend, and Linux linker.
 - `.github/dependabot.yml`: Configures automated dependency update checks.
 - `.github/workflows/ci.yml`: Runs the generated project's continuous
   integration checks.
-
+- `.github/workflows/coverage-main.yml`: Owns persistent main-branch coverage
+  publication and declares the `codescene` environment. Its main-only
+  deployment policy is verified; token placement awaits owner evidence.
 - `.github/workflows/release.yml`: Builds and publishes binary release
   artefacts for the application flavour.
-
 - `docs/`: Holds long-lived reference documentation, guides, style rules, and
   design material.
 - `docs/contents.md`: Indexes the documentation set and should be updated when
@@ -75,13 +78,13 @@ compact and omits build output such as `target/`.
 
 - `tests/`: Holds integration and behavioural tests that exercise public
   behaviour.
-- `tests/stub.rs`: Keeps the generated test directory valid until real tests
-  replace it.
-- `tools/dev-fast/config.toml`: Opt-in Cargo configuration fragment that
-  applies the Cranelift codegen backend and the `mold` linker for
-  `make dev-build` and `make dev-test`. Passed explicitly with `--config`
-  rather than placed under `.cargo/`, so it never affects release, coverage, or
-  verification builds.
+- `scripts/*build-tools.sh`: Installs and checks the binary and toolchain
+  prerequisites of the development standard. Make owns their invocation.
+- `scripts/clang-pinned-mold.sh`: Checks the adjacent pinned `ld.mold` and
+  selects its directory for Linux development links through `clang`.
+- `scripts/resolve-build-target.sh`: Classifies each Make Cargo invocation's
+  compilation target with the pinned rustc for flags and linker preflight.
+- `tools/mold/`: Pins the supported Linux `mold` release and archive checksums.
 - `AGENTS.md`: Provides repository-specific working instructions for agents and
   contributors.
 - `Cargo.toml`: Defines package metadata, dependencies, lint policy, and Cargo
