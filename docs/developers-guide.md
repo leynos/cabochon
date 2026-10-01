@@ -139,17 +139,25 @@ request reads the cache and never writes one.
 
 ## The build standard
 
-Bare Cargo development commands and standard Make targets use Cranelift, the
-parallel `rustc` frontend (`-Zthreads=8`) and, on Linux, the `mold` linker
-(`-Clink-arg=-fuse-ld=mold`). `.cargo/config.toml` supplies the dev-profile
-backend and flags when Cargo runs from this checkout. On x86_64 GNU/Linux, the
-configured linker launcher checks that `ld.mold` on the selected `mold` binary's
-`PATH` directory is the same pinned executable, then gives that directory to
-`clang` with `-B`. This prevents Clang from silently choosing an older system
-`ld.mold`. The local binary installer and CI's `setup-rust` action both add
-their verified binary directory to `PATH`. `mold` is Linux-only; other
-platforms keep their platform linker. Cargo selects one `rustflags` source
-rather than merging them, so every source repeats the frontend flag.
+Bare Cargo development commands, the public `make build`, `make test`, and
+`make typecheck` targets, and the rustdoc and Clippy phases of `make lint` use
+Cranelift and the parallel `rustc` frontend (`-Zthreads=8`). On Linux, these
+development routes also use the `mold` linker (`-Clink-arg=-fuse-ld=mold`).
+`.cargo/config.toml` supplies the dev-profile backend and flags when Cargo runs
+from this checkout; Make restates the flags because its recipes assign
+`RUSTFLAGS`. On x86_64 GNU/Linux, the configured linker launcher checks that
+`ld.mold` on the selected `mold` binary's `PATH` directory is the same pinned
+executable, then gives that directory to `clang` with `-B`. This prevents Clang
+from silently choosing an older system `ld.mold`. The local binary installer
+and CI's `setup-rust` action both add their verified binary directory to `PATH`.
+`mold` is Linux-only; other platforms keep their platform linker. Install the
+pinned `mold` binary and keep it on `PATH` before running Linux development
+targets. Cargo selects one `rustflags` source rather than merging them, so
+every source repeats the frontend flag.
+
+The public `make dev-build` and `make dev-test` targets remain compatibility
+aliases for `make build` and `make test`, so they inherit the same development
+flags.
 
 An assigned `RUSTFLAGS` replaces the configuration's flags, so Make restates
 the frontend and linker flags alongside warnings policy and any inherited
@@ -157,15 +165,16 @@ flags. It selects `mold` only for a Linux compilation target on a supported
 Linux host, including when a Make caller uses `CARGO_BUILD_TARGET` or Cargo's
 `--target` flag. The test, rustdoc, and Clippy invocations are evaluated
 separately. Coverage explicitly selects LLVM for both dev and test profiles,
-sets instrumentation flags without the development frontend/linker, and uses
-`lld`. The local coverage and Whitaker routes remove inherited
-`CARGO_ENCODED_RUSTFLAGS`, which would otherwise take precedence over
+sets instrumentation flags without adding the development frontend or `mold`
+linker flag, and uses `lld`. The local coverage and Whitaker routes remove
+inherited `CARGO_ENCODED_RUSTFLAGS`, which would otherwise take precedence over
 `RUSTFLAGS`. Both hosted coverage lanes fail before measurement if that encoded
 variable is present; their explicit profile settings select LLVM. The pinned
 coverage action then owns its instrumentation flags. The release Make target
 clears `RUSTFLAGS`, invokes Cargo from outside the checkout with an absolute
 manifest path, and fixes `CARGO_TARGET_DIR` to the checkout's `target/`
-directory. This selects the LLVM release profile without loading development
+directory. The release recipe does not add the development frontend or linker
+flags; this selects the LLVM release profile without loading development
 configuration while keeping packaged output at its expected path. It selects
 stable Cargo and removes inherited encoded flags and backend profile overrides;
 CI's stable native and `cross` routes make the same exclusions. A direct nightly

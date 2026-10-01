@@ -24,9 +24,10 @@ pub enum Pin {
 
 /// Why a toolchain file cannot select a supported channel.
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub enum PinError {
+pub enum PinParseError {
     Missing,
     Malformed(String),
+    Duplicate(String),
     Unsupported(String),
 }
 
@@ -41,9 +42,9 @@ impl Pin {
     /// # Errors
     ///
     /// Returns a typed reason when the toolchain table lacks a channel, its
-    /// declaration is malformed, or the channel is not a stable or nightly
-    /// route the development standard supports.
-    pub fn read(toolchain: &str) -> Result<Self, PinError> {
+    /// declaration is malformed or repeated, or the channel is not a stable
+    /// or nightly route the development standard supports.
+    pub fn read(toolchain: &str) -> Result<Self, PinParseError> {
         let channel = toolchain_channel(toolchain)?;
         if channel == "nightly"
             || channel
@@ -55,7 +56,7 @@ impl Pin {
         if is_stable_channel(channel) {
             return Ok(Self::Stable);
         }
-        Err(PinError::Unsupported(channel.to_owned()))
+        Err(PinParseError::Unsupported(channel.to_owned()))
     }
 
     /// Returns whether the pin takes `-Zthreads`, which is a nightly flag.
@@ -94,7 +95,7 @@ const fn is_duplicate_channel<'a>(channel: &mut Option<&'a str>, channel_name: &
 }
 
 /// Reads the channel declaration from the `[toolchain]` table.
-fn toolchain_channel(toolchain: &str) -> Result<&str, PinError> {
+fn toolchain_channel(toolchain: &str) -> Result<&str, PinParseError> {
     let mut in_toolchain_table = false;
     let mut channel = None;
     for raw_line in toolchain.lines() {
@@ -107,7 +108,7 @@ fn toolchain_channel(toolchain: &str) -> Result<&str, PinError> {
             continue;
         }
         let Some((key, assigned)) = line.split_once('=') else {
-            return Err(PinError::Malformed(line.to_owned()));
+            return Err(PinParseError::Malformed(line.to_owned()));
         };
         if key.trim() != "channel" {
             continue;
@@ -117,15 +118,16 @@ fn toolchain_channel(toolchain: &str) -> Result<&str, PinError> {
             .strip_prefix('"')
             .and_then(|quoted| quoted.strip_suffix('"'))
         else {
-            return Err(PinError::Malformed(line.to_owned()));
+            return Err(PinParseError::Malformed(line.to_owned()));
         };
-        if is_malformed_channel_name(channel_name)
-            || is_duplicate_channel(&mut channel, channel_name)
-        {
-            return Err(PinError::Malformed(line.to_owned()));
+        if is_malformed_channel_name(channel_name) {
+            return Err(PinParseError::Malformed(line.to_owned()));
+        }
+        if is_duplicate_channel(&mut channel, channel_name) {
+            return Err(PinParseError::Duplicate(line.to_owned()));
         }
     }
-    channel.ok_or(PinError::Missing)
+    channel.ok_or(PinParseError::Missing)
 }
 
 /// A list of compiler flags, with `-C value` pairs joined into `-Cvalue` so
@@ -332,4 +334,36 @@ pub fn config_problems(config: &str, pin: Pin) -> Result<Problems, String> {
     problems.extend(found.iter().filter_map(|source| source.problem(pin)));
     problems.extend(drift_problem(&found));
     Ok(problems)
+}
+
+#[cfg(test)]
+mod pin_tests {
+    //! Named positive and negative fixtures for the toolchain pin reader.
+
+    use rstest::rstest;
+
+    use super::{Pin, PinParseError};
+
+    /// Scenario: toolchain files pinning each supported kind of channel.
+    #[rstest]
+    #[case::nightly("[toolchain]\nchannel = \"nightly-2026-05-28\"\n", Pin::Nightly)]
+    #[case::stable("[toolchain]\nchannel = \"1.94.0\"\n", Pin::Stable)]
+    fn the_pin_reader_tells_the_channels_apart(#[case] toolchain: &str, #[case] expected: Pin) {
+        assert_eq!(Pin::read(toolchain), Ok(expected));
+    }
+
+    /// Scenario: invalid declarations cannot silently select a stable channel.
+    #[rstest]
+    #[case::missing("[toolchain]\n", PinParseError::Missing)]
+    #[case::malformed_declaration("[toolchain]\nchannel: \"nightly\"\n", PinParseError::Malformed("channel: \"nightly\"".to_owned()))]
+    #[case::bare_channel("[toolchain]\nchannel = 1.94.0\n", PinParseError::Malformed("channel = 1.94.0".to_owned()))]
+    #[case::repeated_channel("[toolchain]\nchannel = \"nightly\"\nchannel = \"stable\"\n", PinParseError::Duplicate("channel = \"stable\"".to_owned()))]
+    #[case::beta("[toolchain]\nchannel = \"beta\"\n", PinParseError::Unsupported("beta".to_owned()))]
+    #[case::invalid_version("[toolchain]\nchannel = \"1.bad\"\n", PinParseError::Unsupported("1.bad".to_owned()))]
+    fn the_pin_reader_rejects_indeterminate_channels(
+        #[case] toolchain: &str,
+        #[case] expected: PinParseError,
+    ) {
+        assert_eq!(Pin::read(toolchain), Err(expected));
+    }
 }

@@ -22,16 +22,28 @@ fn make(args: &[&str]) -> Result<std::process::Output, std::io::Error> {
         .output()
 }
 
-/// Scenario: retired opt-in development targets cannot stand in for the suite.
+/// Scenario: the old target names select the same default development route.
 #[rstest]
-#[case::build("dev-build")]
-#[case::run_tests("dev-test")]
-fn retired_development_targets_are_absent(#[case] target: &str) {
-    let output = make(&["--dry-run", target, "CARGO=echo"])
-        .expect("ask Make for a retired development target");
-    assert!(!output.status.success(), "{target} was still reachable");
-    let stderr = String::from_utf8(output.stderr).expect("read Make error");
-    assert!(stderr.contains("No rule to make target"), "{stderr}");
+#[case::build("dev-build", "build")]
+#[case::run_tests("dev-test", "test")]
+fn development_alias_uses_the_standard_route(#[case] alias: &str, #[case] standard: &str) {
+    let alias_output = make(&["--dry-run", "--always-make", alias, "CARGO=probe-cargo"])
+        .expect("read alias route");
+    let standard_output = make(&["--dry-run", "--always-make", standard, "CARGO=probe-cargo"])
+        .expect("read standard route");
+    for (target, output) in [(alias, &alias_output), (standard, &standard_output)] {
+        assert!(
+            output.status.success(),
+            "{target}: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    assert_eq!(
+        alias_output.stdout, standard_output.stdout,
+        "{alias} differs from {standard}"
+    );
+    let stdout = String::from_utf8(alias_output.stdout).expect("read alias commands");
+    assert!(stdout.contains("probe-cargo "), "{stdout}");
 }
 
 /// Scenario: each development target's preflight fails.
@@ -41,6 +53,8 @@ fn retired_development_targets_are_absent(#[case] target: &str) {
 #[rstest]
 #[case::build("build")]
 #[case::run_tests("test")]
+#[case::dev_build("dev-build")]
+#[case::dev_test("dev-test")]
 #[case::lint("lint")]
 #[case::typecheck("typecheck")]
 fn a_failed_preflight_stops_the_target(#[case] target: &str) {

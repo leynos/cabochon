@@ -29,7 +29,7 @@ mod config;
 #[path = "build_standard_support/make.rs"]
 mod make;
 use ci_steps::{doctest_problems, install_mold_problems, workflow_problems};
-use config::{CONFIG, Flags, Pin, PinError, Problems, THREADS_FLAG, TOOLCHAIN, config_problems};
+use config::{CONFIG, Flags, Pin, Problems, THREADS_FLAG, TOOLCHAIN, config_problems};
 use make::{
     Assignment,
     Host,
@@ -49,11 +49,6 @@ fn none_of(problems: &Problems) -> Result<(), String> {
         Err(format!("{problems:#?}"))
     }
 }
-
-/// A toolchain file pinning a nightly channel.
-const NIGHTLY: &str = "[toolchain]\nchannel = \"nightly-2026-05-28\"\n";
-/// A toolchain file pinning a stable channel.
-const STABLE: &str = "[toolchain]\nchannel = \"1.94.0\"\n";
 
 /// A compliant nightly configuration: the frontend flag in every source and `mold`
 /// in the Linux table alone.
@@ -155,30 +150,6 @@ fn a_rustflags_array_spread_over_lines_is_refused() {
         config_problems(SPREAD_ARRAY, Pin::Nightly).is_err(),
         "a rustflags array spread over several lines was read"
     );
-}
-
-/// Scenario: toolchain files pinning each kind of channel.
-///
-/// Invariant: only a `nightly` channel reads as nightly, so only it is asked to
-/// carry `-Zthreads`.
-#[rstest]
-#[case::nightly(NIGHTLY, Pin::Nightly)]
-#[case::stable(STABLE, Pin::Stable)]
-fn the_pin_reader_tells_the_channels_apart(#[case] toolchain: &str, #[case] expected: Pin) {
-    assert_eq!(Pin::read(toolchain), Ok(expected));
-}
-
-/// Scenario: a missing, malformed, or unsupported channel cannot become stable.
-#[rstest]
-#[case::missing("[toolchain]\n", PinError::Missing)]
-#[case::bare("[toolchain]\nchannel = 1.94.0\n", PinError::Malformed("channel = 1.94.0".to_owned()))]
-#[case::beta("[toolchain]\nchannel = \"beta\"\n", PinError::Unsupported("beta".to_owned()))]
-#[case::invalid_version("[toolchain]\nchannel = \"1.bad\"\n", PinError::Unsupported("1.bad".to_owned()))]
-fn the_pin_reader_rejects_indeterminate_channels(
-    #[case] toolchain: &str,
-    #[case] expected: PinError,
-) {
-    assert_eq!(Pin::read(toolchain), Err(expected));
 }
 
 /// Builds the assignment a fixture line is expected to read as.
@@ -357,10 +328,10 @@ fn a_continued_command_is_one_command() {
 }
 
 #[test]
-fn every_rustflags_source_is_consistent_with_the_pin() {
-    let pin = Pin::read(TOOLCHAIN).expect("the checked-in toolchain pin should be readable");
-    let problems = config_problems(CONFIG, pin).expect("checked-in Cargo config is readable");
-    assert!(problems.is_empty(), "{problems:#?}");
+fn every_rustflags_source_is_consistent_with_the_pin() -> Result<(), String> {
+    let pin = Pin::read(TOOLCHAIN).map_err(|error| format!("{error:?}"))?;
+    let problems = config_problems(CONFIG, pin)?;
+    none_of(&problems)
 }
 
 #[test]

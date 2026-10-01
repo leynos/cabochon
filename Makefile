@@ -1,4 +1,4 @@
-.PHONY: help all clean test build release coverage lint lint-clippy lint-whitaker typecheck fmt check-fmt markdownlint install-markdownlint spelling nixie audit rust-audit install-build-tools check-build-tools test-workflow-contracts
+.PHONY: help all clean test build dev-test dev-build release coverage lint lint-clippy lint-whitaker typecheck fmt check-fmt markdownlint install-markdownlint spelling nixie audit rust-audit install-build-tools check-build-tools test-workflow-contracts
 
 SHELL := bash
 
@@ -83,6 +83,8 @@ typecheck: MOULD_REQUIRED = $(call NEEDS_MOULD,$(CARGO_FLAGS))
 typecheck: CLANG_REQUIRED = $(call NEEDS_CLANG,$(CARGO_FLAGS))
 
 build: target/debug/$(TARGET) ## Build debug binary
+dev-build: build ## Compatibility alias for the standard development build
+dev-test: test ## Compatibility alias for the standard development test suite
 release: target/release/$(TARGET) ## Build release binary
 
 # Keep composite gates ordered even when the caller passes `make -j`.
