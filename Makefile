@@ -136,7 +136,7 @@ lint-clippy: check-build-tools ## Run rustdoc and Clippy under the development s
 	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(call STANDARD_RUSTFLAGS,$(CLIPPY_FLAGS))" $(CARGO) clippy $(CLIPPY_FLAGS)
 
 lint-whitaker: ## Run the installer-managed rolling Whitaker suite
-	CARGO_ENCODED_RUSTFLAGS= RUSTFLAGS="" DYLINT_RUSTFLAGS="-D warnings" CARGO_PROFILE_DEV_CODEGEN_BACKEND=llvm CARGO_PROFILE_TEST_CODEGEN_BACKEND=llvm $(WHITAKER) --all -- $(CARGO_FLAGS)
+	cd "$(dir $(CURDIR))" && env -u CARGO_ENCODED_RUSTFLAGS -u CARGO_PROFILE_DEV_CODEGEN_BACKEND -u CARGO_PROFILE_TEST_CODEGEN_BACKEND -u CARGO_PROFILE_RELEASE_CODEGEN_BACKEND RUSTFLAGS="" DYLINT_RUSTFLAGS="-D warnings" $(WHITAKER) --manifest-path "$(CURDIR)/Cargo.toml" --all -- $(CARGO_FLAGS)
 
 typecheck: check-build-tools ## Type-check without building
 	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(call STANDARD_RUSTFLAGS,$(CARGO_FLAGS))" $(CARGO) check $(CARGO_FLAGS)

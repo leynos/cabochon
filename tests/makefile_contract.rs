@@ -5,6 +5,7 @@
 
 use std::process::Command;
 
+use camino::Utf8Path;
 use rstest::rstest;
 
 /// Runs Make from the checkout while replacing compilers with harmless probes.
@@ -163,6 +164,47 @@ fn whitaker_denies_warnings_without_development_flags() {
     assert!(command.contains("RUSTFLAGS=\"\""), "{command}");
     assert!(!command.contains("-Zthreads=8"), "{command}");
     assert!(!command.contains("-fuse-ld=mold"), "{command}");
+}
+
+/// Scenario: Whitaker's temporary driver must not inherit Cargo's nightly
+/// development profile setting while it builds under its own toolchain.
+#[test]
+fn whitaker_runs_outside_the_development_configuration() {
+    let output = make(&["--dry-run", "lint-whitaker", "WHITAKER=probe-whitaker"])
+        .expect("read evaluated Whitaker route");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8(output.stdout).expect("read Whitaker route");
+    let command = stdout
+        .lines()
+        .find(|line| line.contains("probe-whitaker "))
+        .expect("dry run includes a Whitaker recipe");
+    let parent = Utf8Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("manifest directory has a parent");
+    assert!(
+        command.starts_with(&format!("cd \"{parent}/\" && env ")),
+        "{command}"
+    );
+    assert!(
+        command.contains(&format!(
+            "--manifest-path \"{}/Cargo.toml\" --all --",
+            env!("CARGO_MANIFEST_DIR")
+        )),
+        "{command}"
+    );
+    for key in [
+        "CARGO_ENCODED_RUSTFLAGS",
+        "CARGO_PROFILE_DEV_CODEGEN_BACKEND",
+        "CARGO_PROFILE_TEST_CODEGEN_BACKEND",
+        "CARGO_PROFILE_RELEASE_CODEGEN_BACKEND",
+    ] {
+        assert!(command.contains(&format!("-u {key}")), "{command}");
+        assert!(!command.contains(&format!("{key}=llvm")), "{command}");
+    }
 }
 
 /// Scenario: Make is asked to run all gates with parallel jobs.

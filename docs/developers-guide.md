@@ -181,11 +181,13 @@ CI's stable native and `cross` routes make the same exclusions. A direct nightly
 `cargo build --release` from the repository root still gets the configured
 frontend and Linux linker unless its caller excludes them. Stable Cargo rejects
 the nightly-only profile key there; use the documented parent-directory and
-absolute-manifest route for stable release builds. Whitaker uses its
-installer-managed toolchain and an explicit LLVM profile override, without
-injecting the development flags. Its own `DYLINT_RUSTFLAGS=-D warnings`
-promotes suite findings to errors, so the lint gate fails when a rolling lint
-reports a warning.
+absolute-manifest route for stable release builds. Whitaker runs from the
+checkout's parent with an absolute manifest path under its installer-managed
+toolchain. It removes inherited backend profile overrides and encoded Rust
+flags. The temporary driver no longer inherits unstable profile settings, and
+the repository check starts outside `.cargo/config.toml` discovery. Its own
+`DYLINT_RUSTFLAGS=-D warnings` promotes suite findings to errors, so the lint
+gate fails when a rolling lint reports a warning.
 
 `tests/build_standard_contract.rs` checks the configured flags and evaluated
 Make commands on Linux and macOS. `tests/build_backend_contract.rs` checks the
