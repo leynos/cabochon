@@ -61,6 +61,11 @@ compact and omits build output such as `target/`.
   design material.
 - `docs/contents.md`: Indexes the documentation set and should be updated when
   documentation files are added, renamed, or removed.
+- `docs/roadmap.md`: Owns programme-level delivery gates and the allocation of
+  historical tasks. `docs/roadmap-*.md` owns the detailed hosted-runtime,
+  developer-experience, knowledge-workspace, and conditional-extension tasks.
+  Use file-qualified identifiers when linking tasks between roadmaps; do not
+  maintain duplicate completion checklists in the programme map.
 - `docs/users-guide.md`: Explains how to use the generated project and its
   public build and test commands.
 - `docs/developers-guide.md`: Explains the contributor workflow and local
