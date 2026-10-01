@@ -54,60 +54,66 @@ fn none_of(problems: &Problems) -> Result<(), String> {
 /// in the Linux table alone.
 const NIGHTLY_OK: &str = concat!(
     "[build]\nrustflags = [\"-Zthreads=8\"]\n",
-    "[target.x86_64-unknown-linux-gnu]\nlinker = \"clang\"\n",
+    "[target.'cfg(target_os = \"linux\")']\n",
     "rustflags = [\"-Zthreads=8\", \"-Clink-arg=-fuse-ld=mold\"]\n"
 );
 /// The same, with the linker flag spelled as the `-C` pair Cargo also accepts.
 const NIGHTLY_SPELLED_APART: &str = concat!(
     "[build]\nrustflags = [\"-Zthreads=8\"]\n",
-    "[target.x86_64-unknown-linux-gnu]\nlinker = \"clang\"\n",
+    "[target.'cfg(target_os = \"linux\")']\n",
     "rustflags = [\"-Zthreads=8\", \"-C\", \"link-arg=-fuse-ld=mold\"]\n"
 );
 /// A compliant stable configuration: `mold` alone, in the Linux table.
 const STABLE_OK: &str = concat!(
-    "[target.x86_64-unknown-linux-gnu]\nlinker = \"clang\"\n",
+    "[target.'cfg(target_os = \"linux\")']\n",
     "rustflags = [\"-Clink-arg=-fuse-ld=mold\"]\n"
+);
+/// A Linux triple cannot stand in for the table that covers every Linux target.
+const LINUX_TRIPLE_ONLY: &str = concat!(
+    "[build]\nrustflags = [\"-Zthreads=8\"]\n",
+    "[target.x86_64-unknown-linux-gnu]\n",
+    "rustflags = [\"-Zthreads=8\", \"-Clink-arg=-fuse-ld=mold\"]\n"
 );
 /// A nightly configuration whose `[build]` source lost the frontend flag, so it
 /// is missing it and also differs from the Linux source.
 const BUILD_LOSES_THREADS: &str = concat!(
     "[build]\nrustflags = [\"-Dwarnings\"]\n",
-    "[target.x86_64-unknown-linux-gnu]\nlinker = \"clang\"\n",
+    "[target.'cfg(target_os = \"linux\")']\n",
     "rustflags = [\"-Zthreads=8\", \"-Clink-arg=-fuse-ld=mold\"]\n"
 );
 /// A nightly configuration whose Linux table lost `mold`.
 const LINUX_LOSES_LINKER: &str = concat!(
     "[build]\nrustflags = [\"-Zthreads=8\"]\n",
-    "[target.x86_64-unknown-linux-gnu]\nlinker = \"clang\"\n",
+    "[target.'cfg(target_os = \"linux\")']\n",
     "rustflags = [\"-Zthreads=8\"]\n"
 );
 /// A nightly configuration that names `mold` in `[build]`, beyond Linux.
 const LINKER_IN_BUILD: &str = concat!(
     "[build]\nrustflags = [\"-Zthreads=8\", \"-Clink-arg=-fuse-ld=mold\"]\n",
-    "[target.x86_64-unknown-linux-gnu]\nlinker = \"clang\"\n",
+    "[target.'cfg(target_os = \"linux\")']\n",
     "rustflags = [\"-Zthreads=8\", \"-Clink-arg=-fuse-ld=mold\"]\n"
 );
 /// A nightly configuration with no `[build]` source for the other hosts.
 const NO_BUILD_SOURCE: &str = concat!(
-    "[target.x86_64-unknown-linux-gnu]\nlinker = \"clang\"\n",
+    "[target.'cfg(target_os = \"linux\")']\n",
     "rustflags = [\"-Zthreads=8\", \"-Clink-arg=-fuse-ld=mold\"]\n"
 );
 /// A stable configuration that names the nightly-only frontend flag.
 const STABLE_WITH_THREADS: &str = concat!(
-    "[target.x86_64-unknown-linux-gnu]\nlinker = \"clang\"\n",
+    "[target.'cfg(target_os = \"linux\")']\n",
     "rustflags = [\"-Zthreads=8\", \"-Clink-arg=-fuse-ld=mold\"]\n"
 );
 /// Comments after keys and a quoted hash do not change the active flags.
 const COMMENTED_OK: &str = concat!(
     "[build] # every host\nrustflags = [\"-Zthreads=8\"] # the frontend\n",
-    "[target.x86_64-unknown-linux-gnu] # Linux\nlinker = \"clang\"\n",
+    "[target.'cfg(target_os = \"linux\")'] # Linux\n",
     "rustflags = [\"-Zthreads=8\", \"-Clink-arg=-fuse-ld=mold\"]\n",
     "note = \"a # inside a string\"\n"
 );
 /// A sibling key must not be mistaken for an active rustflags source.
 const SIBLING_KEY_OK: &str = concat!(
     "[build]\nrustflags = [\"-Zthreads=8\"]\nrustflags-extra = [\"-Dwarnings\"]\n",
-    "[target.x86_64-unknown-linux-gnu]\nlinker = \"clang\"\n",
+    "[target.'cfg(target_os = \"linux\")']\n",
     "rustflags = [\"-Zthreads=8\", \"-Clink-arg=-fuse-ld=mold\"]\n"
 );
 /// A `rustflags` array spread over several lines, which the reader refuses.
@@ -122,6 +128,7 @@ const SPREAD_ARRAY: &str = "[build]\nrustflags = [\n  \"-Zthreads=8\",\n]\n";
 #[case::compliant_nightly(NIGHTLY_OK, Pin::Nightly, 0)]
 #[case::linker_spelled_as_a_pair(NIGHTLY_SPELLED_APART, Pin::Nightly, 0)]
 #[case::compliant_stable(STABLE_OK, Pin::Stable, 0)]
+#[case::linker_in_one_linux_triple_only(LINUX_TRIPLE_ONLY, Pin::Nightly, 2)]
 #[case::build_loses_the_frontend(BUILD_LOSES_THREADS, Pin::Nightly, 2)]
 #[case::linux_loses_the_linker(LINUX_LOSES_LINKER, Pin::Nightly, 1)]
 #[case::linker_named_in_build(LINKER_IN_BUILD, Pin::Nightly, 1)]

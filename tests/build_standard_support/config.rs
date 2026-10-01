@@ -202,8 +202,8 @@ struct Source {
 }
 
 impl Source {
-    /// Returns whether the table applies on Linux alone.
-    fn is_linux(&self) -> bool { self.table.starts_with("target.") && self.table.contains("linux") }
+    /// Returns whether the source is the standard table for every Linux target.
+    fn is_linux(&self) -> bool { self.table == r#"target.'cfg(target_os = "linux")'"# }
 
     /// Returns what is wrong with the source's flags for a pin: the frontend flag
     /// on a nightly pin only, and `mold` in a Linux table only.

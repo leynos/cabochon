@@ -258,11 +258,11 @@ secret, so an upload there is silently skipped, and CodeScene accepts an upload
 only for a branch it analyses, which a pull request head is not.
 
 The integration test `tests/cli_greeting.rs` launches the generated `cabochon`
-executable and checks its greeting. The coverage job builds all targets, so
-this test runs the executable with the profiling environment. Even so, the
-latest hosted result for the configured selection reported 0% coverage (0 hits
-and 790 misses). The ratchet is active against that selection; the reported
-result does not yet show covered lines.
+executable and checks its greeting. The coverage jobs build all targets, so the
+spawned binary inherits the profiling environment and contributes coverage for
+the application path exercised by the test. The ratchet compares that report
+with the configured baseline; the earlier zero-coverage rationale no longer
+applies.
 
 `make test-workflow-contracts` enforces the split by running
 `cv005-contracts check`, the shared contract library in `leynos/shared-actions`

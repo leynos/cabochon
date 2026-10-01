@@ -214,6 +214,18 @@ fn missing_cranelift_default_is_detected(#[case] config: String) {
     assert!(!problems.is_empty());
 }
 
+/// Scenario: a backend-looking string in another TOML key is not a setting.
+#[test]
+fn backend_text_in_an_environment_value_is_not_a_default() {
+    let config = concat!(
+        "[unstable]\ncodegen-backend = true\n",
+        "[profile.dev]\ncodegen-backend = \"cranelift\"\n",
+        "[env]\nBACKEND_HINT = \"codegen-backend=cranelift\"\n"
+    );
+    let problems = default_backend_problems(config).expect("read backend value fixture");
+    assert!(problems.is_empty(), "{problems:?}");
+}
+
 /// Checks that the cross installer cannot discover development configuration.
 fn cross_installer_problems(steps: &[Value]) -> Result<Vec<String>, String> {
     let (_, installer) = named_step(steps, "Install cross")
@@ -335,6 +347,10 @@ fn stable_release_uses_external_working_directory() {
 #[case::native_cwd(
     "cd \"$(dirname \"$GITHUB_WORKSPACE\")\"\n          cargo +stable",
     "cargo +stable"
+)]
+#[case::cross_build_toolchain_comes_from_command(
+    "cross +stable build --release",
+    "cross +nightly build --release"
 )]
 #[case::native_manifest(
     "cargo +stable build --release --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\"",
