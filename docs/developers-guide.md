@@ -44,9 +44,13 @@ cargo binstall --no-confirm --locked --disable-strategies compile \
   --disable-telemetry --install-path "$HOME/.local/bin" mdtablefix@0.6.0
 ```
 
-Check `mdtablefix --version` and put that bin directory on `PATH`. Install
-`markdownlint-cli2` with `bun install --global markdownlint-cli2@0.22.1`, with
-its bin directory on `PATH`. `make markdownlint` checks the same globs as CI.
+Check `mdtablefix --version` and put that bin directory on `PATH`. Run
+`make install-markdownlint` to install `markdownlint-cli2` 0.22.1 through `bun`
+into `BUILD_TOOLS_PREFIX/bin` (by default `~/.local/bin`), which Make places
+first on `PATH`. `BUN` can select another compatible executable.
+`make markdownlint` checks the same globs as CI, whose pinned action bundles
+the same CLI version. MD010 checks code blocks; MD013 allows code-block lines
+up to 120 columns.
 
 `make spelling` runs the pinned `typos-config-builder` v0.1.3 gate over source
 and prose. It regenerates `typos.toml` from the live shared dictionary and

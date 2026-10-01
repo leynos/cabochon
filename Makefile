@@ -1,4 +1,4 @@
-.PHONY: help all clean test build release coverage lint lint-clippy lint-whitaker typecheck fmt check-fmt markdownlint spelling nixie audit rust-audit install-build-tools check-build-tools test-workflow-contracts
+.PHONY: help all clean test build release coverage lint lint-clippy lint-whitaker typecheck fmt check-fmt markdownlint install-markdownlint spelling nixie audit rust-audit install-build-tools check-build-tools test-workflow-contracts
 
 SHELL := bash
 
@@ -24,6 +24,7 @@ TEST_CMD := $(if $(shell command -v cargo-nextest 2>/dev/null),nextest run,test)
 COVERAGE_LINKER_FLAGS ?= -fuse-ld=lld
 COVERAGE_RUST_FLAGS ?= $(RUST_FLAGS) -C link-arg=$(COVERAGE_LINKER_FLAGS)
 MDLINT ?= markdownlint-cli2
+BUN ?= bun
 UVX ?= uvx
 # `make fmt` and `make check-fmt` call mdtablefix directly. `--git` selects the
 # Markdown files Git tracks and `--include-untracked` adds the untracked files
@@ -149,6 +150,9 @@ check-fmt: ## Verify formatting
 
 markdownlint: ## Lint Markdown files
 	$(MDLINT) '**/*.md'
+
+install-markdownlint: ## Install the pinned Markdown linter for local Make targets
+	BUN_INSTALL_BIN="$(BUILD_TOOLS_PREFIX)/bin" $(BUN) add --global --exact markdownlint-cli2@0.22.1
 
 spelling: ## Regenerate the spelling configuration and check source and prose
 	$(UVX) --from "git+https://github.com/leynos/typos-config-builder.git@v0.1.3" typos-config-builder gate --scope all

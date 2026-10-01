@@ -223,3 +223,45 @@ fn spelling_gate_is_binding() {
         "spelling failure did not propagate"
     );
 }
+
+/// Scenario: local Markdown lint uses a pinned binary and propagates failures.
+#[test]
+fn markdownlint_installer_and_gate_are_binding() {
+    let install = make(&[
+        "--dry-run",
+        "install-markdownlint",
+        "BUN=probe-bun",
+        "BUILD_TOOLS_PREFIX=/tmp/probe-build-tools",
+    ])
+    .expect("read Markdown lint installer recipe");
+    assert!(install.status.success());
+    let installer_command = String::from_utf8(install.stdout).expect("read installer command");
+    assert!(
+        installer_command.contains(concat!(
+            "BUN_INSTALL_BIN=\"/tmp/probe-build-tools/bin\" ",
+            "probe-bun add --global --exact markdownlint-cli2@0.22.1"
+        )),
+        "{installer_command}"
+    );
+    let installer_failure = make(&["--silent", "install-markdownlint", "BUN=false"])
+        .expect("run failing Markdown lint installer probe");
+    assert!(
+        !installer_failure.status.success(),
+        "installer failure did not propagate"
+    );
+
+    let lint = make(&["--dry-run", "markdownlint", "MDLINT=probe-markdownlint"])
+        .expect("read Markdown lint recipe");
+    assert!(lint.status.success());
+    let lint_command = String::from_utf8(lint.stdout).expect("read Markdown lint command");
+    assert!(
+        lint_command.contains("probe-markdownlint '**/*.md'"),
+        "{lint_command}"
+    );
+    let lint_failure = make(&["--silent", "markdownlint", "MDLINT=false"])
+        .expect("run failing Markdown lint probe");
+    assert!(
+        !lint_failure.status.success(),
+        "Markdown lint failure did not propagate"
+    );
+}
