@@ -191,6 +191,28 @@ the repository check starts outside `.cargo/config.toml` discovery. Its own
 `DYLINT_RUSTFLAGS=-D warnings` promotes suite findings to errors, so the lint
 gate fails when a rolling lint reports a warning.
 
+The diagram summarizes route-specific Rust flags and linkers. Bare Cargo reads
+the checkout configuration. Make's public `build`/`dev-build`, `test`/
+`dev-test`, `lint-clippy`, and `typecheck` targets compose inherited
+`RUSTFLAGS`, `RUST_FLAGS`, and target-scoped flags; supported Linux targets use
+`mold`, and non-Linux targets use their platform linker. Coverage uses LLVM with
+`clang` and `lld`; release clears Rust flags and runs stable Cargo outside
+config discovery.
+
+```mermaid
+flowchart TD
+    start["Build, test, lint, or release command"] --> route{"Execution route?"}
+    route -->|"Bare Cargo"| config[".cargo/config.toml defaults<br/>Cranelift; -Zthreads=8<br/>Linux cfg adds mold"]
+    route -->|"Public Make dev targets"| compose["Inherited RUSTFLAGS<br/>+ RUST_FLAGS (-D warnings)<br/>+ STANDARD_RUSTFLAGS"]
+    compose --> target{"Compilation target"}
+    target -->|"Supported Linux target"| mold["-Zthreads=8<br/>+ mold linker flag"]
+    target -->|"Non-Linux target"| platform["-Zthreads=8<br/>+ platform linker"]
+    route -->|"Coverage"| cov["LLVM profiles<br/>COVERAGE_RUST_FLAGS<br/>clang + lld; no -Zthreads=8 or mold"]
+    route -->|"Release"| stable["Stable Cargo outside config discovery<br/>RUSTFLAGS cleared; platform linker"]
+```
+
+_Figure 1: Rust flags and linker selection by build route._
+
 `tests/build_standard_contract.rs` checks the configured flags and evaluated
 Make commands on Linux and macOS. `tests/build_backend_contract.rs` checks the
 Cranelift default and the coverage, Whitaker, and release exclusions. CI
