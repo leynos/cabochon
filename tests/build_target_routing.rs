@@ -6,6 +6,9 @@
 
 use std::process::{Command, ExitStatus};
 
+#[path = "build_target_routing/properties.rs"]
+mod properties;
+
 const CARGO_PROBE: &str = "CARGO=probe-cargo";
 const BUILD_HOST: &str = "BUILD_HOST_OS=Linux";
 const NATIVE_LINUX: Route = Route {

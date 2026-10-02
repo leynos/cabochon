@@ -40,8 +40,10 @@ The generated `Makefile` exposes these public targets:
   (`cv005-contracts check`, pinned in the Makefile) over the repository's
   workflows. It needs `uv`, which fetches Python 3.13 itself.
 - `make markdownlint` checks Markdown files.
-- `make spelling` regenerates the spelling configuration and checks source and
-  prose with the pinned builder.
+- `make spelling` checks source and prose offline against the committed
+  spelling configuration without changing it. Provision the pinned builder and
+  Typos with `make install-spelling-tools`; use `make spelling-update` to
+  regenerate spelling configuration or dictionary data.
 - `make nixie` validates Mermaid diagrams.
 
 Install `clang`, `lld`, `mold`, `python3`, and `cargo-audit` before running the

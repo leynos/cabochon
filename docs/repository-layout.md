@@ -27,6 +27,7 @@ compact and omits build output such as `target/`.
 │   └── ...
 ├── scripts/
 │   ├── check-build-tools.sh
+│   ├── clang-pinned-mold.sh
 │   ├── install-build-tools.sh
 │   └── resolve-build-target.sh
 ├── src/
