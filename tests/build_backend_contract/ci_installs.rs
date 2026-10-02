@@ -19,22 +19,26 @@ use super::{
     suite_jobs,
 };
 
-/// Correct order of uv provisioning and the spelling gate in the CI fixture.
+/// Correct order of uv and spelling-tool provisioning before the spelling gate.
 const UV_THEN_SPELLING: &str = concat!(
     "      - name: Setup uv\n",
     "        uses: astral-sh/setup-uv@",
     "12d13f90bc3a5a1971bebad4beb09a4dfa962e91\n",
+    "      - name: Install spelling tools\n",
+    "        run: make install-spelling-tools\n",
     "      - name: Spelling\n",
     "        run: make spelling",
 );
 
-/// Reversed order used to prove that CI rejects late provisioning.
+/// Reversed order used to prove that CI rejects late tool provisioning.
 const SPELLING_THEN_UV: &str = concat!(
     "      - name: Spelling\n",
     "        run: make spelling\n",
     "      - name: Setup uv\n",
     "        uses: astral-sh/setup-uv@",
     "12d13f90bc3a5a1971bebad4beb09a4dfa962e91",
+    "\n      - name: Install spelling tools\n",
+    "        run: make install-spelling-tools",
 );
 
 /// Checks that each pinned installer precedes its consumer without a soft skip.
@@ -145,25 +149,36 @@ fn binary_tool_problems(steps: &[Value]) -> Vec<String> {
     problems
 }
 
-/// Checks that uv setup is binding and precedes the spelling gate.
-fn spelling_setup_is_valid(uv_at: usize, uv: &Value, gate_at: usize) -> bool {
-    uv_at < gate_at && is_binding(uv)
-}
-
-/// Checks that the spelling step runs its binding Make gate.
-fn spelling_gate_is_valid(gate: &Value) -> bool {
-    is_binding(gate) && gate.get("run").and_then(Value::as_str) == Some("make spelling")
+/// Checks that uv and the pinned tools are binding and precede the spelling gate.
+fn spelling_setup_is_valid(
+    (uv_at, uv): (usize, &Value),
+    (tools_at, tools): (usize, &Value),
+    (gate_at, gate): (usize, &Value),
+) -> bool {
+    uv_at < tools_at
+        && tools_at < gate_at
+        && is_binding(uv)
+        && is_binding(tools)
+        && tools.get("run").and_then(Value::as_str) == Some("make install-spelling-tools")
+        && is_binding(gate)
+        && gate.get("run").and_then(Value::as_str) == Some("make spelling")
 }
 
 /// Reports missing, late or non-binding spelling setup and gate steps.
 fn spelling_problems(steps: &[Value]) -> Vec<String> {
-    match (action_step(steps, SETUP_UV), named_step(steps, "Spelling")) {
-        (Some((uv_at, uv)), Some((gate_at, gate)))
-            if spelling_setup_is_valid(uv_at, uv, gate_at) && spelling_gate_is_valid(gate) =>
+    match (
+        action_step(steps, SETUP_UV),
+        named_step(steps, "Install spelling tools"),
+        named_step(steps, "Spelling"),
+    ) {
+        (Some((uv_at, uv)), Some((tools_at, tools)), Some((gate_at, gate)))
+            if spelling_setup_is_valid((uv_at, uv), (tools_at, tools), (gate_at, gate)) =>
         {
             Vec::new()
         }
-        _ => vec!["CI must run the binding spelling gate after setup-uv".to_owned()],
+        _ => vec![
+            "CI must provision pinned spelling tools after setup-uv and before spelling".to_owned(),
+        ],
     }
 }
 
@@ -221,7 +236,12 @@ fn ci_installers_precede_their_consumers() {
     "cargo binstall --no-confirm cargo-audit"
 )]
 #[case::spelling_removed("run: make spelling", "run: true")]
-#[case::spelling_before_setup(UV_THEN_SPELLING, SPELLING_THEN_UV)]
+#[case::spelling_tool_install_removed("run: make install-spelling-tools", "run: true")]
+#[case::spelling_tools_before_setup(UV_THEN_SPELLING, SPELLING_THEN_UV)]
+#[case::spelling_tools_soft_failed(
+    "run: make install-spelling-tools",
+    "run: make install-spelling-tools\n        continue-on-error: true"
+)]
 #[case::spelling_soft_failed(
     "run: make spelling",
     "run: make spelling\n        continue-on-error: true"

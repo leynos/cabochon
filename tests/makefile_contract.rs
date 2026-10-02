@@ -259,24 +259,89 @@ fn all_orders_its_gates_even_with_parallel_make() {
     );
 }
 
-/// Scenario: spelling uses the pinned builder gate and propagates failure.
+/// Scenario: spelling checks committed policy without generation or downloads.
 #[test]
-fn spelling_gate_is_binding() {
-    let dry_run =
-        make(&["--dry-run", "spelling", "UVX=probe-uvx"]).expect("read evaluated spelling recipe");
+fn spelling_gate_checks_committed_policy_read_only() {
+    let dry_run = make(&[
+        "--dry-run",
+        "spelling",
+        "TYPOS=probe-typos",
+        "TYPOS_CONFIG_BUILDER=probe-builder",
+    ])
+    .expect("read evaluated spelling recipe");
     assert!(dry_run.status.success());
-    let command = String::from_utf8(dry_run.stdout).expect("read spelling command");
-    assert!(
-        command.contains(concat!(
-            "probe-uvx --from \"git+https://github.com/leynos/typos-config-builder.git@v0.1.3\" ",
-            "typos-config-builder gate --scope all"
-        )),
-        "{command}"
-    );
-    let failed = make(&["--silent", "spelling", "UVX=false"]).expect("run failing spelling probe");
+    let commands = String::from_utf8(dry_run.stdout).expect("read spelling commands");
+    assert_spelling_tool_versions_are_pinned(&commands);
+    assert_spelling_recipe_is_read_only(&commands);
+
+    let failed = make(&["--silent", "spelling", "TYPOS_CONFIG_BUILDER=false"])
+        .expect("run failing spelling probe");
     assert!(
         !failed.status.success(),
         "spelling failure did not propagate"
+    );
+}
+
+fn assert_spelling_tool_versions_are_pinned(commands: &str) {
+    assert!(
+        commands.contains("= \"0.1.3\""),
+        "builder version is not pinned: {commands}"
+    );
+    assert!(
+        commands.contains("= \"typos-cli 1.50.2\""),
+        "Typos version is not pinned: {commands}"
+    );
+}
+
+fn assert_spelling_recipe_is_read_only(commands: &str) {
+    assert!(
+        commands.contains(concat!(
+            "git ls-files -z --cached | \\\n\txargs -0 probe-typos --config typos.toml ",
+            "--force-exclude --hidden --"
+        )),
+        "{commands}"
+    );
+    assert!(
+        commands.contains("probe-builder check-phrases"),
+        "{commands}"
+    );
+    assert!(!commands.contains("probe-builder --offline"), "{commands}");
+    assert!(!commands.contains("uvx"), "{commands}");
+    assert!(!commands.contains(" gate --scope all"), "{commands}");
+}
+
+/// Scenario: dependency provisioning and dictionary updates are explicit.
+#[test]
+fn spelling_tools_are_pinned_and_generation_is_opt_in() {
+    let install_recipe = make(&["--dry-run", "install-spelling-tools", "UV=probe-uv"])
+        .expect("read spelling tool installer recipe");
+    assert!(install_recipe.status.success());
+    let installer_command =
+        String::from_utf8(install_recipe.stdout).expect("read installer command");
+    assert!(
+        installer_command.contains("--python 3.14 --force"),
+        "{installer_command}"
+    );
+    assert!(
+        installer_command.contains("typos-config-builder.git@v0.1.3"),
+        "{installer_command}"
+    );
+    assert!(
+        installer_command.contains("--with-executables-from typos"),
+        "{installer_command}"
+    );
+
+    let update_recipe = make(&["--dry-run", "spelling-update", "UVX=probe-uvx"])
+        .expect("read spelling update recipe");
+    assert!(update_recipe.status.success());
+    let update_command =
+        String::from_utf8(update_recipe.stdout).expect("read spelling update command");
+    assert!(
+        update_command.contains(
+            "probe-uvx --from \"git+https://github.com/leynos/typos-config-builder.git@v0.1.3\" \
+             typos-config-builder gate --scope all"
+        ),
+        "{update_command}"
     );
 }
 

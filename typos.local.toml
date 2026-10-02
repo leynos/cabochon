@@ -16,6 +16,10 @@ ignore = [
   'rui314/mold/',
   'mold-[0-9]+\.[0-9]+\.[0-9]+-(x86_64|aarch64)-linux\.tar\.gz',
   'mold-\$mold_version',
+  # Test templates preserve the pinned release archive and extracted tool names.
+  'mold-\{\}-(\{arch\}|x86_64)-linux\.tar\.gz',
+  'mold-\{version\}-(x86_64|aarch64)-linux\.tar\.gz',
+  'destination/mold',
   'mold_version',
   'mold_arch',
   'MOLD_RELEASE_BASE_URL',
