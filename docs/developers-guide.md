@@ -34,14 +34,14 @@ action installs the same `mold` version before any Linux suite job. Other jobs
 may have tooling installed without selecting it as their backend.
 
 On Linux, install `clang`, `lld`, `python3`, `uv`, and `cargo-audit` for the
-full workflow. The local Markdown targets require `mdtablefix` 0.6.0 and
+full workflow. The local Markdown targets require `mdtablefix` 0.6.1 and
 `markdownlint-cli2` 0.22.1; CI installs the pinned binary and uses the pinned
 Markdown lint action. With `cargo-binstall` 1.22.0 available, install the
 prebuilt `mdtablefix` binary through the same no-compile route as CI:
 
 ```sh
 cargo binstall --no-confirm --locked --disable-strategies compile \
-  --disable-telemetry --install-path "$HOME/.local/bin" mdtablefix@0.6.0
+  --disable-telemetry --install-path "$HOME/.local/bin" mdtablefix@0.6.1
 ```
 
 Check `mdtablefix --version` and put that bin directory on `PATH`. Run

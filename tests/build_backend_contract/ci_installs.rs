@@ -98,9 +98,9 @@ fn installer_input_problems(steps: &[Value]) -> Vec<String> {
         problems.push("Whitaker must use its pinned installer and rolling suite".to_owned());
     }
     if let Some((_, mdtablefix)) = action_step(steps, INSTALL_MDTABLEFIX)
-        && field(mdtablefix, "with", "version") != Some("0.6.0")
+        && field(mdtablefix, "with", "version") != Some("0.6.1")
     {
-        problems.push("mdtablefix must install the pinned 0.6.0 binary".to_owned());
+        problems.push("mdtablefix must install the pinned 0.6.1 binary".to_owned());
     }
     if let Some((_, markdown)) = action_step(steps, MARKDOWNLINT_ACTION) {
         if field(markdown, "with", "globs") != Some("**/*.md") {
@@ -210,7 +210,7 @@ fn ci_installers_precede_their_consumers() {
     "leynos/shared-actions/.github/actions/install-whitaker@\
      6dea5677a84fec60ca51b07202570e3af12ffdb4\n        continue-on-error: true"
 )]
-#[case::mdtablefix_version("version: \"0.6.0\"", "version: \"0.5.0\"")]
+#[case::mdtablefix_version("version: \"0.6.1\"", "version: \"0.5.0\"")]
 #[case::markdown_glob("globs: '**/*.md'", "globs: 'README.md'")]
 #[case::nextest_source_fallback(
     "cargo binstall --no-confirm --disable-strategies compile cargo-nextest",
