@@ -69,6 +69,17 @@ provisions the same prerequisites through the pinned `setup-rust` action.
 `rustup` lists the installed LLVM and Cranelift components without their
 `-preview` suffixes; the preflight accounts for those display names.
 
+### GitHub token for tool installs
+
+The `Install test runner` and `Install cargo-audit` steps in
+`.github/workflows/ci.yml` run `cargo binstall`, which reads release metadata
+from api.github.com. Each of those steps sets
+`GITHUB_TOKEN: ${{ github.token }}` in its own `env:`. Anonymous requests share
+a per-runner-IP rate limit, so without the token an unlucky run receives a 403,
+waits, and then compiles the tool from source. Keep the token at step scope: a
+job- or workflow-level `GITHUB_TOKEN` would also reach every third-party action
+in the job.
+
 ### Security audit ignores
 
 Security audit jobs may set `CARGO_AUDIT_IGNORES` for narrowly scoped RustSec
