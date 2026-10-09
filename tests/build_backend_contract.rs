@@ -36,7 +36,7 @@ const SETUP_RUST: &str =
 const INSTALL_WHITAKER: &str = "leynos/shared-actions/.github/actions/install-whitaker@\
                                 6dea5677a84fec60ca51b07202570e3af12ffdb4";
 const INSTALL_MDTABLEFIX: &str = "leynos/shared-actions/.github/actions/install-mdtablefix@\
-                                  c5a54701c8603a0fa756a6b34c49bc2af75a6c11";
+                                  0606ca899ce2995a0c4bc78e660e80832e6e8855";
 const MARKDOWNLINT_ACTION: &str =
     "DavidAnson/markdownlint-cli2-action@2df9e28eb87988518ef3880c34edad45d65b1668";
 const SETUP_UV: &str = "astral-sh/setup-uv@12d13f90bc3a5a1971bebad4beb09a4dfa962e91";
