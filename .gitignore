@@ -1,4 +1,3 @@
 target/
 **/*.rs.bk
 .typos-oxendict-base.json
-.typos-oxendict-base.toml

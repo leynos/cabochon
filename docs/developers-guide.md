@@ -53,11 +53,12 @@ the same CLI version. MD010 checks code blocks; MD013 allows code-block lines
 up to 120 columns.
 
 `make spelling` is a read-only, offline check using the provisioned, pinned
-`typos-config-builder` and Typos against committed `typos.toml` and
+`typos-config-builder` and Typos against the committed
+`.typos-oxendict-base.toml` dictionary snapshot, `typos.toml`, and
 `typos.local.toml`. Provision these tools with `make install-spelling-tools`.
-Regenerate spelling configuration or dictionary data only with the explicit
-`make spelling-update` target. A successful release pin alone does not freeze
-the dictionary.
+Use the explicit `make spelling-update` target to refresh the committed base
+snapshot and regenerate spelling configuration. A successful release pin alone
+does not freeze the dictionary.
 
 The repository owns `scripts/install-build-tools.sh` and
 `scripts/check-build-tools.sh` solely as entrypoints for their corresponding
