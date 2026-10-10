@@ -323,3 +323,14 @@ list.
 - The pinned nightly toolchain in `rust-toolchain.toml` supplies `rustfmt`,
   `clippy`, and `rust-analyzer`, so `make lint`'s Clippy and rustdoc checks and
   editor tooling all run consistently for every contributor.
+
+## CI linker provisioning
+
+CI also installs `clang` and `lld` through `setup-rust`'s `install-clang-lld`
+input, which installs both on Linux and fails the job unless `clang` and
+`ld.lld` resolve on `PATH`; the workflows carry no hand-rolled `apt-get` step.
+Both inputs skip with a notice on other platforms and set no linker flag, so
+`.cargo/config.toml` and the coverage step's environment still choose which
+linker runs. `tests/linker_provisioning_contract.rs` reads the parsed
+`setup-rust` step of each CI workflow and asserts both inputs are `'true'` and
+that no step installs a linker by hand.
