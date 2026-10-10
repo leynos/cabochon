@@ -1,0 +1,249 @@
+# Shared en-GB-oxendict dictionary for the leynos code estate.
+#
+# Keep only generally valid Oxford forms and estate-wide terms here. Product
+# names, quoted fixtures, and repository-specific identifiers belong in that
+# repository's typos.local.toml overlay.
+
+schema = 1
+
+[oxford]
+stems = [
+  "absolut",
+  "actual",
+  "alphabet",
+  "amort",
+  "anonym",
+  "apolog",
+  "atom",
+  "author",
+  "canonical",
+  "capital",
+  "categor",
+  "central",
+  "character",
+  "civil",
+  "colon",
+  "colour",
+  "common",
+  "conceptual",
+  "concret",
+  "container",
+  "contextual",
+  "critic",
+  "crystall",
+  "custom",
+  "daemon",
+  "decentral",
+  "denormal",
+  "derandom",
+  "deserial",
+  "desynchron",
+  "destabil",
+  "docker",
+  "dramat",
+  "emphas",
+  "energ",
+  "equal",
+  "external",
+  "factor",
+  "familiar",
+  "final",
+  "formal",
+  "fossil",
+  "general",
+  "global",
+  "harmon",
+  "homogen",
+  "human",
+  "hypothes",
+  "ideal",
+  "initial",
+  "industrial",
+  "institutional",
+  "internal",
+  "international",
+  "italic",
+  "item",
+  "jeopard",
+  "kernel",
+  "legitim",
+  "lemmat",
+  "linear",
+  "local",
+  "material",
+  "maxim",
+  "mechan",
+  "memo",
+  "memor",
+  "miniatur",
+  "minim",
+  "mobil",
+  "modern",
+  "modular",
+  "monet",
+  "monomorph",
+  "monopol",
+  "moral",
+  "neutral",
+  "normal",
+  "notar",
+  "operational",
+  "optim",
+  "ordinal",
+  "oxid",
+  "organ",
+  "palett",
+  "parallel",
+  "parameter",
+  "parametr",
+  "parenthes",
+  "penal",
+  "personal",
+  "plural",
+  "polymer",
+  "popular",
+  "priorit",
+  "privat",
+  "product",
+  "public",
+  "quant",
+  "random",
+  "raster",
+  "rational",
+  "real",
+  "recogn",
+  "regular",
+  "reinitial",
+  "reorgan",
+  "reserial",
+  "resynchron",
+  "retoken",
+  "romantic",
+  "sanit",
+  "scrutin",
+  "serial",
+  "sexual",
+  "singular",
+  "social",
+  "special",
+  "stabil",
+  "standard",
+  "styl",
+  "subsid",
+  "summar",
+  "symbol",
+  "synchron",
+  "synthes",
+  "system",
+  "systemat",
+  "templat",
+  "terminal",
+  "theor",
+  "token",
+  "trivial",
+  "unauthor",
+  "uncategor",
+  "underutil",
+  "uninitial",
+  "unlocal",
+  "unoptim",
+  "unparameter",
+  "unrecogn",
+  "unsynchron",
+  "util",
+  "vector",
+  "virtual",
+  "visual",
+  "weapon",
+  "zero",
+]
+
+[words]
+accepted = [
+  "ASO",
+  "dialog",
+  "dialogs",
+  "handwritten",
+  "organizational",
+  "oxendict",
+  "yse",
+]
+
+[words.corrections]
+exercize = "exercise"
+exercized = "exercised"
+exercizes = "exercises"
+exercizing = "exercising"
+organisational = "organizational"
+otherwize = "otherwise"
+raize = "raise"
+raized = "raised"
+raizes = "raises"
+raizing = "raising"
+
+[phrases.corrections]
+"hand-written" = "handwritten"
+
+[patterns]
+ignore = [
+  '(?s)```.*?```',
+  '\brust-analyzer\b',
+  'Azure\s+Architecture\s+Center\s*\|\s*Microsoft\s+Learn\b',
+  'GitHub\s+Flavored\s+Markdown\b(?:\s\(GFM\))?',
+  # Citation titles reproduced verbatim in the shared guidance documents.
+  # The Azure title above already covers the documentation library's own
+  # occurrence, whose line wrap the general whitespace class absorbs.
+  'How to organise your Rust tests',
+  # Product names and placeholder tokens the tokenizer would otherwise split.
+  'HashiCorp',
+  'currentColor',
+  '\{COLOR\}',
+  '\{color\}',
+  # CSS custom properties and colour functions whose identifiers carry the US
+  # spelling, for example `--color-primary`, `--tw-color-red-500`, and
+  # `color-mix()`. Only the identifier is exempt, not the span around it.
+  '--[a-zA-Z0-9-]*color[a-zA-Z0-9*-]*',
+  '\bcolor-(?:mix|contrast)\b',
+  # Web application manifest members.
+  '\b(?:background|theme)_color\b',
+  # Tailwind and daisyUI alignment class names.
+  '\b(?:carousel|dropdown|footer|indicator|items|navbar|toast)-center\b',
+  # The `tokio` runtime-flavour attribute argument.
+  '\bflavor = ',
+  # `act` command-line options for artefact export.
+  '\bartifact-(?:name|server-path)\b',
+  # A generic parameter in the Wireframe application-factory signature.
+  '\bAppFactory<Ser\b',
+  # The OpenTofu guide's worked example of an undeclared-variable error
+  # misspells the variable on purpose. Only that exact example text is exempt,
+  # so a real `var.iamge_id` in any consumer's source or prose is reported.
+  '`var\.iamge_id` instead of `var\.image_id`',
+  # The US spelling quoted as an example of an API that keeps it.
+  '`color`',
+]
+
+[files]
+exclude = [
+  ".git",
+  ".hypothesis",
+  ".pytest_cache",
+  ".tox",
+  ".terraform",
+  ".typos-oxendict-base.json",
+  ".typos-oxendict-base.toml",
+  ".uv-cache",
+  ".uv-tools",
+  ".venv",
+  "Cargo.lock",
+  "bun.lock",
+  "data/typos-oxendict-base.toml",
+  "dist",
+  "node_modules",
+  "package-lock.json",
+  "pnpm-lock.yaml",
+  "target",
+  "typos.local.toml",
+  "typos.toml",
+  "uv.lock",
+  "yarn.lock",
+]

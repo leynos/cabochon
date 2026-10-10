@@ -1,5 +1,6 @@
 //! Checks that every reachable Linux suite job installs `mold` before running.
 
+use proptest::prelude::*;
 use rstest::rstest;
 use serde_norway::Value;
 
@@ -186,4 +187,61 @@ fn matrix_linux_suite_jobs_need_mold(#[case] matrix: &str) {
             .any(|problem| problem.contains("matrix-suite: pinned `mold` setup")),
         "{problems:?}"
     );
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(96))]
+
+    /// Scenario: step order controls whether Linux setup precedes each suite.
+    #[test]
+    fn suite_job_setup_order_is_classified_across_generated_workflows(
+        setup_before_suite in any::<bool>(),
+        runner in prop_oneof![
+            Just("ubuntu-latest"),
+            Just("macos-latest"),
+            Just("windows-latest"),
+        ],
+        insertion_points in prop::collection::vec(0_usize..32, 0..8),
+    ) {
+        let steps = generated_steps(setup_before_suite, &insertion_points);
+        let workflow = format!(
+            "jobs:\n  generated:\n    runs-on: {runner}\n    steps:\n{}\n",
+            steps.join("\n"),
+        );
+        let problems = suite_job_problems(&workflow).expect("read generated suite workflow");
+        let reports_missing_setup = problems
+            .iter()
+            .any(|problem| problem.contains("generated: pinned `mold` setup must precede"));
+        prop_assert_eq!(
+            reports_missing_setup,
+            runner == "ubuntu-latest" && !setup_before_suite,
+            "runner={}, setup_before_suite={}, problems={:?}",
+            runner,
+            setup_before_suite,
+            problems,
+        );
+    }
+}
+
+/// Builds varied ordered workflow steps while retaining one setup and one suite.
+fn generated_steps(setup_before_suite: bool, insertion_points: &[usize]) -> Vec<String> {
+    let mut events = if setup_before_suite {
+        vec!["setup", "suite"]
+    } else {
+        vec!["suite", "setup"]
+    };
+    for insertion_point in insertion_points {
+        let at = insertion_point.rem_euclid(events.len() + 1);
+        events.insert(at, "filler");
+    }
+    events
+        .iter()
+        .map(|event| match *event {
+            "setup" => {
+                format!("      - uses: {SETUP_RUST}\n        with:\n          install-mold: 'true'")
+            }
+            "suite" => "      - run: cargo test".to_owned(),
+            _ => "      - run: echo filler".to_owned(),
+        })
+        .collect()
 }
