@@ -32,7 +32,7 @@ const RELEASE: &str = include_str!(concat!(
 ));
 
 const SETUP_RUST: &str =
-    "leynos/shared-actions/.github/actions/setup-rust@6cec89bac47a21cf756d68d638a9a510998e57f8";
+    "leynos/shared-actions/.github/actions/setup-rust@b804b69fa7f978cf9091b9d9bd5481d8ce58c2ea";
 const INSTALL_WHITAKER: &str = "leynos/shared-actions/.github/actions/install-whitaker@\
                                 6dea5677a84fec60ca51b07202570e3af12ffdb4";
 const INSTALL_MDTABLEFIX: &str = "leynos/shared-actions/.github/actions/install-mdtablefix@\
