@@ -41,9 +41,11 @@ The generated `Makefile` exposes these public targets:
   workflows. It needs `uv`, which fetches Python 3.13 itself.
 - `make markdownlint` checks Markdown files.
 - `make spelling` checks source and prose offline against the committed
-  spelling configuration without changing it. Provision the pinned builder and
-  Typos with `make install-spelling-tools`; use `make spelling-update` to
-  regenerate spelling configuration or dictionary data.
+  `.typos-oxendict-base.toml` dictionary snapshot and spelling configuration
+  (`typos.toml` and `typos.local.toml`) without changing them. Provision the
+  pinned builder and Typos with `make install-spelling-tools`; use
+  `make spelling-update` to refresh the committed base snapshot and regenerate
+  spelling configuration.
 - `make nixie` validates Mermaid diagrams.
 
 Install `clang`, `lld`, `mold`, `python3`, and `cargo-audit` before running the
