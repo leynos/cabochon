@@ -1,4 +1,4 @@
-.PHONY: help all clean test build dev-test dev-build release coverage lint lint-clippy lint-whitaker typecheck fmt check-fmt markdownlint install-markdownlint install-spelling-tools spelling spelling-update nixie audit rust-audit install-build-tools check-build-tools test-workflow-contracts
+.PHONY: help all clean test build dev-test dev-build release coverage lint lint-clippy lint-whitaker typecheck fmt check-fmt markdownlint install-markdownlint spelling nixie audit rust-audit install-build-tools check-build-tools test-workflow-contracts
 
 SHELL := bash
 
@@ -39,12 +39,6 @@ WHITAKER ?= whitaker
 
 UV ?= uv
 UV_ENV = UV_CACHE_DIR=.uv-cache UV_TOOL_DIR=.uv-tools
-TYPOS ?= typos
-TYPOS_VERSION ?= 1.50.2
-TYPOS_CONFIG_BUILDER ?= typos-config-builder
-TYPOS_CONFIG_BUILDER_VERSION ?= 0.1.3
-TYPOS_CONFIG_BUILDER_REF ?= v0.1.3
-TYPOS_CONFIG_BUILDER_SOURCE = git+https://github.com/leynos/typos-config-builder.git@$(TYPOS_CONFIG_BUILDER_REF)
 # The CV-005 CodeScene contracts live in shared-actions and run from a full
 # commit, so a fix is a pin bump. `.github/cv005.toml` holds this repository's
 # only parameters.
@@ -142,7 +136,7 @@ lint-clippy: check-build-tools ## Run rustdoc and Clippy under the development s
 	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(call STANDARD_RUSTFLAGS,$(CLIPPY_FLAGS))" $(CARGO) clippy $(CLIPPY_FLAGS)
 
 lint-whitaker: ## Run the installer-managed rolling Whitaker suite
-	cd "$(dir $(CURDIR))" && env -u CARGO_ENCODED_RUSTFLAGS -u CARGO_PROFILE_DEV_CODEGEN_BACKEND -u CARGO_PROFILE_TEST_CODEGEN_BACKEND -u CARGO_PROFILE_RELEASE_CODEGEN_BACKEND RUSTFLAGS="" DYLINT_RUSTFLAGS="-D warnings" $(WHITAKER) --manifest-path "$(CURDIR)/Cargo.toml" --all -- $(CARGO_FLAGS)
+	cd "$(dir $(CURDIR))" && unset CARGO_ENCODED_RUSTFLAGS CARGO_PROFILE_DEV_CODEGEN_BACKEND CARGO_PROFILE_TEST_CODEGEN_BACKEND CARGO_PROFILE_RELEASE_CODEGEN_BACKEND && RUSTFLAGS="" DYLINT_RUSTFLAGS="-D warnings" $(WHITAKER) --manifest-path "$(CURDIR)/Cargo.toml" --all -- $(CARGO_FLAGS)
 
 typecheck: check-build-tools ## Type-check without building
 	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(call STANDARD_RUSTFLAGS,$(CARGO_FLAGS))" $(CARGO) check $(CARGO_FLAGS)
@@ -162,23 +156,8 @@ markdownlint: ## Lint Markdown files
 install-markdownlint: ## Install the pinned Markdown linter for local Make targets
 	BUN_INSTALL_BIN="$(BUILD_TOOLS_PREFIX)/bin" $(BUN) add --global --exact markdownlint-cli2@0.22.1
 
-install-spelling-tools: ## Install the pinned spelling checker and policy tool
-	UV_TOOL_DIR="$(BUILD_TOOLS_PREFIX)/uv-tools" UV_TOOL_BIN_DIR="$(BUILD_TOOLS_PREFIX)/bin" \
-		$(UV) tool install --python 3.14 --force \
-		--from "$(TYPOS_CONFIG_BUILDER_SOURCE)" --with-executables-from typos \
-		typos-config-builder
-
-spelling: ## Check committed spelling configuration and tracked files offline
-	@test "$$($(TYPOS_CONFIG_BUILDER) --version)" = "$(TYPOS_CONFIG_BUILDER_VERSION)" || \
-		{ echo "Expected typos-config-builder $(TYPOS_CONFIG_BUILDER_VERSION)" >&2; exit 1; }
-	@test "$$($(TYPOS) --version)" = "typos-cli $(TYPOS_VERSION)" || \
-		{ echo "Expected typos-cli $(TYPOS_VERSION)" >&2; exit 1; }
-	@set -o pipefail; git ls-files -z --cached | \
-		xargs -0 $(TYPOS) --config typos.toml --force-exclude --hidden --
-	$(TYPOS_CONFIG_BUILDER) check-phrases
-
-spelling-update: ## Refresh the dictionary and regenerate spelling configuration
-	$(UVX) --from "$(TYPOS_CONFIG_BUILDER_SOURCE)" typos-config-builder gate --scope all
+spelling: ## Regenerate the spelling configuration and check source and prose
+	$(UVX) --from "git+https://github.com/leynos/typos-config-builder.git@v0.1.3" typos-config-builder gate --scope all
 
 nixie: ## Validate Mermaid diagrams
 	$(NIXIE) --no-sandbox

@@ -57,8 +57,12 @@ compact and omits build output such as `target/`.
 - `.github/workflows/ci.yml`: Runs the generated project's continuous
   integration checks.
 - `.github/workflows/coverage-main.yml`: Owns persistent main-branch coverage
-  publication and declares the `codescene` environment. Its main-only
-  deployment policy is verified; token placement awaits owner evidence.
+  publication and declares the `codescene` environment. GitHub read-back
+  confirms `CS_ACCESS_TOKEN` is present there and absent from repository-level
+  secrets. Deployment is restricted to `main`, with administrator bypass
+  enabled. Publisher run
+  [38128492817](https://github.com/leynos/cabochon/actions/runs/38128492817)
+  succeeded for coverage, ratchet-baseline saving, and CodeScene upload.
 - `.github/workflows/release.yml`: Builds and publishes binary release
   artefacts for the application flavour.
 - `docs/`: Holds long-lived reference documentation, guides, style rules, and

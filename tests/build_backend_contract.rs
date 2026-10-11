@@ -159,7 +159,11 @@ fn coverage_mutations_are_detected(#[case] old: &str, #[case] new: &str) {
     let mutated = CI.replacen(old, new, 1);
     assert_ne!(mutated, CI, "fixture did not mutate the workflow");
     let problems = coverage_problems(&mutated, "build-test").expect("read mutated coverage");
-    assert!(!problems.is_empty());
+    assert_ne!(
+        problems,
+        [] as [String; 0],
+        "coverage mutation must be detected"
+    );
 }
 
 /// Scenario: the publisher cannot silently fall back to development routing.
@@ -171,7 +175,11 @@ fn publisher_exclusion_mutations_are_detected(#[case] old: &str, #[case] new: &s
     assert_ne!(mutated, PUBLISHER, "fixture did not mutate the publisher");
     let problems =
         coverage_problems(&mutated, "coverage-upload").expect("read mutated publisher workflow");
-    assert!(!problems.is_empty());
+    assert_ne!(
+        problems,
+        [] as [String; 0],
+        "publisher mutation must be detected"
+    );
 }
 
 /// Checks the default backend in Cargo's parsed configuration.
@@ -211,7 +219,11 @@ fn cargo_configuration_selects_cranelift() {
 #[case::feature_removed(CONFIG.replace("codegen-backend = true", ""))]
 fn missing_cranelift_default_is_detected(#[case] config: String) {
     let problems = default_backend_problems(&config).expect("read mutated Cargo configuration");
-    assert!(!problems.is_empty());
+    assert_ne!(
+        problems,
+        [] as [String; 0],
+        "missing default must be detected"
+    );
 }
 
 /// Scenario: a backend-looking string in another TOML key is not a setting.
@@ -362,7 +374,11 @@ fn release_mutations_are_detected(#[case] old: &str, #[case] new: &str) {
     let mutated = RELEASE.replacen(old, new, 1);
     assert_ne!(mutated, RELEASE);
     let problems = release_problems(&mutated).expect("read mutated release workflow");
-    assert!(!problems.is_empty());
+    assert_ne!(
+        problems,
+        [] as [String; 0],
+        "release mutation must be detected"
+    );
 }
 
 /// Scenario: evaluated Make release routing preserves the packaging path.

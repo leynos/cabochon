@@ -19,27 +19,151 @@ use super::{
     suite_jobs,
 };
 
-/// Correct order of uv and spelling-tool provisioning before the spelling gate.
+/// Correct order of uv provisioning and the spelling gate in the CI fixture.
 const UV_THEN_SPELLING: &str = concat!(
     "      - name: Setup uv\n",
     "        uses: astral-sh/setup-uv@",
     "12d13f90bc3a5a1971bebad4beb09a4dfa962e91\n",
-    "      - name: Install spelling tools\n",
-    "        run: make install-spelling-tools\n",
     "      - name: Spelling\n",
     "        run: make spelling",
 );
 
-/// Reversed order used to prove that CI rejects late tool provisioning.
+/// Reversed order used to prove that CI rejects late provisioning.
 const SPELLING_THEN_UV: &str = concat!(
     "      - name: Spelling\n",
     "        run: make spelling\n",
     "      - name: Setup uv\n",
     "        uses: astral-sh/setup-uv@",
     "12d13f90bc3a5a1971bebad4beb09a4dfa962e91",
-    "\n      - name: Install spelling tools\n",
-    "        run: make install-spelling-tools",
 );
+
+/// Stable check command, with an absolute manifest outside config discovery.
+const MSRV_CHECK: &str = concat!(
+    "cargo +1.85.0 check --lib --all-features --locked --manifest-path ",
+    "\"$GITHUB_WORKSPACE/Cargo.toml\"",
+);
+
+/// Required explicit toolchain installation for the declared MSRV.
+const MSRV_INSTALL: &str = "rustup toolchain install 1.85.0 --profile minimal";
+
+/// Checks the isolated stable invocation without inherited development flags.
+fn msrv_check_is_valid(step: &Value) -> bool {
+    is_binding(step)
+        && step.get("env").is_none()
+        && step.get("working-directory").and_then(Value::as_str) == Some("${{ runner.temp }}")
+        && step.get("run").and_then(Value::as_str) == Some(MSRV_CHECK)
+}
+
+/// Checks that the MSRV job is binding and has no inherited environment.
+fn msrv_job_is_binding_without_environment(job: &Value) -> bool {
+    is_binding(job) && job.get("env").is_none()
+}
+
+/// Reports absent, reordered, non-binding or incorrectly routed MSRV checks.
+fn msrv_problems(text: &str) -> Result<Vec<String>, String> {
+    let workflow: Value = serde_norway::from_str(text).map_err(|error| error.to_string())?;
+    let Some(job) = workflow.get("jobs").and_then(|jobs| jobs.get("msrv")) else {
+        return Ok(vec!["CI must have a binding msrv job".to_owned()]);
+    };
+    let job_steps = steps(&workflow, "msrv")?;
+    let checkout = action_step(
+        job_steps,
+        "actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231",
+    );
+    let install = named_step(job_steps, "Install MSRV toolchain");
+    let check = named_step(job_steps, "Check MSRV");
+    let ordered_steps = match (checkout, install, check) {
+        (
+            Some((checkout_at, checkout_step)),
+            Some((install_at, install_step)),
+            Some((check_at, check_step)),
+        ) => {
+            checkout_at < install_at
+                && install_at < check_at
+                && is_binding(checkout_step)
+                && is_binding(install_step)
+                && install_step.get("run").and_then(Value::as_str) == Some(MSRV_INSTALL)
+                && msrv_check_is_valid(check_step)
+        }
+        _ => false,
+    };
+    if msrv_job_is_binding_without_environment(job) && ordered_steps {
+        Ok(Vec::new())
+    } else {
+        Ok(vec![
+            concat!(
+                "MSRV must install Rust 1.85.0 before checking the library ",
+                "outside Cargo config discovery",
+            )
+            .to_owned(),
+        ])
+    }
+}
+
+/// Scenario: the declared minimum compiler checks the library on an isolated route.
+#[test]
+fn ci_checks_the_declared_msrv() {
+    let found = msrv_problems(CI).expect("read MSRV workflow");
+    assert!(found.is_empty(), "{found:?}");
+}
+
+/// Scenario: removing or weakening any part of the MSRV route is detected.
+#[rstest]
+#[case::job_removed("  msrv:", "  missing-msrv:")]
+#[case::job_conditional("  msrv:\n", "  msrv:\n    if: false\n")]
+#[case::job_soft_failed("  msrv:\n", "  msrv:\n    continue-on-error: true\n")]
+#[case::install_removed("name: Install MSRV toolchain", "name: Other toolchain")]
+#[case::install_conditional(
+    "name: Install MSRV toolchain",
+    "name: Install MSRV toolchain\n        if: false"
+)]
+#[case::install_wrong_version(MSRV_INSTALL, "rustup toolchain install stable --profile minimal")]
+#[case::check_removed("name: Check MSRV", "name: Other check")]
+#[case::check_conditional("name: Check MSRV", "name: Check MSRV\n        if: false")]
+#[case::check_soft_failed(
+    "name: Check MSRV",
+    "name: Check MSRV\n        continue-on-error: true"
+)]
+#[case::check_wrong_version("cargo +1.85.0 check", "cargo +stable check")]
+#[case::library_missing("check --lib --all-features", "check --all-features")]
+#[case::features_missing("check --lib --all-features", "check --lib")]
+#[case::lock_missing("--locked --manifest-path", "--manifest-path")]
+#[case::manifest_relative("\"$GITHUB_WORKSPACE/Cargo.toml\"", "Cargo.toml")]
+#[case::directory_missing("working-directory: ${{ runner.temp }}", "shell: bash")]
+#[case::directory_inside_checkout(
+    "working-directory: ${{ runner.temp }}",
+    "working-directory: ${{ github.workspace }}"
+)]
+fn ci_msrv_mutations_are_detected(#[case] old: &str, #[case] new: &str) {
+    let mutated = CI.replacen(old, new, 1);
+    assert_ne!(mutated, CI, "fixture must mutate the MSRV route");
+    let found = msrv_problems(&mutated).expect("read mutated MSRV workflow");
+    assert_ne!(
+        found,
+        [] as [String; 0],
+        "mutation must violate the MSRV contract"
+    );
+}
+
+/// Scenario: toolchain installation after the check cannot satisfy provisioning.
+#[test]
+fn ci_msrv_installation_cannot_follow_the_check() {
+    let mut workflow: Value = serde_norway::from_str(CI).expect("read MSRV workflow");
+    let job_steps = workflow
+        .get_mut("jobs")
+        .and_then(|jobs| jobs.get_mut("msrv"))
+        .and_then(|job| job.get_mut("steps"))
+        .and_then(Value::as_sequence_mut)
+        .expect("MSRV step list");
+    job_steps.swap(1, 2);
+    let mutated = serde_norway::to_string(&workflow).expect("serialize reordered MSRV steps");
+    let found = msrv_problems(&mutated).expect("read reordered MSRV workflow");
+    assert_ne!(
+        found,
+        [] as [String; 0],
+        "installation must precede the check"
+    );
+}
 
 /// Checks that each pinned installer precedes its consumer without a soft skip.
 fn install_order_problems(steps: &[Value]) -> Vec<String> {
@@ -149,36 +273,25 @@ fn binary_tool_problems(steps: &[Value]) -> Vec<String> {
     problems
 }
 
-/// Checks that uv and the pinned tools are binding and precede the spelling gate.
-fn spelling_setup_is_valid(
-    (uv_at, uv): (usize, &Value),
-    (tools_at, tools): (usize, &Value),
-    (gate_at, gate): (usize, &Value),
-) -> bool {
-    uv_at < tools_at
-        && tools_at < gate_at
-        && is_binding(uv)
-        && is_binding(tools)
-        && tools.get("run").and_then(Value::as_str) == Some("make install-spelling-tools")
-        && is_binding(gate)
-        && gate.get("run").and_then(Value::as_str) == Some("make spelling")
+/// Checks that uv setup is binding and precedes the spelling gate.
+fn spelling_setup_is_valid(uv_at: usize, uv: &Value, gate_at: usize) -> bool {
+    uv_at < gate_at && is_binding(uv)
+}
+
+/// Checks that the spelling step runs its binding Make gate.
+fn spelling_gate_is_valid(gate: &Value) -> bool {
+    is_binding(gate) && gate.get("run").and_then(Value::as_str) == Some("make spelling")
 }
 
 /// Reports missing, late or non-binding spelling setup and gate steps.
 fn spelling_problems(steps: &[Value]) -> Vec<String> {
-    match (
-        action_step(steps, SETUP_UV),
-        named_step(steps, "Install spelling tools"),
-        named_step(steps, "Spelling"),
-    ) {
-        (Some((uv_at, uv)), Some((tools_at, tools)), Some((gate_at, gate)))
-            if spelling_setup_is_valid((uv_at, uv), (tools_at, tools), (gate_at, gate)) =>
+    match (action_step(steps, SETUP_UV), named_step(steps, "Spelling")) {
+        (Some((uv_at, uv)), Some((gate_at, gate)))
+            if spelling_setup_is_valid(uv_at, uv, gate_at) && spelling_gate_is_valid(gate) =>
         {
             Vec::new()
         }
-        _ => vec![
-            "CI must provision pinned spelling tools after setup-uv and before spelling".to_owned(),
-        ],
+        _ => vec!["CI must run the binding spelling gate after setup-uv".to_owned()],
     }
 }
 
@@ -236,12 +349,7 @@ fn ci_installers_precede_their_consumers() {
     "cargo binstall --no-confirm cargo-audit"
 )]
 #[case::spelling_removed("run: make spelling", "run: true")]
-#[case::spelling_tool_install_removed("run: make install-spelling-tools", "run: true")]
-#[case::spelling_tools_before_setup(UV_THEN_SPELLING, SPELLING_THEN_UV)]
-#[case::spelling_tools_soft_failed(
-    "run: make install-spelling-tools",
-    "run: make install-spelling-tools\n        continue-on-error: true"
-)]
+#[case::spelling_before_setup(UV_THEN_SPELLING, SPELLING_THEN_UV)]
 #[case::spelling_soft_failed(
     "run: make spelling",
     "run: make spelling\n        continue-on-error: true"
@@ -250,7 +358,11 @@ fn ci_install_mutations_are_detected(#[case] old: &str, #[case] new: &str) {
     let mutated = CI.replacen(old, new, 1);
     assert_ne!(mutated, CI);
     let problems = ci_install_problems(&mutated).expect("read mutated CI workflow");
-    assert!(!problems.is_empty());
+    assert_ne!(
+        problems,
+        [] as [String; 0],
+        "installer mutation must be detected"
+    );
 }
 
 /// Both YAML representations of the enabled input retain the approved route.

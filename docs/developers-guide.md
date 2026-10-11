@@ -52,13 +52,10 @@ first on `PATH`. `BUN` can select another compatible executable.
 the same CLI version. MD010 checks code blocks; MD013 allows code-block lines
 up to 120 columns.
 
-`make spelling` is a read-only, offline check using the provisioned, pinned
-`typos-config-builder` and Typos against the committed
-`.typos-oxendict-base.toml` dictionary snapshot, `typos.toml`, and
-`typos.local.toml`. Provision these tools with `make install-spelling-tools`.
-Use the explicit `make spelling-update` target to refresh the committed base
-snapshot and regenerate spelling configuration. A successful release pin alone
-does not freeze the dictionary.
+`make spelling` runs the pinned `typos-config-builder` v0.1.3 gate over source
+and prose. It regenerates `typos.toml` from the live shared dictionary and
+`typos.local.toml` before checking spelling; CI runs the same target after
+setting up `uv`. A successful release pin alone does not freeze the dictionary.
 
 The repository owns `scripts/install-build-tools.sh` and
 `scripts/check-build-tools.sh` solely as entrypoints for their corresponding
@@ -250,9 +247,13 @@ test would not prove that contract.
 Coverage has two workflows, and the split is a contract (concordat's CV-005,
 `main-owned-codescene-coverage`), not a convention.
 [ADR 006](adr-006-main-owns-coverage-publication.md) records the decision.
-GitHub API read-back confirms the `codescene` environment admits deployments
-from `main` alone. The token's location and removal from repository secrets
-remain unverified pending owner evidence.
+GitHub API read-back confirms that `CS_ACCESS_TOKEN` is present in the
+`codescene` environment and absent from repository-level secrets. Its
+deployment policy is restricted to `main`, with administrator bypass enabled.
+Publisher run
+[38128492817](https://github.com/leynos/cabochon/actions/runs/38128492817)
+succeeded, including coverage generation, ratchet-baseline saving, and the
+CodeScene upload.
 
 - `ci.yml` measures lld-linked lcov coverage on every pull request with the
   shared `generate-coverage` action, `with-ratchet: 'true'` and
