@@ -5,9 +5,12 @@ it from the template.
 
 ## Generated Tooling
 
-Generated projects use Rust 2024, a pinned nightly toolchain, strict lint
-settings, and documented starter code. Library projects render `src/lib.rs`.
-Application projects render `src/main.rs`, `src/lib.rs`, release automation, and
+Generated projects use the Rust 2024 edition and require Rust 1.85 or later,
+with strict lint settings and documented starter code. The published library
+declares `rust-version = "1.85"`, and CI checks it with that minimum supported
+Rust version. The pinned nightly in `rust-toolchain.toml` supplies repository
+development tooling. Library projects render `src/lib.rs`. Application projects
+render `src/main.rs`, `src/lib.rs`, release automation, and
 `[package.metadata.binstall]` metadata for binary installation. The starter
 application prints `Hello from Cabochon!` followed by a newline when run.
 

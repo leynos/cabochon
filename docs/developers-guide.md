@@ -23,6 +23,21 @@ second time and was removed. The crate declares no features, so `make test`'s
 `--all-features` selects the same tests as the coverage run's default.
 `tests/workflow_suite_contract.rs` holds the split.
 
+## Rust version support
+
+The published library declares `rust-version = "1.85"` and supports stable Rust
+1.85 and later. CI installs Rust 1.85.0 and checks the library with all
+features and the locked dependencies from outside the checkout, avoiding the
+repository's nightly-only development configuration:
+
+```sh
+cargo +1.85.0 check --lib --all-features --locked --manifest-path "$GITHUB_WORKSPACE/Cargo.toml"
+```
+
+The pinned nightly in `rust-toolchain.toml` supplies repository development
+tools such as `rustfmt`, Clippy, and `rust-analyzer`; it does not set the
+published library's minimum supported Rust version.
+
 ## Tooling
 
 Run `make install-build-tools` before development builds. It installs the
