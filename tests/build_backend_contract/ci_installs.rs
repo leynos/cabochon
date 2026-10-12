@@ -155,7 +155,10 @@ fn ci_msrv_installation_cannot_follow_the_check() {
         .and_then(|job| job.get_mut("steps"))
         .and_then(Value::as_sequence_mut)
         .expect("MSRV step list");
-    job_steps.swap(1, 2);
+    let (install_index, _) =
+        named_step(job_steps, "Install MSRV toolchain").expect("MSRV installer step");
+    let (check_index, _) = named_step(job_steps, "Check MSRV").expect("MSRV check step");
+    job_steps.swap(install_index, check_index);
     let mutated = serde_norway::to_string(&workflow).expect("serialize reordered MSRV steps");
     let found = msrv_problems(&mutated).expect("read reordered MSRV workflow");
     assert_ne!(

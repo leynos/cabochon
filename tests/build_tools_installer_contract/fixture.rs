@@ -126,6 +126,7 @@ impl Drop for Scratch {
 pub(super) struct InstallerFixture {
     scratch: Scratch,
     fake_bin: Utf8PathBuf,
+    installer_path: String,
     prefix: Utf8PathBuf,
     archive: Utf8PathBuf,
     log: Utf8PathBuf,
@@ -139,6 +140,7 @@ impl InstallerFixture {
         let archive = prepare_archive(&scratch)?;
         prepare_fake_tools(&scratch)?;
         Ok(Self {
+            installer_path: format!("{}:/usr/bin:/bin", scratch.path.join("fake-bin")),
             fake_bin: scratch.path.join("fake-bin"),
             prefix: scratch.path.join("prefix"),
             archive,
@@ -147,14 +149,13 @@ impl InstallerFixture {
         })
     }
 
-    /// Runs the copied installer with only the fixture tools on its PATH.
+    /// Runs the copied installer with fixture tools taking precedence on its PATH.
     pub(super) fn run_installer(&self, overrides: &[(&str, &str)]) -> io::Result<Output> {
-        let path = format!("{}:/usr/bin:/bin", self.fake_bin);
         let installer = self.scratch.path.join("scripts/install-build-tools.sh");
         let mut command = Command::new(installer.as_str());
         command
             .current_dir(self.scratch.path.as_str())
-            .env("PATH", path)
+            .env("PATH", &self.installer_path)
             .env("BUILD_TOOLS_PREFIX", self.prefix.as_str())
             .env("MOLD_RELEASE_BASE_URL", "https://fixture.invalid/releases")
             .env("FIXTURE_ARCHIVE", self.archive.as_str())
@@ -225,9 +226,19 @@ impl InstallerFixture {
         self.scratch.dir.write("make-route.log", "")
     }
 
-    /// Removes the fake installer so the missing-prerequisite path is exercised.
-    pub(super) fn remove_rustup(&self) -> io::Result<()> {
-        self.scratch.dir.remove_file("fake-bin/rustup")
+    /// Removes rustup and isolates PATH so a host installation cannot satisfy the check.
+    pub(super) fn remove_rustup(&mut self) -> io::Result<()> {
+        for tool in [
+            "bash", "dirname", "sed", "awk", "mktemp", "rm", "cp", "mkdir",
+        ] {
+            self.scratch.executable(
+                &format!("fake-bin/{tool}"),
+                &format!("#!/bin/sh\nexec /usr/bin/{tool} \"$@\"\n"),
+            )?;
+        }
+        self.scratch.dir.remove_file("fake-bin/rustup")?;
+        self.installer_path = self.fake_bin.to_string();
+        Ok(())
     }
 
     /// Returns the events from Make's installer route.

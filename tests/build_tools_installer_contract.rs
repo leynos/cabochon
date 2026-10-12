@@ -159,7 +159,7 @@ fn installer_propagates_tool_failures(#[case] failure: &str) -> io::Result<()> {
 /// Scenario: the Linux installer fails closed when rustup is unavailable.
 #[test]
 fn installer_rejects_missing_rustup() -> io::Result<()> {
-    let fixture = InstallerFixture::new()?;
+    let mut fixture = InstallerFixture::new()?;
     fixture.remove_rustup()?;
     let output = fixture.run_installer(&[])?;
     assert_failure(&output, "installer passed without rustup");

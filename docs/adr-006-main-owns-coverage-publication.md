@@ -2,12 +2,14 @@
 
 ## Status
 
-Accepted design. Adopts concordat's CV-005, `main-owned-codescene-coverage`.
-GitHub read-back confirms `CS_ACCESS_TOKEN` is present in the protected
-`codescene` environment and absent from repository-level secrets. Deployment is
-restricted to `main`, with administrator bypass enabled. Publisher run
-[38128492817](https://github.com/leynos/cabochon/actions/runs/38128492817)
-succeeded for coverage, ratchet-baseline saving, and CodeScene upload.
+Accepted design. Adopts concordat's CV-005, `main-owned-codescene-coverage`. The
+`codescene` environment exists. GitHub read-back confirms its deployment
+allow-list permits only `main` and administrator bypass is enabled. Secret
+placement in that environment and removal from repository-level secrets remain
+unverified because GitHub returned HTTP 403 for secret-name listings. Publisher
+run [38128492817](https://github.com/leynos/cabochon/actions/runs/38128492817)
+succeeded for coverage, ratchet-baseline saving, and CodeScene upload; this run
+does not establish the token's storage location.
 
 ## Date
 
@@ -44,14 +46,15 @@ the report in explicit upload mode, passing the secret as the action's
 `steps.codescene-token.outputs.available == 'true' && github.ref == 'refs/heads/main'`,
 where a check step reports whether the secret is set and no step holds it in
 its `env`. The uploading job declares the `codescene` environment. GitHub
-read-back confirms its deployment policy permits only `main`, with
-administrator bypass enabled. Secret-name read-backs confirm `CS_ACCESS_TOKEN`
-is present in the environment and absent from repository-level secrets.
-Publisher run
+read-back confirms that it exists, its deployment allow-list permits only
+`main`, and administrator bypass is enabled. Secret placement in the
+environment and removal from repository-level secrets remain unverified because
+GitHub returned HTTP 403 for secret-name listings. Publisher run
 [38128492817](https://github.com/leynos/cabochon/actions/runs/38128492817)
 succeeded for coverage generation, ratchet-baseline saving, and CodeScene
-upload. The publisher uses a never-cancelling concurrency group keyed on
-workflow and ref; a manual re-run of an older run can republish older coverage.
+upload; it does not establish the token's storage location. The publisher uses
+a never-cancelling concurrency group keyed on workflow and ref; a manual re-run
+of an older run can republish older coverage.
 
 `make test-workflow-contracts` runs the pinned shared `cv005-contracts check`.
 `.github/cv005.toml` holds this repository's parameters. The shared contract
@@ -65,9 +68,10 @@ writer uniqueness; its own suite tests the failure cases.
 - Drop CodeScene coverage altogether. Rejected: the trunk figure is still
   wanted, and the ratchet needs a trunk-written baseline anyway.
 - Protect the publisher with a deployment environment restricted to `main`.
-  Selected. GitHub read-back verifies the token's environment placement and
-  absence from repository-level secrets. The deployment policy allows `main`
-  only, with administrator bypass enabled.
+  Selected. The environment exists. GitHub read-back confirms its deployment
+  allow-list permits only `main` and administrator bypass is enabled. Secret
+  placement and removal from repository-level secrets remain unverified: GitHub
+  returned HTTP 403 for secret-name listings.
 
 ## Consequences
 
@@ -75,7 +79,7 @@ writer uniqueness; its own suite tests the failure cases.
   `main`.
 - An eligible `main` dispatch measures without advancing the baseline; one that
   replaces a pending push leaves the baseline a commit behind until the next
-  push. Other branch dispatches are blocked by the environment policy unless an
-  administrator bypasses it.
+  push. The environment deployment allow-list permits only `main`, and
+  administrator bypass is enabled.
 - Adding a workflow that touches CodeScene, runs ratcheted coverage on a push,
   or changes the coverage selection fails the contract, which names the clause.

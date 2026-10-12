@@ -246,14 +246,14 @@ test would not prove that contract.
 
 Coverage has two workflows, and the split is a contract (concordat's CV-005,
 `main-owned-codescene-coverage`), not a convention.
-[ADR 006](adr-006-main-owns-coverage-publication.md) records the decision.
-GitHub API read-back confirms that `CS_ACCESS_TOKEN` is present in the
-`codescene` environment and absent from repository-level secrets. Its
-deployment policy is restricted to `main`, with administrator bypass enabled.
-Publisher run
+[ADR 006](adr-006-main-owns-coverage-publication.md) records the decision. The
+`codescene` environment exists. GitHub read-back confirms its deployment
+allow-list permits only `main` and administrator bypass is enabled. Secret
+placement in that environment and removal from repository-level secrets remain
+unverified: GitHub returned HTTP 403 for secret-name listings. Publisher run
 [38128492817](https://github.com/leynos/cabochon/actions/runs/38128492817)
-succeeded, including coverage generation, ratchet-baseline saving, and the
-CodeScene upload.
+succeeded for coverage generation, ratchet-baseline saving, and CodeScene
+upload; it does not establish the token's storage location.
 
 - `ci.yml` measures lld-linked lcov coverage on every pull request with the
   shared `generate-coverage` action, `with-ratchet: 'true'` and
