@@ -28,6 +28,8 @@ mod ci_steps;
 mod config;
 #[path = "build_standard_support/make.rs"]
 mod make;
+#[path = "build_standard_contract/properties.rs"]
+mod properties;
 use ci_steps::{doctest_problems, install_mold_problems, workflow_problems};
 use config::{CONFIG, Flags, Pin, Problems, THREADS_FLAG, TOOLCHAIN, config_problems};
 use make::{

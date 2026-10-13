@@ -6,6 +6,22 @@ name: CI
   workflow_dispatch:
 
 jobs:
+  msrv:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231
+        with:
+          persist-credentials: false
+      - name: Install MSRV toolchain
+        run: rustup toolchain install 1.85.0 --profile minimal
+      - name: Check MSRV
+        # The published library supports stable Rust; run outside the checkout
+        # so Cargo cannot discover its nightly development backend configuration.
+        working-directory: ${{ runner.temp }}
+        run: cargo +1.85.0 check --lib --all-features --locked --manifest-path "$GITHUB_WORKSPACE/Cargo.toml"
+
   build-test:
     runs-on: ubuntu-latest
     permissions:
