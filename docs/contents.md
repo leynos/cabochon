@@ -18,8 +18,16 @@ set.
   model, hosted boundary, and verification invariants.
 - [Cabochon context](context.md) defines the shared domain vocabulary used by
   the terms of reference and technical design.
-- [Roadmap](roadmap.md) sequences Cabochon's delivery as GIST-oriented,
-  user-facing vertical slices.
+- [Roadmap](roadmap.md) defines programme gates, sequencing rules, and the
+  allocation of previous tasks across the delivery roadmaps.
+- [Hosted-runtime roadmap](roadmap-hosted-runtime.md) delivers the executable
+  substrate, persistent currency proof, output contracts, and hosted packaging.
+- [Developer-experience roadmap](roadmap-developer-experience.md) compares and
+  supports accessible and direct Rust authoring over one object contract.
+- [Knowledge-workspace roadmap](roadmap-knowledge-workspace.md) tests notes and
+  one rich embed before expanding the focused editors and hosted proving ground.
+- [Conditional-extensions roadmap](roadmap-extensions.md) gates live tools,
+  multi-provider mutation, shell experiments, and broader scope separately.
 - [Documentation style guide](documentation-style-guide.md) defines the
   spelling, structure, Markdown, Architecture Decision Record (ADR), Request
   for Comments (RFC), and roadmap conventions used by this documentation set.
