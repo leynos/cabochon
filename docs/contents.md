@@ -51,6 +51,12 @@ Decision records live under `docs/adrs/` as `adr-nnnn-title-slug.md`, per the
   records that Cabochon display, print, export, thumbnail, clipboard, and
   accessibility output crosses Lapidary and Burin contracts.
 
+## Execution plans
+
+- [Establish the GEM substrate contracts](execplans/1-0-establish-gem-substrate-contracts.md)
+  plans roadmap step 1.0: the Clerestory, Escutcheon, Lapidary, and Burin
+  contracts, their verification obligations, and the hello-window application.
+
 ## Rust reference material
 
 - [Reliable testing in Rust via dependency injection](reliable-testing-in-rust-via-dependency-injection.md)
