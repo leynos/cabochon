@@ -335,7 +335,8 @@ stop, record the situation in `Decision log`, and wait for direction.
 - Observation: running `make spelling` regenerates `typos.toml` with an
   unrelated change to a shared ignore pattern. Evidence: `git diff typos.toml`
   after the gate on 2026-10-18. Impact: per `AGENTS.md`, that regeneration
-  belongs in a separate base pull request.
+  belongs in a separate base pull request; open pull request #51 already
+  carries the identical change, so this branch leaves `typos.toml` alone.
 
 ## Decision log
 
@@ -1282,7 +1283,8 @@ crate's ownership, permitted callers, and reuse policy in
 now describes `[workspace.lints]`; new sections on the workspace, the
 dependency rule, test conventions and budgets, and the prover tooling), and
 `docs/contents.md`. Do not commit the unrelated `typos.toml` regeneration in
-this branch; raise it as its own base pull request.
+this branch; pull request #51 carries it. If #51 has not merged when EP-M0
+starts, stack on it rather than duplicating the change.
 
 ### EP-M1: Lapidary scene model and scene documents
 
