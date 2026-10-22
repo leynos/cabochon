@@ -122,7 +122,10 @@ workaround.
   `tests/` keep passing. The `test`, `lint-clippy`, `typecheck`, and `build`
   recipes gain no extra Cargo invocations or prerequisites, and
   `default-members` is not introduced. Member crates declare no Cargo features,
-  because every gate runs with `--all-features`.
+  because every gate runs with `--all-features`. The root package keeps
+  `rust-version = "1.85"`, and the `msrv` CI job
+  (`cargo +1.85.0 check --lib --all-features --locked`) keeps passing after the
+  workspace conversion.
 - C7, no persisted user-document format. This plan defines a Lapidary scene
   document (version 1) and an Escutcheon resource schema (version 1). Neither
   is a persisted user-document format, and neither may be presented as one.
@@ -252,6 +255,16 @@ stop, record the situation in `Decision log`, and wait for direction.
   test group, measured build times recorded at EP-M3a, and an
   optimization-level override for the heavy crates if the measurement justifies
   it.
+- Risk: the workspace conversion breaks the Rust 1.85 `msrv` CI job, or the
+  Rust-version-aware resolver (resolver 3) prefers older dependency releases
+  because the root package declares `rust-version = "1.85"`. Cargo 1.85 must
+  read every member manifest and the whole lockfile even though it checks only
+  the root library. Severity: medium. Likelihood: medium. Mitigation: each
+  member declares a `rust-version` no lower than the highest `rust-version`
+  among its dependencies; EP-M0 runs the `msrv` command locally after the
+  conversion and checks that `Cargo.lock` selects the newest releases the caret
+  requirements allow. If the job cannot stay green, that is an upstream
+  conflict to escalate, not a reason to weaken the job.
 - Risk: `make audit` surfaces advisories (often "unmaintained") in the new
   dependency tree. Severity: low. Likelihood: high. Mitigation: each dependency
   commit runs `make audit`; any ignore is a reviewed decision.
@@ -337,8 +350,19 @@ stop, record the situation in `Decision log`, and wait for direction.
 - Observation: running `make spelling` regenerates `typos.toml` with an
   unrelated change to a shared ignore pattern. Evidence: `git diff typos.toml`
   after the gate on 2026-10-18. Impact: per `AGENTS.md`, that regeneration
-  belongs in a separate base pull request; open pull request #51 already
-  carries the identical change, so this branch leaves `typos.toml` alone.
+  belongs in a separate base pull request; pull request #51 carried the
+  identical change and merged into `main` as `86f9791`. After this branch was
+  rebased onto it on 2026-10-22, `make spelling` leaves `typos.toml` unchanged.
+- Observation: pull request #51 gave the root package `rust-version = "1.85"`
+  and added an `msrv` CI job that runs
+  `cargo +1.85.0 check --lib --all-features --locked --manifest-path
+  "$GITHUB_WORKSPACE/Cargo.toml"`
+  from outside the checkout. It also moved the pinned nightly to
+  `nightly-2026-10-11`, changed the Whitaker recipe from `env -u` to `unset`,
+  and stopped Markdownlint flagging hard tabs in code blocks. Evidence:
+  `git diff 42ca1cd origin/main` on 2026-10-22. Impact: the workspace
+  conversion must keep the MSRV job green (constraint C6, EP-M0), and the
+  `kani` recipe mirrors the current Whitaker recipe.
 
 ## Decision log
 
@@ -1182,7 +1206,17 @@ so, and a commit. Each milestone is one stacked pull request (decision D18).
 ### EP-M0: workspace, tooling, architecture guards, and spikes
 
 Workspace. Convert `Cargo.toml` to a workspace whose root package remains
-`cabochon`:
+`cabochon` and keeps its `rust-version = "1.85"`. Each member declares its own
+`rust-version`, no lower than the highest `rust-version` among its
+dependencies. After the conversion, run the `msrv` CI job's command locally
+from outside the checkout and confirm it passes:
+
+```bash
+cd /tmp && cargo +1.85.0 check --lib --all-features --locked \
+  --manifest-path "$OLDPWD/Cargo.toml"
+```
+
+The workspace stanza:
 
 ```toml
 [workspace]
@@ -1223,7 +1257,6 @@ starts, currently `0.2026.10.04.426d8b0`), `tools/verus/SHA256SUMS`,
 Add these Makefile targets, none of which joins `make all`, `make test`, or
 `make lint`:
 
-<!-- markdownlint-disable MD010 -->
 ```makefile
 override PROVER_TOOLS_REF_FILE := tools/rust-prover-tools/REF
 override PROVER_TOOLS_REF := $(shell awk '/^ref:/ { print $$2 }' $(PROVER_TOOLS_REF_FILE))
@@ -1245,13 +1278,14 @@ verus: ## Run the Verus proofs
 	$(PROVER_TOOLS) verus run --repo-root . --proof-file "$(VERUS_PROOF_FILE)"
 
 kani: ## Run the Kani harnesses for the Lapidary kernels
-	cd $(dir $(CURDIR)) && env -u CARGO_PROFILE_DEV_CODEGEN_BACKEND RUSTFLAGS="" \
-		cargo kani --manifest-path "$(CURDIR)/Cargo.toml" -p cabochon-lapidary
+	cd "$(dir $(CURDIR))" && unset CARGO_ENCODED_RUSTFLAGS CARGO_PROFILE_DEV_CODEGEN_BACKEND \
+		CARGO_PROFILE_TEST_CODEGEN_BACKEND CARGO_PROFILE_RELEASE_CODEGEN_BACKEND && \
+		RUSTFLAGS="" cargo kani --manifest-path "$(CURDIR)/Cargo.toml" -p cabochon-lapidary
 ```
-<!-- markdownlint-enable MD010 -->
 
-The `kani` recipe follows the Whitaker pattern (run from the parent directory,
-so `.cargo/config.toml`'s Cranelift and `mold` settings do not reach
+The `kani` recipe mirrors the `lint-whitaker` recipe in `Makefile` (run from
+the parent directory and `unset` the inherited backend variables, so
+`.cargo/config.toml`'s Cranelift and `mold` settings do not reach
 `kani-compiler`). Until EP-M1, `verus/lapidary_proofs.rs` is an explicit
 `FORMAL-SKIP` stub that prints `FORMAL-SKIP: no Verus proofs yet`. Add
 `make test-hosted` as a stub that fails with "not yet implemented (EP-M7b)". Add
@@ -1291,9 +1325,9 @@ crate's ownership, permitted callers, and reuse policy in
 `docs/repository-layout.md`. Update `docs/developers-guide.md` ("Lint baseline"
 now describes `[workspace.lints]`; new sections on the workspace, the
 dependency rule, test conventions and budgets, and the prover tooling), and
-`docs/contents.md`. Do not commit the unrelated `typos.toml` regeneration in
-this branch; pull request #51 carries it. If #51 has not merged when EP-M0
-starts, stack on it rather than duplicating the change.
+`docs/contents.md`. Pull request #51 has already merged the `typos.toml`
+regeneration, so `make spelling` should leave `typos.toml` unchanged; if a
+later dictionary change regenerates it again, handle it as `AGENTS.md` directs.
 
 ### EP-M1: Lapidary scene model and scene documents
 
@@ -2130,3 +2164,10 @@ installed; run through `make kani`), and `rust-prover-tools` (pinned in
 - 2026-10-22: recorded the reviewer's acceptance of decisions D1, D6, D7, D8,
   D10, D11, D12, D13, and D14. No decision changed, so the remaining work is
   unchanged; EP-M0 still waits for approval of the plan as a whole.
+- 2026-10-22: rebased onto `main` at `1f43018`, which includes pull requests
+  #51 and #64. Recorded the merged `typos.toml` regeneration, the root package's
+  `rust-version = "1.85"` and its `msrv` CI job (now part of constraint C6, a
+  new risk, and an EP-M0 check), and the new nightly pin. Updated the `kani`
+  recipe to mirror the current `lint-whitaker` recipe, and dropped the
+  Markdownlint MD010 directives that the repository's new code-block policy
+  makes unnecessary. The milestones are unchanged.
