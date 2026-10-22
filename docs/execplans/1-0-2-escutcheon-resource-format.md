@@ -172,7 +172,7 @@ Task-level decisions:
   Cargo rejects a `crates/*` workspace member directory without a manifest, so
   the application crate cannot exist before the 1.0.1 plan. Date: 2026-10-23.
 - Decision T6: the checker is a `bin` target, `escutcheon-check`, in
-  `cabochon-escutcheon`, with hand-written argument handling (one directory and
+  `cabochon-escutcheon`, with handwritten argument handling (one directory and
   an optional `--locale`), so the library gains no command-line parsing
   dependency. Date: 2026-10-23.
 - Decision T8: one pull request per task plan, replacing the step plan's
@@ -180,8 +180,9 @@ Task-level decisions:
   2026-10-23.
 - Decision T9: ADR numbers are reserved by this decomposition: 0009 for the
   1.0.3 plan, 0010 for the 1.0.2 plan, 0011 for the 1.0.4 plan, and 0012 for
-  the 1.0.1 plan. Any other pull request needing an ADR takes 0013 or later.
-  Date: 2026-10-23.
+  the 1.0.1 plan. 0013 is reserved for the 1.0.3 plan's Cranelift decision, if
+  its EP-M0b expunges Cranelift (decision T10 there). Any other pull request
+  needing an ADR takes 0014 or later. Date: 2026-10-23.
 
 ## Outcomes & retrospective
 
@@ -520,3 +521,5 @@ recorder) and `tracing-test` 0.2, plus the testing crates from the 1.0.3 plan.
   Escutcheon's use of Lapidary's `TextDirection`, inlined the escalation
   triggers, added test-recorder dependencies and the `msrv` command, and
   recorded one pull request per plan (T8) and the ADR number reservation (T9).
+- 2026-10-23: reserved ADR 0013 for the 1.0.3 plan's conditional Cranelift
+  decision (T9); other new ADRs take 0014 or later.
