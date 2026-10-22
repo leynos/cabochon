@@ -33,9 +33,9 @@ split under four names:
 - Burin is the renderer: it turns one Lapidary scene into concrete output for
   every target, which `docs/context.md` calls a workstation.
 
-ADR 007 makes those four boundaries production contracts in hosted mode, before
-any Enfilade (object graph) behaviour exists. This plan delivers roadmap step
-1.0 and its four tasks, 1.0.1 to 1.0.4.
+ADR 0007 makes those four boundaries production contracts in hosted mode,
+before any Enfilade (object graph) behaviour exists. This plan delivers roadmap
+step 1.0 and its four tasks, 1.0.1 to 1.0.4.
 
 After this work, a developer can run a small application, `hello-window`,
 inside an ordinary GNOME or KDE Plasma session. Its window, menu bar, commands,
@@ -89,7 +89,7 @@ workaround.
   holds: applications reach the desktop only through Clerestory, draw only
   through Lapidary scenes, render only through Burin, and take UI structure
   from Escutcheon. No substrate crate depends on or names an Enfilade type (ADR
-  007, ADR 008). Later Enfilade integration lives in bridge crates (decision
+  007, ADR 0008). Later Enfilade integration lives in bridge crates (decision
   D12).
 - C2, dependency direction. Dependencies point inwards, counting normal
   (non-development) edges. `cabochon-lapidary` depends on no other Cabochon
@@ -103,7 +103,7 @@ workaround.
   mention `winit`, Wayland, X11, AccessKit, GTK, Qt, `kurbo`, `parley`,
   `krilla`, `vello_cpu`, `kdl`, Fluent, `unic-langid`, or `miette` types.
   Burin's public signatures expose only Lapidary types and Burin-owned types.
-  Host types appear only in `cabochon-clerestory-hosted` (ADR 002).
+  Host types appear only in `cabochon-clerestory-hosted` (ADR 0002).
 - C4, integer geometry. Lapidary geometry uses integer English Metric Units
   (EMU) and fixed-point transforms. Floating-point arithmetic and lossy casts
   are permitted only in three named float-boundary modules:
@@ -113,10 +113,12 @@ workaround.
   reasoned `#[expect(clippy::float_arithmetic, reason = "...")]` (or the
   matching cast lint), as the lint baseline in `docs/developers-guide.md`
   allows for genuine floating-point arithmetic.
-- C5, repository lint and safety policy. `unsafe_code` stays `forbid`.
-  `#[allow]` is never used. Every lint expectation is tightly scoped and
-  reasoned. No `.expect()` or `.unwrap()` outside tests. No source file exceeds
-  400 lines.
+- C5, repository lint, safety, and documentation policy. Public Rust items
+  follow the style guide's doc-comment rules (`# Parameters`, `# Returns`,
+  `# Errors`, and `# Examples` that run as doctests unless they genuinely
+  cannot execute). `unsafe_code` stays `forbid`. `#[allow]` is never used.
+  Every lint expectation is tightly scoped and reasoned. No `.expect()` or
+  `.unwrap()` outside tests. No source file exceeds 400 lines.
 - C6, existing contracts. The root package `cabochon`, its binary, and
   `tests/cli_greeting.rs` keep working. The existing contract tests under
   `tests/` keep passing. The `test`, `lint-clippy`, `typecheck`, and `build`
@@ -353,6 +355,14 @@ stop, record the situation in `Decision log`, and wait for direction.
   belongs in a separate base pull request; pull request #51 carried the
   identical change and merged into `main` as `86f9791`. After this branch was
   rebased onto it on 2026-10-22, `make spelling` leaves `typos.toml` unchanged.
+- Observation: pull request #65 adopted the shared documentation style guide.
+  It moved every ADR to `docs/adrs/adr-nnnn-title-slug.md` with four-digit
+  numbers, requires Rust doc comments with `# Parameters`, `# Returns`, and
+  `# Errors` sections and runnable examples, and keeps repository-layout
+  material out of the developers' guide. Evidence: `git diff 1f43018 0de2b57`
+  on 2026-10-22. Impact: this plan's ADRs become ADR 0009 to ADR 0012 under
+  `docs/adrs/`, its references to existing ADRs use the new paths, and
+  constraint C5 adopts the doc-comment rules.
 - Observation: pull request #51 gave the root package `rust-version = "1.85"`
   and added an `msrv` CI job that runs
   `cargo +1.85.0 check --lib --all-features --locked --manifest-path
@@ -393,7 +403,7 @@ accepted all of them (D1, D6, D7, D8, D10, D11, D12, D13, and D14) on
   Office Open XML DrawingML (EMU) and FreeType's `FT_Matrix` (16.16).
   Alternative considered: `kurbo` floating-point geometry, which removes
   conversion seams but loses exact round trips and makes proofs much harder. To
-  be recorded as ADR 009.
+  be recorded as ADR 0009.
 - Decision D3: Burin uses `vello_cpu` for raster output, `krilla` for PDF,
   `parley` and `fontique` for text layout, `png` for image decoding, and
   `hayro` (development only) to read PDF output back. Rationale: these crates
@@ -402,7 +412,7 @@ accepted all of them (D1, D6, D7, D8, D10, D11, D12, D13, and D14) on
   `tiny-skia` (mature, but no text and a separate stack). This is the hosted
   proving ground's software renderer; the deferred graphics processing unit
   (GPU) renderer decision in `docs/cabochon-design.md` §15 is unaffected. To be
-  recorded as ADR 011.
+  recorded as ADR 0011.
 - Decision D4: Escutcheon resources use KDL 2.0 documents (the `kdl` crate)
   for structure, Project Fluent `.ftl` files for strings, and SVG files for
   icons, compiled into a typed, cross-referenced `ResourceBundle`. Rationale:
@@ -414,7 +424,7 @@ accepted all of them (D1, D6, D7, D8, D10, D11, D12, D13, and D14) on
   bidirectional isolation, and pseudo-localization. Alternatives considered:
   RON (weak diagnostics and formatting preservation), TOML (awkward for deep
   ordered trees), and Qt `.ui` or GtkBuilder XML (toolkit-specific). To be
-  recorded as ADR 010.
+  recorded as ADR 0010.
 - Decision D5: Clerestory owns the furniture model (commands, menus, dialogs,
   focus, modality, roles) and draws furniture inside the window as Lapidary
   scenes. It adapts to hosts through a `HostShell` port; the hosted adapter uses
@@ -428,14 +438,14 @@ accepted all of them (D1, D6, D7, D8, D10, D11, D12, D13, and D14) on
   Lapidary with its own renderer); and Masonry as the hosted furniture renderer
   (gains text editing and IME from upstream, but adds a second render path
   outside Burin's parity tests). `FrameUpdate` stays at the scene level so the
-  Masonry option remains open. To be recorded as ADR 012.
+  Masonry option remains open. To be recorded as ADR 0012.
 - Decision D6: "print-oriented output preparation" means a paginated PDF/A-2b
   file with explicit media, trim, and bleed boxes, an sRGB output intent, and a
   `PrintTicket` describing media, copies, and page range. Submitting jobs to
   the Common UNIX Printing System (CUPS) or the print portal remains with
   roadmap 5.1.2; PDF/X is deferred. Rationale: `krilla` does not support PDF/X,
-  and ADR 003 routes host printing through portals. Accepted by the reviewer on
-  2026-10-22.
+  and ADR 0003 routes host printing through portals. Accepted by the reviewer
+  on 2026-10-22.
 - Decision D7: Burin ships no SVG workstation in this step. Rationale: roadmap
   1.0.4 omits SVG and the design says "SVG where appropriate". EP-M8 records
   the deferral in `docs/cabochon-design.md` §15. Accepted by the reviewer on
@@ -545,13 +555,13 @@ The governing documents are:
   (GEM-derived invariants), §7.1 (presentations cross into Lapidary), §8.1 to
   §8.4 and §8.9 (component responsibilities), §11 (failure behaviour), §13.1
   (VDI conformance tests), and §14 (observability).
-- `docs/adr-007-gem-substrate-boundary.md` and
-  `docs/adr-008-enfilade-rendering-authority.md`, which make the substrate a
-  production boundary and keep Enfilade out of rendering.
-- `docs/adr-002-hosted-runtime-boundary.md`, which keeps host types out of
-  domain contracts.
-- `docs/adr-004-interoperable-authoring-paths.md`, which requires contracts
-  that are neutral to the authoring language.
+- `docs/adrs/adr-0007-make-the-gem-substrate-a-production-boundary.md` and
+  `docs/adrs/adr-0008-keep-enfilade-out-of-rendering-authority.md`, which make
+  the substrate a production boundary and keep Enfilade out of rendering.
+- `docs/adrs/adr-0002-keep-the-hosted-runtime-independent-of-the-shell.md`,
+  which keeps host types out of domain contracts.
+- `docs/adrs/adr-0004-require-interoperable-authoring-paths.md`, which requires
+  contracts that are neutral to the authoring language.
 - `docs/terms-of-reference.md` lines 275 to 279, the GEM substrate success
   measure: a developer can create a small resource-defined application that
   opens a window, exposes standard menus and commands, renders a Lapidary
@@ -605,9 +615,9 @@ Skills and references to load while implementing: `execplans` (this plan),
 for focus, modality, menus, and text editing, and `arch-crate-design`),
 `hexagonal-architecture` (ports and adapters), `rust-unit-testing` (`rstest`,
 `googletest`, `pretty_assertions`, `insta`), `proptest`, `kani`, `verus`,
-`rust-verification`, `arch-decision-records` for ADRs 009 to 012, `nextest` for
-the test configuration, `en-gb-oxendict-style` for prose, `codegraph-mcp` for
-navigation, and `firecrawl-mcp` for upstream documentation. Repository
+`rust-verification`, `arch-decision-records` for ADRs 0009 to 0012, `nextest`
+for the test configuration, `en-gb-oxendict-style` for prose, `codegraph-mcp`
+for navigation, and `firecrawl-mcp` for upstream documentation. Repository
 references: `docs/rust-testing-with-rstest-fixtures.md`,
 `docs/reliable-testing-in-rust-via-dependency-injection.md`,
 `docs/rust-doctest-dry-guide.md`,
@@ -633,7 +643,7 @@ Upstream artefacts, at repository commit `42ca1cd` on `main`:
   - `TDD-VDI-RT`, `TDD-VDI-PARITY`, `TDD-VDI-PROP`, `TDD-VDI-INVAL`,
     `TDD-VDI-TEXT`, and `TDD-VDI-FAIL`: the six bullets of §13.1.
   - `TDD-OBS`: §14.
-- ADRs: ADR 002, ADR 004, ADR 007, and ADR 008, all accepted.
+- ADRs: ADR 0002, ADR 0004, ADR 0007, and ADR 0008, all accepted.
 - Roadmap: `RM-1.0.1`, `RM-1.0.2`, `RM-1.0.3`, and `RM-1.0.4`.
 - Governing standards: `AGENTS.md`, `docs/documentation-style-guide.md`, and
   the lint baseline in `Cargo.toml` and `docs/developers-guide.md`.
@@ -652,8 +662,8 @@ RM-1.0.4 -> TDD-VDI-TEXT -> EP-M3a, EP-M4b -> OB-TEXT-CARET, OB-TEXT-BIDI, OB-TE
 RM-1.0.2 -> TDD-ESC, TDD-INV-4 -> EP-M5, EP-M7a -> OB-ESC-*, resources.feature, hello-window e2e
 RM-1.0.1 -> TDD-CLR, TDD-INV-1, TDD-INV-6 -> EP-M6a, EP-M6b, EP-M7b -> OB-CLR-*, hello_window.feature, make test-hosted
 TOR-SM-GEM -> RM-1.0.1..4 -> EP-M7a, EP-M7b -> hello-window e2e (run, export, locale), OB-CLR-HOST
-TDD-INV-5, ADR-007, ADR-008 -> EP-M0 -> tests/substrate_dependency_contract.rs, OB-ARCH-DEPS
-ADR-004 -> EP-M5, EP-M8 -> escutcheon-check binary, schema references in docs
+TDD-INV-5, ADR-0007, ADR-0008 -> EP-M0 -> tests/substrate_dependency_contract.rs, OB-ARCH-DEPS
+ADR-0004 -> EP-M5, EP-M8 -> escutcheon-check binary, schema references in docs
 TDD-OBS -> EP-M3c, EP-M5, EP-M6a -> tracing and metrics assertions in each crate's tests
 ```
 
@@ -665,7 +675,7 @@ Gaps between the baseline and the target, and where each closes:
 - No renderer, outputs, or parity evidence: EP-M3a to EP-M4b.
 - No resource format: EP-M5.
 - No application contract, text input, or hosted adapter: EP-M6a to EP-M7b.
-- No ADRs for units, resources, renderer, or furniture: ADRs 009 to 012,
+- No ADRs for units, resources, renderer, or furniture: ADRs 0009 to 0012,
   drafted in EP-M0 as `Proposed` and accepted at the milestone that implements
   each.
 
@@ -1319,15 +1329,17 @@ Spikes (each records its hypothesis, command, and result in
    `make test` (Cranelift) and under `make coverage` (LLVM) with identical
    pixels.
 
-Documentation. Draft ADRs 009 to 012 with status `Proposed`. Record each
-crate's ownership, permitted callers, and reuse policy in
-`docs/cabochon-design.md` (a new subsection of §8) and
-`docs/repository-layout.md`. Update `docs/developers-guide.md` ("Lint baseline"
-now describes `[workspace.lints]`; new sections on the workspace, the
-dependency rule, test conventions and budgets, and the prover tooling), and
-`docs/contents.md`. Pull request #51 has already merged the `typos.toml`
-regeneration, so `make spelling` should leave `typos.toml` unchanged; if a
-later dictionary change regenerates it again, handle it as `AGENTS.md` directs.
+Documentation. Draft ADRs 0009 to 0012 with status `Proposed`, as
+`docs/adrs/adr-0009-<title-slug>.md` and so on, following the naming convention
+and template in `docs/documentation-style-guide.md`. Record each crate's
+ownership, permitted callers, and reuse policy in `docs/cabochon-design.md` (a
+new subsection of §8) and `docs/repository-layout.md`. Update
+`docs/developers-guide.md` ("Lint baseline" now describes `[workspace.lints]`;
+new sections on the workspace, the dependency rule, test conventions and
+budgets, and the prover tooling), and `docs/contents.md`. Pull request #51 has
+already merged the `typos.toml` regeneration, so `make spelling` should leave
+`typos.toml` unchanged; if a later dictionary change regenerates it again,
+handle it as `AGENTS.md` directs.
 
 ### EP-M1: Lapidary scene model and scene documents
 
@@ -1346,7 +1358,7 @@ digest); `layer` (`LayerSpec` with name, visible, and printable flags); `scene`
 `serde_json`, with image bytes in base64). Write the Kani harnesses for
 `OB-LAP-UNITS` and `OB-LAP-FIXED` with the code they check. Put the scene
 generator in the testkit. Write a prose reference for scene document version 1
-for authors in other languages (ADR 004).
+for authors in other languages (ADR 0004).
 
 ### EP-M2a: resolution, device mapping, hit testing, damage, and accessibility nodes
 
@@ -1376,8 +1388,8 @@ under `verus/` (`lapidary_proofs.rs` includes `lapidary_rect.rs`,
 `lapidary_transform.rs`, `lapidary_winding.rs`, `lapidary_hit.rs`,
 `lapidary_damage.rs`, and `lapidary_snap.rs`), or, on the single-source route,
 inside the kernel modules with `verus/lapidary_proofs.rs` as the entry point.
-Enable `OB-PROOF-MIRROR`'s minimum-region assertion. Accept ADR 009. Record the
-proof inventory, and what each proof does not cover, in
+Enable `OB-PROOF-MIRROR`'s minimum-region assertion. Accept ADR 0009. Record
+the proof inventory, and what each proof does not cover, in
 `docs/developers-guide.md`. Add a CI workflow, `formal.yml`, triggered by
 `workflow_dispatch` and a weekly schedule, that runs `make kani` and
 `make verus`; it must satisfy the existing workflow contract tests.
@@ -1432,7 +1444,7 @@ page boxes, the PDF/A-2b validator, an sRGB output intent, a `PrintTicket`,
 non-printable layers excluded), and the PDF part of `ClipboardWorkstation`.
 Write `OB-BUR-PARITY-GEOM`, `OB-BUR-PARITY-TEXT`, the vector half of
 `OB-BUR-NODROP`, `OB-BUR-PRINT`, `OB-BUR-DET`, and the remaining output feature
-scenario. Accept ADR 011. Mark roadmap tasks 1.0.3 and 1.0.4 done.
+scenario. Accept ADR 0011. Mark roadmap tasks 1.0.3 and 1.0.4 done.
 
 ### EP-M5: Escutcheon resource format and compiler
 
@@ -1446,7 +1458,7 @@ with logical-key matching, accessibility annotations on commands and controls,
 and validation with located diagnostics owned by Escutcheon (`Diagnostic` with
 span, code, and message; no `miette` in the public API). Add the
 `escutcheon-check` binary. Write the obligations and the behavioural feature.
-Write a prose schema reference for authors in other languages. Accept ADR 010.
+Write a prose schema reference for authors in other languages. Accept ADR 0010.
 Roadmap task 1.0.2 stays open until EP-M7a.
 
 ### EP-M6a: Clerestory session, state machines, routing, and the headless shell
@@ -1468,7 +1480,7 @@ menu bar, menus, dialogs, and inspector through Lapidary, the single-line text
 field with IME support, the inspector panel bound to an `InspectorModel`, and
 the `AccessibilityTree`, which grafts the content scene's accessibility nodes
 under the canvas. Write `OB-CLR-TEXT`, `OB-CLR-LAYOUT`, `OB-CLR-A11Y`, and
-`hello_window.feature` against the headless shell. Accept ADR 012.
+`hello_window.feature` against the headless shell. Accept ADR 0012.
 
 ### EP-M7a: the hello-window application under the headless shell
 
@@ -1568,8 +1580,8 @@ its compatibility decision is "none": every interface is pre-1.0 and internal.
   Specific check: decisions D6 and D7 respected.
 - EP-M5. Outcome: Escutcheon compiles bundles with located diagnostics,
   localization, icons, shortcuts, and accessibility annotations. Requirements:
-  `RM-1.0.2` (format), `TDD-ESC`, `TDD-INV-4`, ADR 004. Evidence: `OB-ESC-*` and
-  `resources.feature` pass; `escutcheon-check` reports a located diagnostic
+  `RM-1.0.2` (format), `TDD-ESC`, `TDD-INV-4`, ADR 0004. Evidence: `OB-ESC-*`
+  and `resources.feature` pass; `escutcheon-check` reports a located diagnostic
   for a broken fixture.
 - EP-M6a. Outcome: the Clerestory session runs under the headless shell.
   Requirements: `RM-1.0.1` (windows, menus, commands, dialogs, focus,
@@ -2108,9 +2120,10 @@ installed; run through `make kani`), and `rust-prover-tools` (pinned in
 
 ## Documentation obligations
 
-- ADR 009 (integer EMU geometry and fixed-point transforms), ADR 010 (KDL,
-  Fluent, and SVG resources), ADR 011 (software renderer and workstation
-  parity), and ADR 012 (in-window furniture, the host-shell port, and the
+- ADRs under `docs/adrs/`, named `adr-nnnn-title-slug.md` per the style
+  guide: ADR 0009 (integer EMU geometry and fixed-point transforms), ADR 0010
+  (KDL, Fluent, and SVG resources), ADR 0011 (software renderer and workstation
+  parity), and ADR 0012 (in-window furniture, the host-shell port, and the
   considered alternatives, including Masonry), each referenced from
   `docs/cabochon-design.md` §15.
 - `docs/cabochon-design.md` gains a crate ownership and reuse subsection
@@ -2128,7 +2141,7 @@ installed; run through `make kani`), and `rust-prover-tools` (pinned in
   (integration tests only, never a production dependency) and for
   `cabochon-fonts` (data only).
 - Prose references for scene document version 1 and Escutcheon schema
-  version 1, for authors working in other languages (ADR 004).
+  version 1, for authors working in other languages (ADR 0004).
 - `docs/users-guide.md` gains a hello-window section covering `run`,
   `export`, `--locale`, `--system-fonts`, and `escutcheon-check`.
 - `docs/repository-layout.md` and `docs/contents.md` list every new directory
@@ -2158,7 +2171,7 @@ installed; run through `make kani`), and `rust-prover-tools` (pinned in
   The alternatives panel added text input with IME (decision D14), the font
   policy (decision D15), pseudo-locales for right-to-left layout, logical-key
   shortcuts, `escutcheon-check`, prose schema references, the Masonry
-  alternative in ADR 012, and deferred the canonical emitter (decision D19).
+  alternative in ADR 0012, and deferred the canonical emitter (decision D19).
   The remaining work is unchanged in purpose; it is now sequenced as fifteen
   milestones and awaits approval.
 - 2026-10-22: recorded the reviewer's acceptance of decisions D1, D6, D7, D8,
@@ -2171,3 +2184,9 @@ installed; run through `make kani`), and `rust-prover-tools` (pinned in
   recipe to mirror the current `lint-whitaker` recipe, and dropped the
   Markdownlint MD010 directives that the repository's new code-block policy
   makes unnecessary. The milestones are unchanged.
+- 2026-10-22: rebased onto `main` at `0de2b57`, which adopts the shared
+  documentation style guide (#65). Updated every ADR reference to the four-digit
+  `docs/adrs/adr-nnnn-title-slug.md` scheme, so this plan's new ADRs are ADR
+  0009 to ADR 0012; added the style guide's doc-comment rules to constraint C5;
+  and recorded the change in `Surprises & discoveries`. The milestones are
+  unchanged.
