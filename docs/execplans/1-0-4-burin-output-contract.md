@@ -99,14 +99,16 @@ decision made for the task-level plans.
   Likelihood: high. Mitigation: one Burin adapter module per crate behind a
   Burin-owned trait; parity tests gate upgrades.
 - Risk: `vello_cpu` selects single instruction, multiple data (SIMD) code
-  paths at run time, and the Cranelift development backend implements only part
-  of `core::arch`, so tests could crash or diverge between hosts and between
-  Cranelift and the LLVM coverage build. Severity: high. Likelihood: medium.
-  Mitigation: S-VELLO; every test render goes through one testkit constructor
-  pinning the scalar level, single-threaded rendering, and one render mode; if
-  Cranelift still fails, a per-package profile override compiles `vello_cpu`
-  with LLVM (needs approval). The production SIMD path is a documented untested
-  residual.
+  paths at run time, so tests could diverge between hosts. While the Cranelift
+  development backend remains (the 1.0.3 plan's EP-M0b expunges it if Kani
+  cannot run with it present), Cranelift also implements only part of
+  `core::arch`, so tests could crash or diverge between Cranelift and the LLVM
+  coverage build. Severity: high. Likelihood: medium. Mitigation: S-VELLO;
+  every test render goes through one testkit constructor pinning the scalar
+  level, single-threaded rendering, and one render mode; if Cranelift is still
+  the development backend and still fails, a per-package profile override
+  compiles `vello_cpu` with LLVM (needs approval). The production SIMD path is
+  a documented untested residual.
 - Risk: font-stack skew (`krilla` pins `skrifa` 0.42; `parley` and
   `vello_cpu` use newer). Severity: low. Likelihood: high. Mitigation: fonts
   cross stacks only as bytes plus glyph identifiers through Lapidary's
@@ -210,8 +212,9 @@ Task-level decisions:
   2026-10-23.
 - Decision T9: ADR numbers are reserved by this decomposition: 0009 for the
   1.0.3 plan, 0010 for the 1.0.2 plan, 0011 for this plan, and 0012 for the
-  1.0.1 plan. Any other pull request needing an ADR takes 0013 or later. Date:
-  2026-10-23.
+  1.0.1 plan. 0013 is reserved for the 1.0.3 plan's Cranelift decision, if its
+  EP-M0b expunges Cranelift (decision T10 there). Any other pull request
+  needing an ADR takes 0014 or later. Date: 2026-10-23.
 - Decision T4: add a `render_all` example to `cabochon-burin` as this task's
   observable demonstration, since the hello-window application belongs to the
   1.0.1 plan. Date: 2026-10-23.
@@ -420,17 +423,19 @@ agent) and a commit; each dependency addition is its own commit with
 ### EP-M1: fonts, text layout, float boundary, raster, and thumbnail
 
 First run S-VELLO: `vello_cpu`, pinned to its scalar path, renders a rectangle
-under `make test` (Cranelift) and `make coverage` (LLVM) with identical pixels.
-Create `crates/cabochon-fonts` (data only: static subsets of Noto Sans, Noto
-Sans Arabic, and Noto Sans Hebrew, each with `OFL.txt` and a `SHA256SUMS`
-entry) and `crates/cabochon-burin`, and add both rows to the dependency
-contract. Record ownership and reuse policies in `docs/cabochon-design.md` and
-`docs/repository-layout.md`. Implement `Workstation` (with associated `Request`
-and `Output` types), `RenderError`, `float_boundary`, `ParleyTextLayout` (with
-`OB-TEXT-*`), PNG decoding, `RasterWorkstation`, and `ThumbnailWorkstation`,
-and the testkit render constructor that pins determinism. Measure cold and warm
-build times and record them. Draft ADR 0011 as
-`docs/adrs/adr-0011-<title-slug>.md`.
+with identical pixels under `make test` and `make coverage`. If the 1.0.3 plan
+kept Cranelift, this compares Cranelift with LLVM; if it expunged Cranelift,
+both builds use LLVM and the spike checks only that the pinned scalar path is
+deterministic across the two profiles. Create `crates/cabochon-fonts` (data
+only: static subsets of Noto Sans, Noto Sans Arabic, and Noto Sans Hebrew, each
+with `OFL.txt` and a `SHA256SUMS` entry) and `crates/cabochon-burin`, and add
+both rows to the dependency contract. Record ownership and reuse policies in
+`docs/cabochon-design.md` and `docs/repository-layout.md`. Implement
+`Workstation` (with associated `Request` and `Output` types), `RenderError`,
+`float_boundary`, `ParleyTextLayout` (with `OB-TEXT-*`), PNG decoding,
+`RasterWorkstation`, and `ThumbnailWorkstation`, and the testkit render
+constructor that pins determinism. Measure cold and warm build times and record
+them. Draft ADR 0011 as `docs/adrs/adr-0011-<title-slug>.md`.
 
 ### EP-M2: interactive surface and invalidation
 
@@ -666,3 +671,6 @@ starts):
   render error, added test-recorder dependencies, gave this plan the §13.1
   design update, added the `msrv` command, and recorded one pull request per
   plan (T8) and the ADR number reservation (T9).
+- 2026-10-23: made S-VELLO and the SIMD risk conditional on whether the 1.0.3
+  plan keeps Cranelift (Kani takes precedence there; its EP-M0b may expunge
+  Cranelift), and reserved ADR 0013 for that decision (T9).
