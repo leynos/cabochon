@@ -6,7 +6,6 @@ rust-version = "1.85"
 description = "A desktop environment"
 license = "ISC"
 repository = "https://github.com/leynos/cabochon"
-homepage = "https://github.com/leynos/cabochon"
 readme = "README.md"
 keywords = ["desktop"]
 categories = []
