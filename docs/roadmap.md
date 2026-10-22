@@ -8,7 +8,7 @@ task is a review-sized execution unit.
 The roadmap begins with contracts that would otherwise force rework. Later
 phases deliver vertical slices: the currency object, the knowledge workspace,
 cross-application embeds, and the formula tool. Architecture Decision Records
-(ADRs) live under `docs/` when written.
+(ADRs) live under `docs/adrs/` when written.
 
 ## 1. Settle the contracts that make one object environment possible
 
@@ -21,7 +21,7 @@ environment instead of building a private framework.
 This step answers what every Cabochon application can rely on before
 Enfilade-specific behaviour enters the picture. It makes the Clerestory,
 Escutcheon, Lapidary, and Burin boundaries production contracts in hosted mode,
-per ADR 007. See `cabochon-design.md` §§3 and 8.1-8.4.
+per ADR 0007. See `cabochon-design.md` §§3 and 8.1-8.4.
 
 - [ ] 1.0.1. Define the minimum Clerestory application contract.
   - Cover windows, menus, commands, standard dialogs, focus, keyboard
@@ -67,8 +67,9 @@ hosted runtime from becoming disposable scaffolding. See `cabochon-design.md`
 - [x] 1.1.2. Record the hosted-runtime and future-shell boundary in an ADR.
   - Define which responsibilities remain in the runtime and which belong to a
     host or shell adapter.
-  - Complete: [ADR 002](adr-002-hosted-runtime-boundary.md) keeps domain
-    contracts independent of GNOME, KDE Plasma, and compositors.
+  - Complete:
+    [ADR 0002](adrs/adr-0002-keep-the-hosted-runtime-independent-of-the-shell.md)
+    keeps domain contracts independent of GNOME, KDE Plasma, and compositors.
 - [ ] 1.1.3. Establish the workspace crate structure around those boundaries.
   - Requires 1.1.1 and 1.1.2.
   - Document every new abstraction's ownership and reuse policy in
@@ -86,8 +87,10 @@ Its outcome gates every tool-aware workflow. See `cabochon-design.md` §§5, 7.2
 - [ ] 1.2.1. Validate selector discovery and capability grants.
   - Requires 1.1.1.
   - Define grant scope, expiry, delegation, denial, and audit fields.
-  - Start from [ADR 003](adr-003-runtime-security-boundary.md), which defines
-    grant, denial, transaction, audit, portal, and export invariants.
+  - Start from
+    [ADR 0003](adrs/adr-0003-separate-discovery-authority-and-mutation.md),
+    which defines grant, denial, transaction, audit, portal, and export
+    invariants.
   - Success: generated capability cases demonstrate that invocation authority
     never exceeds the presented grant.
 - [ ] 1.2.2. Specify the transaction state machine and recovery contract.
@@ -285,7 +288,8 @@ ships. See `cabochon-design.md` §§7.3, 11, and 15.
   - Define current, refreshing, stale, broken, and denied states.
   - Treat recoverability as a transition back to current that preserves the
     last successful result, not as a standalone state.
-  - Start from [ADR 005](adr-005-explicit-live-relationship-states.md).
+  - Start from
+    [ADR 0005](adrs/adr-0005-expose-live-relationship-state-explicitly.md).
   - Success: every source-change and failure transition refines the accepted
     safety states into one visible result.
 - [ ] 4.1.2. Model refresh, move, denial, provider crash, and recovery

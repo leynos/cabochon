@@ -1,4 +1,4 @@
-# Architectural decision record (ADR) 007: Make the GEM substrate a production boundary
+# Architectural decision record (ADR) 0007: Make the GEM substrate a production boundary
 
 ## Status
 
@@ -12,14 +12,14 @@ remains deferred.
 
 ## Context and problem statement
 
-ADR 001 accepts a hosted runtime before a full desktop shell. ADR 002 keeps the
-runtime independent of any shell. These decisions defer compositor ownership,
-but they do not require Cabochon to defer its application and graphics model.
-Without a normative Clerestory, Lapidary, Burin, and Escutcheon boundary,
-Cabochon risks becoming only an object graph and tool-discovery framework
-hosted inside other desktops, abandoning the Graphics Environment Manager (GEM)
-separation between the application environment and device-independent graphics
-that motivates the project.
+ADR 0001 accepts a hosted runtime before a full desktop shell. ADR 0002 keeps
+the runtime independent of any shell. These decisions defer compositor
+ownership, but they do not require Cabochon to defer its application and
+graphics model. Without a normative Clerestory, Lapidary, Burin, and Escutcheon
+boundary, Cabochon risks becoming only an object graph and tool-discovery
+framework hosted inside other desktops, abandoning the Graphics Environment
+Manager (GEM) separation between the application environment and
+device-independent graphics that motivates the project.
 
 ## Decision drivers
 
@@ -46,7 +46,7 @@ Cabochon's GEM-derived architecture while still deferring Mullion.
 - Treat the GEM substrate as deferred adapters behind the object runtime.
   Rejected because the hosted product would validate only Enfilade, and later
   desktop work would inherit no proven application or graphics contract.
-- Defer the whole platform until Mullion exists. Rejected by ADR 001: shell
+- Defer the whole platform until Mullion exists. Rejected by ADR 0001: shell
   work must not precede product evidence.
 - Make the substrate contracts production boundaries now while deferring only
   compositor ownership. Chosen.

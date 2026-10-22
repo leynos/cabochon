@@ -292,7 +292,7 @@ source of truth. Cached renderings may accelerate display, but the object
 reference remains authoritative.
 
 A live relationship records its source objects, selector, arguments, last
-successful source revisions, and last successful result. ADR 005 establishes
+successful source revisions, and last successful result. ADR 0005 establishes
 current, refreshing, stale, broken, and denied safety states. Refresh triggers,
 retry timing, source-move resolution, and the detailed transition matrix remain
 unresolved. Implementations must expose state explicitly and must never replace
@@ -484,7 +484,7 @@ export.
 | Source revision conflict     | Reject commit or perform a provider-declared deterministic merge.                                            |
 | Capability denied or expired | Do not invoke the provider; explain the required access at the point of use.                                 |
 | Mutation lacks a transaction | Do not invoke the provider; return a transaction-required diagnostic.                                        |
-| Live source unavailable      | Preserve the last successful value and expose the state required by ADR 005.                                 |
+| Live source unavailable      | Preserve the last successful value and expose the state required by ADR 0005.                                |
 | Renderer failure             | Fall back only to a semantically valid alternate presentation; otherwise show a bounded diagnostic.          |
 | Runtime restart              | Recover committed objects and transactions; discard uncommitted prepares without exposing partial mutations. |
 | Malformed document           | Isolate the invalid object, preserve recoverable siblings, and produce location-aware diagnostics.           |
@@ -576,20 +576,20 @@ libraries only emit events and metrics.
 
 ## 15. Decisions and open questions
 
-| Decision                                   | Status                                                                 | Resolution path                                                                                     |
-| ------------------------------------------ | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Product scope                              | Decided: prove the hosted runtime before a full desktop                | [ADR 001](adr-001-runtime-first-product-scope.md).                                                  |
-| Runtime versus full-desktop boundary       | Decided: one runtime contract supports hosted and shell modes          | [ADR 002](adr-002-hosted-runtime-boundary.md).                                                      |
-| Object identity versus presentation        | Decided: identity is stable across presentations and applications      | Record as an ADR with persistence consequences.                                                     |
-| Tool discovery versus capability grant     | Decided: discovery never grants authority                              | [ADR 003](adr-003-runtime-security-boundary.md).                                                    |
-| Initial document types                     | Decided: notes, dataframes, Mermaid diagrams, and bitmap images        | Enforce through roadmap scope.                                                                      |
-| Developer authoring paths                  | Boundary decided; accessible path open                                 | [ADR 004](adr-004-interoperable-authoring-paths.md); use spikes to choose the accessible path.      |
-| Live relationship lifecycle                | Safety contract decided; transition details open                       | [ADR 005](adr-005-explicit-live-relationship-states.md); validate transitions against later slices. |
-| Runtime wire protocol                      | Open                                                                   | Prototype in-process and local inter-process contracts without changing domain identifiers.         |
-| Storage engine and payload format          | Open                                                                   | Exercise migration, unknown-type preservation, and project export before selection.                 |
-| GEM substrate boundary                     | Accepted: substrate contracts are production boundaries in hosted mode | [ADR 007](adr-007-gem-substrate-boundary.md).                                                       |
-| Rendering authority                        | Accepted: Enfilade resolves applicability but never owns rendering     | [ADR 008](adr-008-enfilade-rendering-authority.md).                                                 |
-| Compositor and GPU renderer implementation | Deferred                                                               | Decide only when the hosted proving ground establishes product value.                               |
+| Decision                                   | Status                                                                 | Resolution path                                                                                                    |
+| ------------------------------------------ | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Product scope                              | Decided: prove the hosted runtime before a full desktop                | [ADR 0001](adrs/adr-0001-adopt-a-runtime-first-product-scope.md).                                                  |
+| Runtime versus full-desktop boundary       | Decided: one runtime contract supports hosted and shell modes          | [ADR 0002](adrs/adr-0002-keep-the-hosted-runtime-independent-of-the-shell.md).                                     |
+| Object identity versus presentation        | Decided: identity is stable across presentations and applications      | Record as an ADR with persistence consequences.                                                                    |
+| Tool discovery versus capability grant     | Decided: discovery never grants authority                              | [ADR 0003](adrs/adr-0003-separate-discovery-authority-and-mutation.md).                                            |
+| Initial document types                     | Decided: notes, dataframes, Mermaid diagrams, and bitmap images        | Enforce through roadmap scope.                                                                                     |
+| Developer authoring paths                  | Boundary decided; accessible path open                                 | [ADR 0004](adrs/adr-0004-require-interoperable-authoring-paths.md); use spikes to choose the accessible path.      |
+| Live relationship lifecycle                | Safety contract decided; transition details open                       | [ADR 0005](adrs/adr-0005-expose-live-relationship-state-explicitly.md); validate transitions against later slices. |
+| Runtime wire protocol                      | Open                                                                   | Prototype in-process and local inter-process contracts without changing domain identifiers.                        |
+| Storage engine and payload format          | Open                                                                   | Exercise migration, unknown-type preservation, and project export before selection.                                |
+| GEM substrate boundary                     | Accepted: substrate contracts are production boundaries in hosted mode | [ADR 0007](adrs/adr-0007-make-the-gem-substrate-a-production-boundary.md).                                         |
+| Rendering authority                        | Accepted: Enfilade resolves applicability but never owns rendering     | [ADR 0008](adrs/adr-0008-keep-enfilade-out-of-rendering-authority.md).                                             |
+| Compositor and GPU renderer implementation | Deferred                                                               | Decide only when the hosted proving ground establishes product value.                                              |
 
 *Table 3: Design decisions and resolution paths.*
 

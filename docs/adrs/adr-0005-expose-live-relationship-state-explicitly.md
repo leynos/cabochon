@@ -1,4 +1,4 @@
-# Architectural decision record (ADR) 005: Expose live-relationship state explicitly
+# Architectural decision record (ADR) 0005: Expose live-relationship state explicitly
 
 ## Status
 

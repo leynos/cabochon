@@ -1,4 +1,4 @@
-# Architectural decision record (ADR) 003: Separate discovery, authority, and mutation
+# Architectural decision record (ADR) 0003: Separate discovery, authority, and mutation
 
 ## Status
 

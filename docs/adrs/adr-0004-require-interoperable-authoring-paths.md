@@ -1,4 +1,4 @@
-# Architectural decision record (ADR) 004: Require interoperable authoring paths
+# Architectural decision record (ADR) 0004: Require interoperable authoring paths
 
 ## Status
 

@@ -22,28 +22,32 @@ set.
   user-facing vertical slices.
 - [Documentation style guide](documentation-style-guide.md) defines the
   spelling, structure, Markdown, Architecture Decision Record (ADR), Request
-  for Comments (RFC), and roadmap conventions used by this documentation set.
+  for Comments (RFC), migration-guide, and roadmap conventions used by this
+  documentation set.
 
 ## Decision records
 
-- [ADR 001: Adopt a runtime-first product scope](adr-001-runtime-first-product-scope.md)
+Decision records live under `docs/adrs/` as `adr-nnnn-title-slug.md`, per the
+[ADR naming convention](documentation-style-guide.md#naming-convention).
+
+- [ADR 0001: Adopt a runtime-first product scope](adrs/adr-0001-adopt-a-runtime-first-product-scope.md)
   records the hosted proving ground and the evidence gate for desktop work.
-- [ADR 002: Keep the hosted runtime independent of the shell](adr-002-hosted-runtime-boundary.md)
+- [ADR 0002: Keep the hosted runtime independent of the shell](adrs/adr-0002-keep-the-hosted-runtime-independent-of-the-shell.md)
   records the hexagonal runtime boundary shared by host desktops and a future
   Cabochon shell.
-- [ADR 003: Separate discovery, authority, and mutation](adr-003-runtime-security-boundary.md)
+- [ADR 0003: Separate discovery, authority, and mutation](adrs/adr-0003-separate-discovery-authority-and-mutation.md)
   records capability, transaction, portal, audit, and export invariants.
-- [ADR 004: Require interoperable authoring paths](adr-004-interoperable-authoring-paths.md)
+- [ADR 0004: Require interoperable authoring paths](adrs/adr-0004-require-interoperable-authoring-paths.md)
   records the shared object contract for direct Rust and an accessible path.
-- [ADR 005: Expose live-relationship state explicitly](adr-005-explicit-live-relationship-states.md)
+- [ADR 0005: Expose live-relationship state explicitly](adrs/adr-0005-expose-live-relationship-state-explicitly.md)
   records the persisted dependency and failure-visibility contract.
-- [ADR 006: `main` owns coverage publication](adr-006-main-owns-coverage-publication.md)
+- [ADR 0006: `main` owns coverage publication](adrs/adr-0006-main-owns-coverage-publication.md)
   records the split between the pull-request ratchet and the CodeScene
   publisher on `main`.
-- [ADR 007: Make the GEM substrate a production boundary](adr-007-gem-substrate-boundary.md)
+- [ADR 0007: Make the GEM substrate a production boundary](adrs/adr-0007-make-the-gem-substrate-a-production-boundary.md)
   records Clerestory, Lapidary, Burin, and Escutcheon as production contracts
   in hosted mode while Mullion stays deferred.
-- [ADR 008: Keep Enfilade out of rendering authority](adr-008-enfilade-rendering-authority.md)
+- [ADR 0008: Keep Enfilade out of rendering authority](adrs/adr-0008-keep-enfilade-out-of-rendering-authority.md)
   records that Cabochon display, print, export, thumbnail, clipboard, and
   accessibility output crosses Lapidary and Burin contracts.
 

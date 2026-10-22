@@ -1,4 +1,4 @@
-# Architectural decision record (ADR) 006: `main` owns coverage publication
+# Architectural decision record (ADR) 0006: `main` owns coverage publication
 
 ## Status
 

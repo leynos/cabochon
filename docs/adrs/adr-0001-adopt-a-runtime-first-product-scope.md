@@ -1,4 +1,4 @@
-# Architectural decision record (ADR) 001: Adopt a runtime-first product scope
+# Architectural decision record (ADR) 0001: Adopt a runtime-first product scope
 
 ## Status
 
