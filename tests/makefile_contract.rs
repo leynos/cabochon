@@ -186,7 +186,7 @@ fn whitaker_runs_outside_the_development_configuration() {
         .parent()
         .expect("manifest directory has a parent");
     assert!(
-        command.starts_with(&format!("cd \"{parent}/\" && env ")),
+        command.starts_with(&format!("cd \"{parent}/\" && unset ")),
         "{command}"
     );
     assert!(
@@ -202,9 +202,17 @@ fn whitaker_runs_outside_the_development_configuration() {
         "CARGO_PROFILE_TEST_CODEGEN_BACKEND",
         "CARGO_PROFILE_RELEASE_CODEGEN_BACKEND",
     ] {
-        assert!(command.contains(&format!("-u {key}")), "{command}");
+        assert!(command.contains(key), "{command}");
         assert!(!command.contains(&format!("{key}=llvm")), "{command}");
     }
+    assert!(
+        command.contains(concat!(
+            "unset CARGO_ENCODED_RUSTFLAGS CARGO_PROFILE_DEV_CODEGEN_BACKEND ",
+            "CARGO_PROFILE_TEST_CODEGEN_BACKEND CARGO_PROFILE_RELEASE_CODEGEN_BACKEND ",
+            "&& RUSTFLAGS=\"\" DYLINT_RUSTFLAGS=\"-D warnings\" probe-whitaker "
+        )),
+        "{command}"
+    );
 }
 
 /// Scenario: Make is asked to run all gates with parallel jobs.

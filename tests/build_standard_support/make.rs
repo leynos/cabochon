@@ -212,6 +212,23 @@ fn held_out_command_problems(target: &str, assignment: &Assignment) -> Problems 
         .collect()
 }
 
+/// Reports a missing per-target command alongside the existing command checks.
+///
+/// This helper is limited to the held-out-target contract so its empty-command
+/// branch can be tested without replacing the repository's Makefile.
+fn held_out_target_problems(target: &str, commands: &[Assignment]) -> Problems {
+    let mut problems = Vec::new();
+    if commands.is_empty() {
+        problems.push(format!("`make {target}` runs no Cargo command"));
+    }
+    problems.extend(
+        commands
+            .iter()
+            .flat_map(|command| held_out_command_problems(target, command)),
+    );
+    problems
+}
+
 /// Returns every complaint about the held-out targets, and how many commands it
 /// read: each assigns `RUSTFLAGS`, since only an assignment displaces the
 /// configuration's sources.
@@ -224,15 +241,42 @@ pub fn held_out_problems() -> Result<(Problems, usize), String> {
     let mut read = 0;
     for target in HELD_OUT_TARGETS {
         let commands = make_commands(target, Host::Linux)?;
+        problems.extend(held_out_target_problems(target, &commands));
         read += commands.len();
-        problems.extend(
-            commands
-                .iter()
-                .flat_map(|command| held_out_command_problems(target, command)),
-        );
     }
     Ok((problems, read))
 }
 
 /// Returns the number of held-out targets the repository defines.
 pub const fn held_out_target_count() -> usize { HELD_OUT_TARGETS.len() }
+
+#[cfg(test)]
+mod tests {
+    //! Regression checks for per-target held-out command reporting.
+
+    use super::{Assignment, held_out_target_problems};
+
+    /// Scenario: one empty target is reported even when another has a command.
+    #[test]
+    fn an_empty_held_out_target_is_not_hidden_by_another_target() {
+        let targets = [
+            ("coverage", Vec::new()),
+            ("release", vec![Assignment::Unassigned]),
+        ];
+        let mut read = 0;
+        let mut problems = Vec::new();
+        for (target, commands) in targets {
+            read += commands.len();
+            problems.extend(held_out_target_problems(target, &commands));
+        }
+
+        assert_eq!(read, 1, "the aggregate read count changed");
+        assert_eq!(
+            problems,
+            [
+                "`make coverage` runs no Cargo command",
+                "`make release` runs a command that takes the configuration's flags",
+            ]
+        );
+    }
+}

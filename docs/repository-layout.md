@@ -27,6 +27,7 @@ compact and omits build output such as `target/`.
 │   └── ...
 ├── scripts/
 │   ├── check-build-tools.sh
+│   ├── clang-pinned-mold.sh
 │   ├── install-build-tools.sh
 │   └── resolve-build-target.sh
 ├── src/
@@ -56,8 +57,14 @@ compact and omits build output such as `target/`.
 - `.github/workflows/ci.yml`: Runs the generated project's continuous
   integration checks.
 - `.github/workflows/coverage-main.yml`: Owns persistent main-branch coverage
-  publication and declares the `codescene` environment. Its main-only
-  deployment policy is verified; token placement awaits owner evidence.
+  publication and declares the `codescene` environment. It exists. GitHub
+  read-back confirms its deployment allow-list permits only `main` and
+  administrator bypass is enabled. Secret placement there and removal from
+  repository-level secrets remain unverified because GitHub returned HTTP 403
+  for secret-name listings. Publisher run
+  [38128492817](https://github.com/leynos/cabochon/actions/runs/38128492817)
+  succeeded for coverage, ratchet-baseline saving, and CodeScene upload; this
+  run does not establish the token's storage location.
 - `.github/workflows/release.yml`: Builds and publishes binary release
   artefacts for the application flavour.
 - `docs/`: Holds long-lived reference documentation, guides, style rules, and
