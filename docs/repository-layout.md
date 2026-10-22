@@ -84,8 +84,8 @@ compact and omits build output such as `target/`.
 - `docs/documentation-style-guide.md`: Defines the spelling, structure,
   Markdown, decision-record, and roadmap conventions used across the
   documentation set.
-- `docs/adrs/`: Holds accepted Architecture Decision Records (ADRs) named
-  `adr-nnnn-title-slug.md`, with the number zero-padded to four digits.
+- `docs/adrs/`: Holds Architecture Decision Records (ADRs) in any status,
+  named `adr-nnnn-title-slug.md`, with the number zero-padded to four digits.
 
 - `src/lib.rs`: Contains library support for application logic and doctested
   examples.

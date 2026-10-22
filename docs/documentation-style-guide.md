@@ -236,12 +236,14 @@ _Table 1: Obligations when moving from v0.8.0 to v0.9.0._
 
 ### Before
 
+<!-- tested-example: <before-identifier> -->
 ```rust,no_run
 <old code>
 ```
 
 ### After
 
+<!-- tested-example: <after-identifier> -->
 ```rust,no_run
 <new code>
 ```
@@ -712,7 +714,7 @@ contents of the manual.
 ///
 /// # Examples
 ///
-/// ```rust,no_run
+/// ```rust
 /// assert_eq!(add(2, 3), 5);
 /// ```
 #[inline]
