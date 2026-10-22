@@ -8,8 +8,9 @@ be kept up to date as work proceeds.
 Status: DRAFT
 
 Implementation must not begin until a human reviewer explicitly approves this
-plan. Silence is not approval. Decisions marked "Needs acceptance" in
-`Decision log` are part of that approval.
+plan. Silence is not approval. The reviewer accepted decisions D1, D6, D7, D8,
+D10, D11, D12, D13, and D14 on 2026-10-22; approval of the plan as a whole is
+still required before EP-M0 starts.
 
 ## Purpose / big picture
 
@@ -278,8 +279,9 @@ stop, record the situation in `Decision log`, and wait for direction.
   and viability. Verdicts: three "proceed with conditions" and one "revise".
 - [x] (2026-10-18) Revised the plan to address every panel finding (see
   `Revision notes`).
-- [ ] Reviewer approval of the plan, including decisions marked "Needs
-  acceptance".
+- [x] (2026-10-22) The reviewer accepted decisions D1, D6, D7, D8, D10, D11,
+  D12, D13, and D14.
+- [ ] Reviewer approval of the plan as a whole.
 - [ ] EP-M0: workspace, tooling, architecture guards, and feasibility spikes.
 - [ ] EP-M1: Lapidary scene model and scene documents.
 - [ ] EP-M2a: Lapidary resolution, device mapping, hit testing, damage, and
@@ -340,9 +342,10 @@ stop, record the situation in `Decision log`, and wait for direction.
 
 ## Decision log
 
-Each decision below is proposed by the planning agent. Decisions marked "Needs
-acceptance" change or interpret upstream scope and need explicit reviewer
-acceptance with the plan.
+Each decision below was proposed by the planning agent. Decisions that change
+or interpret upstream scope needed explicit reviewer acceptance; the reviewer
+accepted all of them (D1, D6, D7, D8, D10, D11, D12, D13, and D14) on
+2026-10-22.
 
 - Decision D1: create the substrate crates now as Cargo workspace members
   under `crates/`, keeping the root package `cabochon`. EP-M0 records each
@@ -354,7 +357,7 @@ acceptance with the plan.
   and constraint C2 can only be enforced across crates. Roadmap 1.1.3 keeps the
   Enfilade, runtime, storage, and portal crates. Alternative rejected: modules
   inside the root crate, which cannot stop `lapidary` importing `clerestory`.
-  Needs acceptance.
+  Accepted by the reviewer on 2026-10-22.
 - Decision D2: Lapidary measures length in integer EMU (`i64`, 914,400 per
   inch, 12,700 per point, 36,000 per millimetre, 9,525 per 96-dpi reference
   pixel), bounded to ±2^47, and transforms with a 16.16 fixed-point linear part
@@ -407,16 +410,19 @@ acceptance with the plan.
   `PrintTicket` describing media, copies, and page range. Submitting jobs to
   the Common UNIX Printing System (CUPS) or the print portal remains with
   roadmap 5.1.2; PDF/X is deferred. Rationale: `krilla` does not support PDF/X,
-  and ADR 003 routes host printing through portals. Needs acceptance.
+  and ADR 003 routes host printing through portals. Accepted by the reviewer on
+  2026-10-22.
 - Decision D7: Burin ships no SVG workstation in this step. Rationale: roadmap
   1.0.4 omits SVG and the design says "SVG where appropriate". EP-M8 records
-  the deferral in `docs/cabochon-design.md` §15. Needs acceptance.
+  the deferral in `docs/cabochon-design.md` §15. Accepted by the reviewer on
+  2026-10-22.
 - Decision D8: the minimum standard dialogs are alert, confirmation, and
   About, all resource-defined. File open and save dialogs are not part of this
   contract; they arrive with the portal work in roadmap 5.1.2, and the
   hello-window export command takes its output directory from the command line.
   Rationale: `docs/cabochon-design.md` §8.10 assigns file selection to the
-  portal adapter, and 1.0 must not depend on it. Needs acceptance.
+  portal adapter, and 1.0 must not depend on it. Accepted by the reviewer on
+  2026-10-22.
 - Decision D9: Lapidary owns resolution: flattening a scene, in scene space
   (EMU), into a `ResolvedScene` whose items carry composed transforms,
   effective clips, conservative bounds, and a group hierarchy. Lapidary also
@@ -433,8 +439,8 @@ acceptance with the plan.
   Rationale: compositors do not report trustworthy physical dots per inch, and
   1/120 steps represent every scale GNOME and KDE Plasma offer. Headless
   `weston` reports integer scales only, so fractional scales are tested through
-  the headless shell and remain a hosted residual for roadmap 5.1.3. Needs
-  acceptance.
+  the headless shell and remain a hosted residual for roadmap 5.1.3. Accepted
+  by the reviewer on 2026-10-22.
 - Decision D11: prove the Lapidary kernels from a single source if possible.
   The EP-M0 spike tests the hypothesis that a kernel module written inside
   `verus!`, depending on the crates.io `vstd` and `verus_builtin_macros`
@@ -443,26 +449,29 @@ acceptance with the plan.
   `make verus`. If the spike fails, fall back to a spec mirror under `verus/`
   with a parser-based drift guard (see `OB-PROOF-MIRROR`). Either way, kernels
   are total functions with no preconditions: checked arithmetic and early
-  returns happen inside the proved region. Needs acceptance of the production
-  dependency on `vstd` if the spike succeeds.
+  returns happen inside the proved region. Accepted by the reviewer on
+  2026-10-22, including the production dependency on `vstd` if the spike
+  succeeds.
 - Decision D12: substrate crates never depend on Enfilade. Later integration,
   such as Clerestory presenting Enfilade-discovered tools
   (`docs/cabochon-design.md` §8.1) or Lapidary scenes embedding presentations,
   lives in bridge crates that depend on both. Figure 1 of the design draws
   `Clerestory --> Enfilade` and `Lapidary --> Enfilade`; EP-M8 proposes
-  redrawing those edges through a bridge. Needs acceptance.
+  redrawing those edges through a bridge. Accepted by the reviewer on
+  2026-10-22.
 - Decision D13: drag-and-drop and host clipboard integration (Clerestory
   §8.1) are deferred. Burin's clipboard geometry workstation is delivered;
   copying to the host clipboard needs a host clipboard adapter that `winit`
-  does not provide. EP-M8 proposes a roadmap task for it under step 5.1. Needs
-  acceptance.
+  does not provide. EP-M8 proposes a roadmap task for it under step 5.1.
+  Accepted by the reviewer on 2026-10-22.
 - Decision D14: Clerestory includes a single-line text field with input
   method editor (IME) support in this step: `HostEvent` carries IME enable,
   preedit, commit, and disable events; `HostShell` exposes the IME cursor area;
   `Role::TextInput` exists. Rationale: the white paper calls input methods
   non-optional, and adding them after 2.1.3 would change `HostEvent` and the
   focus model. The hello-window inspector uses the field to edit the greeting,
-  which also exercises invalidation end to end. Needs acceptance.
+  which also exercises invalidation end to end. Accepted by the reviewer on
+  2026-10-22.
 - Decision D15: font policy. Burin's `ParleyTextLayout` takes an explicit font
   collection. Furniture always uses the bundled fonts in `cabochon-fonts`.
   Content in `run` uses bundled fonts with system fallback; `export` uses
@@ -2118,3 +2127,6 @@ installed; run through `make kani`), and `rust-prover-tools` (pinned in
   alternative in ADR 012, and deferred the canonical emitter (decision D19).
   The remaining work is unchanged in purpose; it is now sequenced as fifteen
   milestones and awaits approval.
+- 2026-10-22: recorded the reviewer's acceptance of decisions D1, D6, D7, D8,
+  D10, D11, D12, D13, and D14. No decision changed, so the remaining work is
+  unchanged; EP-M0 still waits for approval of the plan as a whole.
