@@ -20,8 +20,12 @@ compact and omits build output such as `target/`.
 │       ├── coverage-main.yml
 │       └── release.yml
 ├── docs/
+│   ├── adrs/
+│   │   ├── adr-0001-adopt-a-runtime-first-product-scope.md
+│   │   └── ...
 │   ├── contents.md
 │   ├── developers-guide.md
+│   ├── documentation-style-guide.md
 │   ├── repository-layout.md
 │   ├── users-guide.md
 │   └── ...
@@ -77,6 +81,11 @@ compact and omits build output such as `target/`.
   tooling used to work on the generated project.
 - `docs/repository-layout.md`: Documents the repository tree and path
   responsibilities.
+- `docs/documentation-style-guide.md`: Defines the spelling, structure,
+  Markdown, decision-record, and roadmap conventions used across the
+  documentation set.
+- `docs/adrs/`: Holds Architecture Decision Records (ADRs) in any status,
+  named `adr-nnnn-title-slug.md`, with the number zero-padded to four digits.
 
 - `src/lib.rs`: Contains library support for application logic and doctested
   examples.

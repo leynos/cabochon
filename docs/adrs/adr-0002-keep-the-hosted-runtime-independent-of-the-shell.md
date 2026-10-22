@@ -1,4 +1,4 @@
-# Architectural decision record (ADR) 002: Keep the hosted runtime independent of the shell
+# Architectural decision record (ADR) 0002: Keep the hosted runtime independent of the shell
 
 ## Status
 
