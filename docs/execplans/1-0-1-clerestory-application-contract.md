@@ -66,17 +66,31 @@ from the reviewed step-level plan, `T` decision made for the task-level plans.
   Clerestory, draw only through Lapidary scenes, render only through Burin, and
   take UI structure from Escutcheon (`docs/cabochon-design.md` §3). No crate
   here names an Enfilade type (decision D12).
-- C2, dependency direction (normal edges). `cabochon-clerestory` depends only
-  on `cabochon-lapidary` and `cabochon-escutcheon`. Only
-  `cabochon-clerestory-hosted` and `cabochon-hello-window` may combine
-  Clerestory with Burin. Only the hosted crate may depend on `winit`,
-  `softbuffer`, or `accesskit_winit`. `cabochon-clerestory` must not depend on
-  `winit`, `softbuffer`, `accesskit*`, `kurbo`, `parley`, `krilla`, `vello*`,
-  `kdl`, `fluent*`, `unic-langid`, or `miette`, and `cabochon-hello-window` may
-  reach `winit` only through the hosted crate. This plan adds these rows to
-  `tests/substrate_dependency_contract.rs`.
+- C2, dependency direction, enforced by allow-lists counting normal and build
+  edges (decision T13). `OB-ARCH-DEPS` rows: `cabochon-clerestory` may depend
+  only on `cabochon-lapidary`, `cabochon-escutcheon`, `thiserror`, `tracing`,
+  and `metrics`; `cabochon-clerestory-hosted` on `cabochon-clerestory`,
+  `cabochon-burin`, `cabochon-lapidary`, `winit`, `softbuffer`, `accesskit`,
+  `accesskit_winit`, `thiserror`, and `tracing`; and `cabochon-hello-window` on
+  `cabochon-clerestory`, `cabochon-clerestory-hosted`, `cabochon-escutcheon`,
+  `cabochon-burin`, `cabochon-lapidary`, `cabochon-fonts`, `clap`, `serde`,
+  `serde_json`, `tracing`, `tracing-subscriber`, `mockable`, `cap-std`, and
+  `camino`. Only the hosted and application crates combine Clerestory with
+  Burin, and only the hosted crate reaches `winit`, `softbuffer`, or AccessKit.
+- Module containment (`OB-ARCH-IMPORTS` rows). In Clerestory, the `session`,
+  `layout`, `furniture`, `text_input`, and `accessibility` modules may not
+  import `shell::headless`, so the reference adapter stays outside the
+  application model. In the hosted crate, `winit` and `softbuffer` appear only
+  under `event_loop` and `present`, AccessKit only under `accessibility`, and
+  float or cast lint expectations only under `float_boundary`. In the
+  application, `clap` appears only under `cli`, `tracing-subscriber` only under
+  `telemetry`, and `serde` and `serde_json` only under `export::wire`, whose
+  private data-transfer types write `export.json` (decision T15).
 - C3, no third-party types in Clerestory's public API: no `winit`, Wayland,
-  X11, AccessKit, GTK, or Qt types (ADR 0002).
+  X11, AccessKit, GTK, or Qt types (ADR 0002). `OB-ARCH-PUBAPI` row:
+  `cabochon-clerestory`'s public API may name only `std`, `core`, `alloc`,
+  `cabochon_lapidary`, and `cabochon_escutcheon`. The hosted adapter and the
+  application are composition crates and are exempt.
 - C4, integer geometry. Floating-point arithmetic appears only in
   `cabochon_clerestory_hosted::float_boundary` (scale factors and pointer
   positions from `winit`), with reasoned lint expectations.
@@ -201,6 +215,14 @@ Inherited from the reviewed step-level plan (accepted ones say so):
 
 Task-level decisions:
 
+- Decisions T13, T14, and T15 (reviewer direction, 2026-10-23, recorded in
+  the 1.0.3 plan): the architecture is enforced by tested guards with
+  allow-lists at crate level (`OB-ARCH-DEPS`), lint inheritance
+  (`OB-ARCH-LINTS`), module level (`OB-ARCH-IMPORTS`, a `syn` import lint), and
+  public-API level (`OB-ARCH-PUBAPI`, using the `public-api` crate), and
+  `serde` is confined to private data-transfer types. The 1.0.3 plan builds the
+  guards and their rule tables in `tests/architecture/rules.rs`; this plan adds
+  its crates' rows, each with a seeded violation that must fail.
 - Decision T1: this plan runs last and marks roadmap tasks 1.0.1 and 1.0.2
   done, because the hello-window application proves both success criteria.
   Date: 2026-10-23.
@@ -221,13 +243,13 @@ Task-level decisions:
   this plan. 0013 is reserved for the 1.0.3 plan's Cranelift decision, if its
   EP-M0b expunges Cranelift (decision T10 there). Any other pull request
   needing an ADR takes 0014 or later. Date: 2026-10-23.
-- Decision T10: the hello-window binary embeds its resource bundle with
+- Decision T11: the hello-window binary embeds its resource bundle with
   `include_str!` (and `include_bytes!` for icons) and loads it through
   Escutcheon's in-memory `ResourceSource` by default; `--resources DIR` loads a
   directory through the `cap_std` adapter instead. Rationale: `run` works from
   any working directory, and authors can still iterate on resources without
   recompiling. Date: 2026-10-23.
-- Decision T11: behavioural scenarios split by crate. EP-M2 adds
+- Decision T12: behavioural scenarios split by crate. EP-M2 adds
   `crates/cabochon-clerestory/tests/features/furniture.feature`, driving a test
   application over the hello-window fixture bundle; EP-M3 adds
   `crates/cabochon-hello-window/tests/features/hello_window.feature`, driving
@@ -365,7 +387,7 @@ a test recorder.
 
 `OB-APP-RESOURCES`: the hello-window application constructs its window, menus,
 dialogs, inspector, strings, shortcuts, and icon only from the compiled bundle,
-embedded by default (decision T10); changing a string in
+embedded by default (decision T11); changing a string in
 `resources/locales/en-GB/hello-window.ftl` changes the presented title without
 recompiling Rust. End-to-end test with a temporary copy of the bundle passed
 through `--resources`.
@@ -394,15 +416,15 @@ agent) and a commit. Each dependency addition is its own commit with
 
 ### EP-M1: session, state machines, routing, and the headless shell
 
-Create `crates/cabochon-clerestory` with its dependency-contract row and
-ownership policy. Implement the `Application` trait, `ContentFrame`,
-`ViewContext`, `CommandContext` (with `invalidate`), the `Session` (windows,
-menus, dialogs, focus, modality, routing), `HostEvent`, the `HostShell` and
-`SessionWaker` ports, and `HeadlessShell` in
-`cabochon_clerestory::shell::headless` (no infrastructure dependencies; the
-reference adapter). Write `OB-CLR-FOCUS`, `OB-CLR-MODAL`, `OB-CLR-MENU`,
-`OB-CLR-ROUTE`, and `OB-CLR-OBS`. Draft ADR 0012 as
-`docs/adrs/adr-0012-<title-slug>.md`.
+Create `crates/cabochon-clerestory`, add its rows to the architecture guards
+(run red first with a seeded violation for each), and record its ownership
+policy. Implement the `Application` trait, `ContentFrame`, `ViewContext`,
+`CommandContext` (with `invalidate`), the `Session` (windows, menus, dialogs,
+focus, modality, routing), `HostEvent`, the `HostShell` and `SessionWaker`
+ports, and `HeadlessShell` in `cabochon_clerestory::shell::headless` (no
+infrastructure dependencies; the reference adapter). Write `OB-CLR-FOCUS`,
+`OB-CLR-MODAL`, `OB-CLR-MENU`, `OB-CLR-ROUTE`, and `OB-CLR-OBS`. Draft ADR 0012
+as `docs/adrs/adr-0012-<title-slug>.md`.
 
 ### EP-M2: layout, furniture, text input, inspector, and accessibility tree
 
@@ -413,7 +435,7 @@ menus, dialogs, and inspector through Lapidary, the single-line text field with
 IME support, the inspector bound to an `InspectorModel`, and the
 `AccessibilityTree`, which grafts the content scene's accessibility nodes under
 the canvas. Write `OB-CLR-TEXT`, `OB-CLR-LAYOUT`, `OB-CLR-A11Y`, and
-`furniture.feature` (decision T11), whose test application reads the
+`furniture.feature` (decision T12), whose test application reads the
 hello-window fixture bundle from
 `crates/cabochon-escutcheon/tests/fixtures/hello-window/`. Clerestory's unit
 tests use the testkit's `MonospaceTextLayout`; the feature uses Burin's
@@ -421,13 +443,14 @@ tests use the testkit's `MonospaceTextLayout`; the feature uses Burin's
 
 ### EP-M3: the hello-window application under the headless shell
 
-Create `crates/cabochon-hello-window`. Move the resource bundle (decision T5)
-and embed it (decision T10). Implement the `run` and `export` subcommands,
-`--locale`, `--shell headless`, `--script`, `--exit-after-first-frame`,
-`--export-dir` (decision T7), `--resources`, and `--fonts`; a `tracing`
-subscriber writing to standard error; and an environment reader through
-`mockable`. Write `OB-APP-RESOURCES`, `OB-APP-EXPORT`, `OB-APP-E2E`, and
-`hello_window.feature` (decision T11). Correct the `mockable` version in
+Create `crates/cabochon-hello-window` and add its rows to the architecture
+guards. Move the resource bundle (decision T5) and embed it (decision T11).
+Implement the `run` and `export` subcommands, `--locale`, `--shell headless`,
+`--script`, `--exit-after-first-frame`, `--export-dir` (decision T7),
+`--resources`, and `--fonts`; a `tracing` subscriber writing to standard error;
+and an environment reader through `mockable`. Write `OB-APP-RESOURCES`,
+`OB-APP-EXPORT`, `OB-APP-E2E`, and `hello_window.feature` (decision T12).
+Correct the `mockable` version in
 `docs/reliable-testing-in-rust-via-dependency-injection.md`.
 
 ### EP-M4: the hosted shell adapter and its CI job
@@ -435,18 +458,18 @@ subscriber writing to standard error; and an environment reader through
 First, provisioning: confirm `weston`, `dbus-run-session`, and `at-spi2-core`
 are available in CI (Ubuntu packages) and locally (EPEL or a rootless Podman
 image); otherwise the hosted tolerance triggers. Create
-`crates/cabochon-clerestory-hosted`: the `winit` event loop (forcing Wayland in
-tests), `softbuffer` presentation of `InteractiveSurface` frames with damage,
-scale handling in 1/120 units, key, pointer, and IME mapping, close requests,
-client-side decorations where required, and `accesskit_winit` publication, with
-all mapping in pure, unit-tested functions. Hosted tests carry
+`crates/cabochon-clerestory-hosted` and add its rows to the architecture
+guards: the `winit` event loop (forcing Wayland in tests), `softbuffer`
+presentation of `InteractiveSurface` frames with damage, scale handling in
+1/120 units, key, pointer, and IME mapping, close requests, client-side
+decorations where required, and `accesskit_winit` publication, with all mapping
+in pure, unit-tested functions. Hosted tests carry
 `#[ignore = "needs Wayland; run make test-hosted"]`. Add `make test-hosted`: it
 depends on `check-build-tools` and composes `RUSTFLAGS` as the `test` recipe
 does (it is a development target); it creates a private `XDG_RUNTIME_DIR`,
 starts `weston --backend=headless`, waits for its socket, runs the ignored
 tests under `dbus-run-session` with
-`cargo nextest run --run-ignored only -p cabochon-clerestory-hosted -p
-cabochon-hello-window`,
+`cargo nextest run --run-ignored only -p cabochon-clerestory-hosted -p cabochon-hello-window`,
 and stops only the `weston` it started. Add `test-hosted` to
 `DEVELOPMENT_TARGETS` in `tests/build_standard_support/make.rs` and to
 `.PHONY`. Add a CI job that installs `weston` and `at-spi2-core`, sets up Rust
@@ -575,6 +598,11 @@ cd /tmp && cargo +1.85.0 check --lib --all-features --locked \
   locally and in CI.
 - Lint and formatting: `make check-fmt` and `make lint` pass with no
   `#[expect]` outside the hosted float boundary.
+- Architecture: the Clerestory, hosted, and application rows of
+  `OB-ARCH-DEPS`, `OB-ARCH-IMPORTS`, and `OB-ARCH-PUBAPI` pass, and each row's
+  seeded violation (Clerestory depending on `winit`, `session` importing
+  `shell::headless`, and a public Clerestory function returning an AccessKit
+  type) fails.
 - Security: no `unsafe`, no direct process-environment access, `make audit`
   passes.
 - Documentation: `make markdownlint`, `make nixie`, and `make spelling` pass.
@@ -662,9 +690,10 @@ starts):
   `accesskit_winit` 0.34, `thiserror` 2, `tracing` 0.1.
 - `cabochon-hello-window`: `cabochon-clerestory`, `cabochon-clerestory-hosted`,
   `cabochon-escutcheon`, `cabochon-burin`, `cabochon-lapidary`,
-  `cabochon-fonts`, `clap` 4, `serde_json` 1 (for `export.json`),
-  `tracing-subscriber` 0.3, `mockable` 3, `cap-std` 4, `camino` 1. It installs a
-  `tracing` subscriber and no metrics recorder in this step.
+    `cabochon-fonts`, `clap` 4, `serde` 1 and `serde_json` 1 (for
+  `export.json`, through `export::wire`), `tracing-subscriber` 0.3, `mockable`
+  3, `cap-std` 4, `camino` 1. It installs a `tracing` subscriber and no metrics
+  recorder in this step.
 - Development: `proptest-state-machine` 0.9, `accesskit_consumer` 0.39,
   `metrics-util` (the release matching `metrics` 0.24, for its debugging
   recorder), and `tracing-test` 0.2, plus the testing crates from the 1.0.3
@@ -695,8 +724,8 @@ starts):
   (decision T5), and the export directory for the in-app command (decision T7).
 - 2026-10-23: applied the cross-plan consistency review: restored the
   Clerestory third-party ban in the dependency contract, split the behavioural
-  scenarios so none runs before the application crate exists (T11), embedded
-  the resource bundle as the default (T10), widened the fixture move to every
+  scenarios so none runs before the application crate exists (T12), embedded
+  the resource bundle as the default (T11), widened the fixture move to every
   reference (T5), replaced `--system-fonts` with `--fonts` so tests can force
   bundled fonts, scoped `make test-hosted` to the hosted packages under the
   development-target rules, added `Session::new`, test-recorder dependencies,
@@ -704,3 +733,10 @@ starts):
   pull request per plan (T8) and the ADR number reservation (T9).
 - 2026-10-23: reserved ADR 0013 for the 1.0.3 plan's conditional Cranelift
   decision (T9); other new ADRs take 0014 or later.
+- 2026-10-23: added the Clerestory, hosted, and application rows to the
+  architecture guards (decisions T13 to T15 from the 1.0.3 plan), including the
+  rule that Clerestory's application model may not import its headless shell,
+  one module home per third-party crate in the hosted and application crates, a
+  public-API allow-list for Clerestory, and private data-transfer types for
+  `export.json`. Renumbered this plan's decisions T10 and T11 to T11 and T12,
+  because T10 already names the 1.0.3 plan's Kani decision.

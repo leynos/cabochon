@@ -72,11 +72,15 @@ plan, and `T` a decision made for this task-level plan.
   host (ADR 0007, ADR 0008). Later Enfilade integration lives in bridge crates
   (decision D12).
 - C2, dependency direction. `cabochon-lapidary` depends on no other Cabochon
-  crate, counting normal (non-development) dependency edges. `OB-ARCH-DEPS`
-  enforces this and is extended by each later plan.
-- C3, no third-party types in contracts. Lapidary's public signatures never
-  mention `kurbo`, `parley`, `krilla`, `vello_cpu`, `winit`, AccessKit, `kdl`,
-  Fluent, or `miette` types, and Lapidary does not depend on them.
+  crate, counting normal and build dependency edges (development edges are
+  exempt). Every crate's permitted dependencies are an allow-list, so a new
+  dependency fails until it is deliberately admitted. `OB-ARCH-DEPS` enforces
+  this at crate level and `OB-ARCH-IMPORTS` at module level; each later plan
+  adds its crates' rows (decision T13).
+- C3, no third-party types in contracts. Lapidary's public API names no
+  external crate's items, `serde` included: serialization uses private
+  data-transfer types inside the scene-document module (decision T15).
+  `OB-ARCH-PUBAPI` enforces this with the `public-api` crate (decision T14).
 - C4, integer geometry. Lapidary uses integer English Metric Units (EMU) and
   fixed-point transforms. Lapidary contains no floating-point arithmetic at
   all; float conversion happens only in later plans' named float-boundary
@@ -184,6 +188,19 @@ plan, and `T` a decision made for this task-level plan.
   Likelihood: low for step 1.0, higher for large documents in roadmap 2.1.
   Mitigation: Burin culls items wholly outside the surface before conversion
   (the 1.0.4 plan); revisit the unit if 2.1 needs larger surfaces.
+- Risk: the `syn` import lint cannot see paths inside macro token streams or
+  derive arguments, and misses renamed crates unless it reads Cargo's rename
+  table. Severity: low. Likelihood: medium. Mitigation: the crate-level
+  allow-list is the airtight backstop (a crate that is not a dependency cannot
+  be named at all); the lint resolves renames from `cargo metadata`; its
+  documentation lists the blind spots.
+- Risk: `public-api` 0.52 reads rustdoc JSON through `rustdoc-types` 0.59,
+  and the JSON format changes between nightlies, so the pinned nightly may emit
+  a format the release rejects. Severity: medium. Likelihood: medium.
+  Mitigation: S-PUBAPI checks this in EP-M0a; if the formats disagree, the test
+  builds rustdoc JSON with the nightly that `public-api` documents as
+  supported, pinned in `tools/public-api/TOOLCHAIN` and installed by
+  `make install-build-tools`, and that choice is recorded here.
 - Risk: the workspace conversion collides with roadmap task 1.1.3, which owns
   "the workspace crate structure". Severity: medium. Likelihood: medium.
   Mitigation: create only the crates this plan needs and document their
@@ -332,6 +349,40 @@ Decisions made for this task-level plan:
   which asks `kani exec` to support a configured development backend, is
   resolved. The Cabochon revisit issue links #206 and falls due when #206 is
   resolved or six months after removal, whichever comes first. Date: 2026-10-23.
+- Decision T13 (reviewer direction, 2026-10-23): enforce the architecture
+  mechanically, at three levels, with checkers that are themselves tested.
+  Crate level: `OB-ARCH-DEPS` uses allow-lists of permitted dependencies per
+  crate rather than deny-lists, because deny-lists go stale (the lesson of
+  `leynos/wildside`'s architecture lint, whose lists missed nine dependencies).
+  Lint inheritance: `OB-ARCH-LINTS` checks every member inherits the workspace
+  lints and proves the key lints fire. Module level: `OB-ARCH-IMPORTS` is a
+  `syn`-based import lint, modelled on `leynos/wildside`'s
+  `tools/architecture-lint` but written as a contract test and driven by
+  per-module allow-lists, which confines each third-party crate to the module
+  that adapts it and float-lint expectations to the named float-boundary
+  modules. Guard quality, following `leynos/statelet` pull request #137: each
+  checker separates a pure rule evaluator, tested on fixtures with seeded
+  violations, from the adapter that reads Cargo metadata or files; a failure to
+  read inputs is reported separately from a rule violation; and every violation
+  message carries a repair hint. This plan builds the checkers with the rows
+  for the root package, Lapidary, and the testkit; the 1.0.4, 1.0.2, and 1.0.1
+  plans add their crates' rows. Date: 2026-10-23.
+- Decision T14 (reviewer direction, 2026-10-23): enforce constraint C3 at the
+  type level with the `public-api` crate. `OB-ARCH-PUBAPI` builds each contract
+  crate's rustdoc JSON with `rustdoc-json`, lists its public items with
+  `public-api`, and rejects any item that names an external crate outside the
+  crate's public allow-list. The rustdoc JSON format is unstable, so S-PUBAPI
+  checks that the pinned `public-api` release accepts the pinned nightly's
+  output. Date: 2026-10-23.
+- Decision T15 (reviewer direction, 2026-10-23): Lapidary's domain types carry
+  no `serde` derives. The scene-document module owns private data-transfer types
+  (`document::wire`) that derive `Serialize` and `Deserialize`, and converts
+  between them and the domain types; `serde`, `serde_json`, and `base64` are
+  confined to that module by `OB-ARCH-IMPORTS`. Rationale: the domain stays
+  independent of its serialization format (the coupling `leynos/corbusier`
+  issue #77 flagged), and the scene document can evolve its encoding without
+  touching the model. Cost: a second set of types and their conversions,
+  covered by `OB-LAP-ROUNDTRIP`. Date: 2026-10-23.
 - Decision T8: one pull request per task plan, replacing the step plan's
   decision D18 (one stacked pull request per milestone), following the
   reviewer's direction on 2026-10-23 to review and merge these plans first and
@@ -420,7 +471,7 @@ RM-1.0.3 -> TDD-LAP, TDD-VDI-RT -> EP-M1 -> tests/round_trip.rs, OB-LAP-ROUNDTRI
 RM-1.0.3 -> TDD-LAP (hit regions) -> EP-M2, EP-M3 -> OB-LAP-WINDING, OB-LAP-HIT, OB-LAP-RESOLVE
 RM-1.0.3 -> TDD-VDI-INVAL (semantic half) -> EP-M2, EP-M3 -> OB-LAP-DAMAGE, OB-LAP-SNAP
 RM-1.0.3 -> TDD-PRES -> EP-M2 -> OB-LAP-A11Y, OB-LAP-BACKEND (consumed by the 1.0.4 plan)
-TDD-INV-5, ADR-0007, ADR-0008 -> EP-M0a -> tests/substrate_dependency_contract.rs, OB-ARCH-DEPS
+TDD-INV-5, ADR-0007, ADR-0008 -> EP-M0a -> OB-ARCH-DEPS, OB-ARCH-LINTS, OB-ARCH-IMPORTS, OB-ARCH-PUBAPI
 ```
 
 The pixel half of `TDD-VDI-INVAL`, cross-target parity, and the roadmap tick
@@ -594,20 +645,78 @@ transforms (zero determinant), oversized image bytes, and opaque origins longer
 than 64 bytes. Parameterized unhappy cases plus a property test that generated
 valid scenes pass.
 
-`OB-ARCH-DEPS`, dependency direction. `tests/substrate_dependency_contract.rs`
-runs `cargo metadata --offline --locked`, considers only normal edges, and
-asserts that `cabochon-lapidary` depends on no Cabochon crate and on none of
-`winit`, `softbuffer`, `accesskit*`, `kurbo`, `parley`, `krilla`, `vello*`,
-`kdl`, `fluent*`, `unic-langid`, or `miette`, and that no workspace crate
-depends on a crate whose name contains `enfilade`, `runtime`, or `portal`. Its
-rules are table-driven so each later plan adds its crate's row. The testkit's
-row allows it to depend on any Cabochon crate and on test-only libraries such as
-`hayro`, and the contract asserts that no production crate depends on the
-testkit through a normal edge. Non-vacuity: it also asserts each expected edge
-exists.
+Architecture guards (decision T13). Every checker below follows the same shape:
+a pure evaluator over plain data (rules plus observations) returns sorted
+violations, each with a repair hint; a thin adapter gathers the observations
+(Cargo metadata, source files, rustdoc JSON) and reports a failure to gather
+them as an input error, never as a rule violation. The evaluators are
+unit-tested with rstest fixtures, including one seeded violation per rule kind
+that must be rejected for the intended reason, and a clean fixture that must
+pass. The rule tables live in one module, `tests/architecture/rules.rs`, so
+each later plan adds rows rather than code, and `docs/developers-guide.md`
+documents them.
+
+`OB-ARCH-DEPS`, crate-level allow-lists.
+`tests/substrate_dependency_contract.rs` runs
+`cargo metadata --offline --locked` and checks every workspace crate's normal
+and build dependency edges, matched by real package name so a renamed,
+optional, or target-specific dependency cannot hide, against that crate's
+allow-list. Rows in this plan: the root package `cabochon` may depend on
+nothing; `cabochon-lapidary` may depend on `serde`, `serde_json`, `base64`, and
+`thiserror` (plus `vstd` and `verus_builtin_macros` on decision D11's
+single-source route); `cabochon-substrate-testkit` may depend on any Cabochon
+crate and on test-only libraries, and no production crate may depend on it
+through a normal or build edge. Every crate is also checked against a
+forward-looking deny-list: no dependency whose name contains `enfilade`,
+`runtime`, or `portal`. Non-vacuity: the contract asserts each expected edge
+exists, so an empty metadata read cannot pass, and a seeded fixture adding an
+unlisted dependency must fail with a repair hint naming the allow-list row.
 
 `OB-ARCH-FEATURES`, the existing `the_crate_declares_no_features` test in
 `tests/workflow_suite_contract.rs` is extended to every workspace member.
+
+`OB-ARCH-LINTS`, lint inheritance and lint probes.
+`tests/lint_policy_contract.rs` asserts that every workspace member's manifest
+declares `[lints] workspace = true` and no local `[lints.*]` table, so no crate
+can silently drop the lint baseline. A probe test, modelled on
+`leynos/wildside`'s `environment_policy_lint.rs`, copies a tiny probe crate from
+`tests/fixtures/lint-probe/` into a temporary directory, generates its
+`[lints]` tables from the root `Cargo.toml`'s `[workspace.lints]` and copies
+`clippy.toml`, and runs `cargo +<pinned nightly> clippy` on it (through compile
+admission). A violating probe (float arithmetic, a lossy cast, `std::env::var`,
+and `unsafe`) must be rejected with each expected lint named; a clean control
+probe must pass. This proves the policy fires, not merely that it is configured.
+
+`OB-ARCH-IMPORTS`, module-level import allow-lists.
+`tests/architecture_import_contract.rs` walks each workspace crate's `src/` with
+`cap_std`, parses every file with `syn` (features `full` and `visit`), and
+collects every path (in `use` trees and in expressions, types, and patterns)
+whose first segment names an external crate, resolving renamed crates through
+`cargo metadata`. Items under `#[cfg(test)]` and files under `tests/` are
+exempt. Each crate's rules map module path prefixes to the external crates they
+may name, and to the sibling modules they may not import; a crate not named in
+a module's allow-list is a violation. The same walk rejects `#[expect(...)]`
+attributes for `clippy::float_arithmetic`, `clippy::cast_precision_loss`,
+`clippy::cast_possible_truncation`, `clippy::cast_possible_wrap`,
+`clippy::cast_sign_loss`, or `clippy::lossy_float_literal` outside the crate's
+named float-boundary modules (constraint C4). Rows in this plan: in Lapidary,
+`serde`, `serde_json`, and `base64` only under `document` (decision T15),
+`vstd` and `verus_builtin_macros` only under `kernel`, and `thiserror`
+anywhere; Lapidary has no float-boundary module, so any float-lint expectation
+fails. Blind spots, documented in the developers' guide: paths inside macro
+token streams and derive arguments; the crate-level allow-list backstops them.
+Non-vacuity: seeded fixtures (an out-of-module `serde` import, a qualified
+`serde_json::to_string` call without a `use`, a renamed crate, and a stray
+float expectation) must each fail.
+
+`OB-ARCH-PUBAPI`, public API allow-lists (decision T14).
+`tests/public_api_contract.rs` builds each contract crate's rustdoc JSON with
+`rustdoc-json` and lists its public items with `public-api`, then rejects any
+item whose rendered tokens name an external crate outside the crate's public
+allow-list. Row in this plan: `cabochon-lapidary` may name only `std`, `core`,
+and `alloc`. Non-vacuity: a seeded fixture crate exposing
+`pub type Leak = serde_json::Value;` and a public function returning a `serde`
+type must both fail, which also proves type aliases are caught.
 
 `OB-PROOF-MIRROR`, proof hygiene. `tests/verus_mirror_contract.rs` asserts that
 proof sources contain no construct banned by C8, that each kernel region sits
@@ -684,8 +793,13 @@ later plans, and slow-test timeouts), one `rstest-bdd` smoke scenario in the
 testkit, and one `#[gtest]` plus `#[rstest]` test proving the harnesses compose.
 
 Guards first: `tests/substrate_dependency_contract.rs`,
-`tests/prover_tooling_contract.rs`, `tests/verus_mirror_contract.rs`, and the
-`OB-ARCH-FEATURES` extension. Each fails before the workspace and tooling exist.
+`tests/lint_policy_contract.rs`, `tests/architecture_import_contract.rs`,
+`tests/public_api_contract.rs`, `tests/prover_tooling_contract.rs`,
+`tests/verus_mirror_contract.rs`, and the `OB-ARCH-FEATURES` extension, with
+their shared rule tables in `tests/architecture/rules.rs` and their evaluator
+fixtures. Each fails before the workspace and tooling exist. The import and
+public-API guards run under `make test`, in a nextest test group with a
+generous slow-test timeout, because they invoke Cargo and rustdoc.
 
 Spikes, each recording hypothesis, command, and result in `Artefacts and notes`:
 
@@ -701,12 +815,17 @@ Spikes, each recording hypothesis, command, and result in `Artefacts and notes`:
    finding the highest `rust-version` Lapidary can declare for it) runs at the
    end of EP-M0b, once Kani can run.
 2. S-KANI: after `make install-kani`, run
-   `prover-tools kani exec --installation "$HOME/.kani/kani-0.67.0" --cwd
-   crates/cabochon-lapidary`
+   `prover-tools kani exec --installation "$HOME/.kani/kani-0.67.0" --cwd crates/cabochon-lapidary`
    on one trivial harness with the repository's configuration unchanged.
    Hypothesis: it refuses with "Kani exec cannot prove isolation of Cargo
-   backend configuration". Record the exact outcome; it selects EP-M0b's branch
-   (decision T10).
+   backend configuration". Record the exact outcome;    it selects EP-M0b's
+   branch (decision T10).
+3. S-PUBAPI: `public-api` 0.52 accepts the rustdoc JSON that the pinned
+   nightly emits for a small crate. If it does not, find the nightly the
+   release documents as supported, pin it in `tools/public-api/TOOLCHAIN`,
+   install it through `make install-build-tools`, and have
+   `tests/public_api_contract.rs` build rustdoc JSON with that toolchain;
+   record the outcome in decision T14.
 
 Documentation. Draft ADR 0009 (integer EMU geometry and fixed-point transforms)
 as `docs/adrs/adr-0009-<title-slug>.md`, status `Proposed`. Record the
@@ -789,10 +908,13 @@ name, visible, and printable flags); `scene` (`Scene`, `Node`, `NodeId`,
 `Subscene`, `OpaqueOrigin`, `Annotation`, `SemanticRole`, `PageGeometry`,
 `OutputIntent`, `ColourIntent`, `PrintIntent`); `validate`; and `document`
 (`SceneDocument` version 1, JSON through `serde_json`, image bytes in base64).
-Write the Kani harnesses for `OB-LAP-UNITS` and `OB-LAP-FIXED` alongside. Put
-the scene generator in the testkit. Write a prose reference for scene document
-version 1 for authors working in other languages (ADR 0004), linked from
-`docs/contents.md`.
+Domain types carry no `serde` derives; the private `document::wire` module
+defines the data-transfer types that derive `Serialize` and `Deserialize`, and
+`document` converts between them and the domain types, validating on the way in
+(decision T15). Write the Kani harnesses for `OB-LAP-UNITS` and `OB-LAP-FIXED`
+alongside. Put the scene generator in the testkit. Write a prose reference for
+scene document version 1 for authors working in other languages (ADR 0004),
+linked from `docs/contents.md`.
 
 ### EP-M2: resolution, device mapping, hit testing, damage, and accessibility nodes
 
@@ -842,7 +964,9 @@ pre-1.0 and internal.
 - EP-M0a. Outcome: a workspace with two member crates, Verus tooling,
   `install-kani`, guards, and the S-VERUS and S-KANI results. Evidence: all
   gates pass; the `msrv` command passes locally; `make verus` verifies
-  S-VERUS's toy kernel; `cargo tree -p cabochon` is unchanged.
+  S-VERUS's toy kernel; the five architecture guards pass and reject their
+  seeded violations; S-PUBAPI's outcome is recorded; `cargo tree -p cabochon`
+  is unchanged.
 - EP-M0b. Outcome: Kani runs through `prover-tools kani exec`. Evidence:
   `make kani` runs the trivial harness under compile admission; all gates pass.
   If Cranelift was expunged: `OB-KANI-COMPAT` passes, the rewritten
@@ -952,6 +1076,9 @@ cargo nextest run -p cabochon-lapidary --test damage_properties
   `#[expect]` in Lapidary except where a reason cites a proven macro-expansion
   artefact (for example from `verus!`, if the single-source route is taken).
 - Documentation: `make markdownlint`, `make nixie`, and `make spelling` pass.
+- Architecture: `OB-ARCH-DEPS`, `OB-ARCH-FEATURES`, `OB-ARCH-LINTS`,
+  `OB-ARCH-IMPORTS`, and `OB-ARCH-PUBAPI` pass, and each rejects its seeded
+  violations.
 - Compatibility: the `msrv` command passes.
 - Kani precedence: `make kani` runs through `prover-tools kani exec`; if
   Cranelift was expunged, `OB-KANI-COMPAT` passes and the revisit issue is open.
@@ -1124,6 +1251,10 @@ record deviations in `Decision log`.
   single-source route, `vstd` and `verus_builtin_macros` at the dated release
   matching `tools/verus/VERSION` (pre-release versions, so the requirement is
   exact; the documented exception to caret requirements).
+- Architecture guards (root package development dependencies): `syn` 3
+  (features `full` and `visit`), `cargo_metadata` (newest release),
+  `public-api` 0.52, and `rustdoc-json` 0.9, alongside the existing `toml`,
+  `cap-std`, and `camino`.
 - Development: `rstest` 0.26, `rstest-bdd` 0.6, `rstest-bdd-macros` 0.6,
   `googletest` 0.14, `pretty_assertions` 1.4, `insta` 1.49, `proptest` 1.11, and
   `proc-macro2` 1 (spec-mirror fallback only).
@@ -1146,6 +1277,8 @@ record deviations in `Decision log`.
   proof inventory with what each proof does not cover. Repository layout stays
   in `docs/repository-layout.md`.
 - A prose reference for scene document version 1.
+- `docs/developers-guide.md`: the architecture guards, their rule tables,
+  how to add a row, their blind spots, and the `public-api` toolchain coupling.
 - If EP-M0b expunges Cranelift: ADR 0013, the revisit issue, and updates to
   `AGENTS.md`, `docs/developers-guide.md`, `docs/users-guide.md`, and
   `docs/repository-layout.md` describing the LLVM development standard and
@@ -1187,3 +1320,13 @@ record deviations in `Decision log`.
   recorded the reviewer's acceptance of losing Cranelift until it is resolved.
   The planned Cabochon revisit issue now falls due when #206 is resolved or six
   months after removal, whichever comes first (decision T10).
+- 2026-10-23: folded in the architecture-enforcement assessment of
+  `leynos/wildside`, `leynos/corbusier`, `leynos/mxd`, and `leynos/statelet`
+  pull request #137 (decisions T13 to T15). `OB-ARCH-DEPS` now uses allow-lists
+  and counts build edges; new guards check lint inheritance and prove the lints
+  fire (`OB-ARCH-LINTS`), confine external crates and float expectations by
+  module with a `syn` import lint (`OB-ARCH-IMPORTS`), and reject third-party
+  types in public APIs with the `public-api` crate (`OB-ARCH-PUBAPI`, spike
+  S-PUBAPI). Every guard separates a tested pure evaluator from its input
+  adapter and carries repair hints. Lapidary's domain types drop their `serde`
+  derives in favour of private data-transfer types in `document::wire`.

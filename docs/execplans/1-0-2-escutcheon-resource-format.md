@@ -62,15 +62,23 @@ decision made for the task-level plans.
 - C1, GEM-derived invariants. Escutcheon owns declarative user-interface
   resources (`docs/cabochon-design.md` §3, invariant 4); it contains no
   rendering or layout code and names no Enfilade type.
-- C2, dependency direction. `cabochon-escutcheon` depends only on
-  `cabochon-lapidary` among Cabochon crates (normal edges), for compiled icon
-  geometry. This plan adds its row to `tests/substrate_dependency_contract.rs`.
+- C2, dependency direction, enforced by allow-lists (decision T13).
+  `OB-ARCH-DEPS` row: `cabochon-escutcheon` may depend on `cabochon-lapidary`
+  (for compiled icon geometry and `TextDirection`), `kdl`, `fluent-bundle`,
+  `fluent-pseudo`, `unic-langid`, `usvg`, `cap-std`, `camino`, `thiserror`,
+  `tracing`, and `metrics`. Normal and build edges count.
+- Module containment (`OB-ARCH-IMPORTS` row): `kdl` only under `parse`;
+  `fluent-bundle`, `fluent-pseudo`, and `unic-langid` only under `l10n`; `usvg`
+  only under `icon`; `cap-std` and `camino` only under `source` and the
+  `escutcheon-check` binary.
 - C3, no third-party types in Escutcheon's public API: no `kdl`, Fluent,
   `unic-langid`, `usvg`, or `miette` types. Escutcheon owns `LocaleChain`,
-  `Diagnostic`, and message-argument types.
+  `Diagnostic`, and message-argument types. `OB-ARCH-PUBAPI` row: the public
+  API may name only `std`, `core`, `alloc`, and `cabochon_lapidary`.
 - C4, integer geometry. The only floating-point code is
   `cabochon_escutcheon::icon::float_boundary`, which converts `usvg`'s `f32`
-  path data into Lapidary EMU with reasoned lint expectations.
+  path data into Lapidary EMU with reasoned lint expectations;
+  `OB-ARCH-IMPORTS` rejects a float or cast lint expectation anywhere else.
 - C5, lint, safety, and documentation policy as in the repository, including
   the style guide's doc-comment rules.
 - C6, existing contracts, including the `msrv` CI job, keep passing; member
@@ -162,6 +170,14 @@ Inherited from the reviewed step-level plan (accepted ones say so):
 
 Task-level decisions:
 
+- Decisions T13, T14, and T15 (reviewer direction, 2026-10-23, recorded in
+  the 1.0.3 plan): the architecture is enforced by tested guards with
+  allow-lists at crate level (`OB-ARCH-DEPS`), lint inheritance
+  (`OB-ARCH-LINTS`), module level (`OB-ARCH-IMPORTS`, a `syn` import lint), and
+  public-API level (`OB-ARCH-PUBAPI`, using the `public-api` crate), and
+  `serde` is confined to private data-transfer types. The 1.0.3 plan builds the
+  guards and their rule tables in `tests/architecture/rules.rs`; this plan adds
+  its crates' rows, each with a seeded violation that must fail.
 - Decision T1: implementation order 1.0.3, then 1.0.4 and 1.0.2, then 1.0.1;
   the 1.0.1 plan marks 1.0.2 done once the hello-window application loads its
   user interface from these resources. Date: 2026-10-23.
@@ -308,12 +324,13 @@ agent) and a commit. Each dependency addition is its own commit with
 
 ### EP-M1: schema, parser, diagnostics, shortcuts, and resource source
 
-Create `crates/cabochon-escutcheon` and add its dependency-contract row and
-ownership policy (`docs/cabochon-design.md`, `docs/repository-layout.md`).
-Implement the `ResourceSource` port with a `cap_std` directory adapter and an
-in-memory adapter for tests; the KDL schema version 1 parser for commands,
-menus, windows, dialogs, inspectors, and icons; the built-in command catalogue;
-the shortcut grammar; and Escutcheon-owned `Diagnostic`, `SourceSpan`, and
+Create `crates/cabochon-escutcheon`, add its rows to the architecture guards
+(run red first with a seeded violation for each), and record its ownership
+policy (`docs/cabochon-design.md`, `docs/repository-layout.md`). Implement the
+`ResourceSource` port with a `cap_std` directory adapter and an in-memory
+adapter for tests; the KDL schema version 1 parser for commands, menus,
+windows, dialogs, inspectors, and icons; the built-in command catalogue; the
+shortcut grammar; and Escutcheon-owned `Diagnostic`, `SourceSpan`, and
 `DiagnosticCode` types. Write `OB-ESC-REFS`, `OB-ESC-SHORTCUT`, `OB-ESC-DET`,
 and `OB-ESC-VERSION`. Draft ADR 0010 as `docs/adrs/adr-0010-<title-slug>.md`.
 
@@ -413,6 +430,10 @@ cd /tmp && cargo +1.85.0 check --lib --all-features --locked \
   `resources.feature`.
 - Lint and formatting: `make check-fmt` and `make lint` pass with no
   `#[expect]` outside `icon::float_boundary`.
+- Architecture: Escutcheon's rows of `OB-ARCH-DEPS`, `OB-ARCH-IMPORTS`, and
+  `OB-ARCH-PUBAPI` pass, and each row's seeded violation (an unlisted
+  dependency, `kdl` imported outside `parse`, and a public function returning a
+  `kdl` type) fails.
 - Documentation: `make markdownlint`, `make nixie`, and `make spelling` pass.
 - Security: `make audit` passes; no `unsafe`.
 
@@ -523,3 +544,7 @@ recorder) and `tracing-test` 0.2, plus the testing crates from the 1.0.3 plan.
   recorded one pull request per plan (T8) and the ADR number reservation (T9).
 - 2026-10-23: reserved ADR 0013 for the 1.0.3 plan's conditional Cranelift
   decision (T9); other new ADRs take 0014 or later.
+- 2026-10-23: added Escutcheon's rows to the architecture guards (decisions
+  T13 to T15 from the 1.0.3 plan): a crate allow-list, one module home per
+  third-party crate (`parse`, `l10n`, `icon`, `source`), float expectations
+  confined to `icon::float_boundary`, and a public-API allow-list.
