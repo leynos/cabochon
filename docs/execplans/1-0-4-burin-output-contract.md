@@ -53,19 +53,32 @@ decision made for the task-level plans.
 
 - C1, GEM-derived invariants. Burin renders only Lapidary scenes; no provider
   supplies a private renderer (ADR 0008). Burin names no Enfilade type.
-- C2, dependency direction. `cabochon-burin` depends only on
-  `cabochon-lapidary` among Cabochon crates (normal edges); `cabochon-fonts`
-  depends on none. This plan adds their rows to
-  `tests/substrate_dependency_contract.rs`.
+- C2, dependency direction, enforced by allow-lists (decision T13).
+  `OB-ARCH-DEPS` rows: `cabochon-burin` may depend on `cabochon-lapidary`,
+  `vello_cpu`, `krilla`, `parley`, `fontique`, `kurbo`, `png`, `serde`,
+  `serde_json`, `thiserror`, `tracing`, and `metrics`; `cabochon-fonts` may
+  depend on nothing; the testkit's row gains `cabochon-burin`, `hayro`, and
+  `hayro-interpret`. Normal and build edges count.
+- Module containment (`OB-ARCH-IMPORTS` rows). Burin is organized so that each
+  third-party crate has one home: `vello_cpu` only under `backend::vello` (used
+  by the raster, thumbnail, interactive, and hit-map workstations), `krilla`
+  only under `backend::krilla` (PDF, print, and clipboard PDF), `parley` and
+  `fontique` only under `text`, `png` only under `image`, `kurbo` only under
+  `backend` and `float_boundary`, and `serde` and `serde_json` only under
+  `wire`, whose private data-transfer types serialize the accessibility,
+  clipboard, and hit-map JSON outputs (decision T15). Workstation modules do
+  not import one another's backends.
 - C3, no third-party types in Burin's public signatures, which expose only
-  Lapidary types and Burin-owned types. `vello_cpu`, `krilla`, `parley`,
-  `fontique`, `kurbo`, and `png` stay behind Burin-owned modules.
+  Lapidary types and Burin-owned types. `OB-ARCH-PUBAPI` row:
+  `cabochon-burin`'s public API may name only `std`, `core`, `alloc`, and
+  `cabochon_lapidary`.
 - C4, integer geometry. Floating-point arithmetic and lossy casts appear only
-  in `cabochon_burin::float_boundary`. Each function there carries a reasoned
-  `#[expect(clippy::float_arithmetic, reason = "...")]` (or the matching cast
-  lint), as the lint baseline in `docs/developers-guide.md` allows. Coordinate
-  casts are exact because Lapidary's `to_backend_units` and `to_page_units`
-  bound them below 2^24 (`OB-LAP-BACKEND`).
+  in `cabochon_burin::float_boundary`, which `OB-ARCH-IMPORTS` checks: a float
+  or cast lint expectation anywhere else fails. Each function there carries a
+  reasoned `#[expect(clippy::float_arithmetic, reason = "...")]` (or the
+  matching cast lint), as the lint baseline in `docs/developers-guide.md`
+  allows. Coordinate casts are exact because Lapidary's `to_backend_units` and
+  `to_page_units` bound them below 2^24 (`OB-LAP-BACKEND`).
 - C5, lint, safety, and documentation policy as in the repository: `forbid`
   unsafe code, no `#[allow]`, no `.expect()` or `.unwrap()` outside tests, no
   file over 400 lines, and the style guide's doc-comment rules.
@@ -192,6 +205,14 @@ Inherited from the reviewed step-level plan (accepted ones say so):
 
 Task-level decisions:
 
+- Decisions T13, T14, and T15 (reviewer direction, 2026-10-23, recorded in
+  the 1.0.3 plan): the architecture is enforced by tested guards with
+  allow-lists at crate level (`OB-ARCH-DEPS`), lint inheritance
+  (`OB-ARCH-LINTS`), module level (`OB-ARCH-IMPORTS`, a `syn` import lint), and
+  public-API level (`OB-ARCH-PUBAPI`, using the `public-api` crate), and
+  `serde` is confined to private data-transfer types. The 1.0.3 plan builds the
+  guards and their rule tables in `tests/architecture/rules.rs`; this plan adds
+  its crates' rows, each with a seeded violation that must fail.
 - Decision T1: implementation order 1.0.3, then 1.0.4 and 1.0.2, then 1.0.1.
   This plan marks roadmap tasks 1.0.3 and 1.0.4 done, because its parity suite
   proves both success criteria. Date: 2026-10-23.
@@ -435,7 +456,9 @@ both rows to the dependency contract. Record ownership and reuse policies in
 `float_boundary`, `ParleyTextLayout` (with `OB-TEXT-*`), PNG decoding,
 `RasterWorkstation`, and `ThumbnailWorkstation`, and the testkit render
 constructor that pins determinism. Measure cold and warm build times and record
-them. Draft ADR 0011 as `docs/adrs/adr-0011-<title-slug>.md`.
+them. Add Burin's and the fonts crate's rows to the architecture guards first,
+and run them red with a seeded violation for each. Draft ADR 0011 as
+`docs/adrs/adr-0011-<title-slug>.md`.
 
 ### EP-M2: interactive surface and invalidation
 
@@ -562,6 +585,10 @@ accessibility.json  clipboard  content-print.pdf  content.pdf  content.png  hit-
   `output.feature`.
 - Lint and formatting: `make check-fmt` and `make lint` pass with no
   `#[expect]` outside `float_boundary`.
+- Architecture: the Burin and fonts rows of `OB-ARCH-DEPS`,
+  `OB-ARCH-IMPORTS`, and `OB-ARCH-PUBAPI` pass, and each row's seeded violation
+  (an unlisted dependency, `vello_cpu` imported outside `backend::vello`, and a
+  public function returning a `krilla` type) fails.
 - Security: no `unsafe`, no process-environment access, `make audit` passes
   with any ignore recorded as a decision.
 - Documentation: `make markdownlint`, `make nixie`, and `make spelling` pass.
@@ -633,8 +660,8 @@ Dependencies (caret requirements; newest compatible release when each milestone
 starts):
 
 - `cabochon-burin`: `cabochon-lapidary`, `vello_cpu` 0.3, `krilla` 0.8,
-  `parley` 0.12, `fontique` 0.12, `kurbo` 0.13, `png` 0.18, `serde_json` 1,
-  `thiserror` 2, `tracing` 0.1, `metrics` 0.24.
+  `parley` 0.12, `fontique` 0.12, `kurbo` 0.13, `png` 0.18, `serde` 1,
+  `serde_json` 1, `thiserror` 2, `tracing` 0.1, `metrics` 0.24.
 - `cabochon-fonts`: no dependencies.
 - Development: `hayro` 0.8, `hayro-interpret` 0.8, `unicode-segmentation` 1,
   `unicode-bidi` 0.3, `metrics-util` (the release matching `metrics` 0.24, for
@@ -674,3 +701,8 @@ starts):
 - 2026-10-23: made S-VELLO and the SIMD risk conditional on whether the 1.0.3
   plan keeps Cranelift (Kani takes precedence there; its EP-M0b may expunge
   Cranelift), and reserved ADR 0013 for that decision (T9).
+- 2026-10-23: added Burin's rows to the architecture guards (decisions T13
+  to T15 from the 1.0.3 plan): a crate allow-list, one module home per
+  third-party crate (`backend::vello`, `backend::krilla`, `text`, `image`,
+  `wire`), float expectations confined to `float_boundary`, a public-API
+  allow-list, and private data-transfer types for JSON outputs.
