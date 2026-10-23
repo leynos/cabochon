@@ -197,6 +197,11 @@ plan, and `T` a decision made for this task-level plan.
   D13, and D14 on the step-level plan.
 - [x] (2026-10-23) Decomposed the step-level plan into four task-level plans;
   this is the first.
+- [x] (2026-10-23) Raised
+      [leynos/rust-prover-tools#206](https://github.com/leynos/rust-prover-tools/issues/206)
+      so that
+  `kani exec` can run with a configured development backend; the reviewer
+  accepted the loss of Cranelift until it is resolved.
 - [ ] Reviewer approval of this plan.
 - [ ] EP-M0a: workspace, prover tooling, guards, and spikes.
 - [ ] EP-M0b: Kani route, expunging Cranelift if Kani requires it, with the
@@ -236,7 +241,8 @@ plan, and `T` a decision made for this task-level plan.
   `--manifest-path`, so it cannot run here as things stand. Evidence: source
   review on 2026-10-23. Impact: unless the pinned tool has changed by EP-M0a,
   Kani cannot run here while Cranelift is configured, so EP-M0b expunges
-  Cranelift (constraint C13, decision T10).
+  Cranelift (constraint C13, decision T10). Raised upstream as
+  [leynos/rust-prover-tools#206](https://github.com/leynos/rust-prover-tools/issues/206).
 - Observation: the build-standard contract
   (`tests/build_standard_support/make.rs`) reads only command lines containing
   `cargo` or `whitaker`, and fails a held-out target that runs no Cargo
@@ -320,7 +326,12 @@ Decisions made for this task-level plan:
   records the issue number here and in `docs/developers-guide.md`, and records
   the decision as ADR 0013. If S-KANI shows `kani exec` running with Cranelift
   present (because the tool has changed), Cranelift stays and EP-M0b only adds
-  the `kani` target. Date: 2026-10-23.
+  the `kani` target. On 2026-10-23 the reviewer accepted the loss of Cranelift
+  until
+  [leynos/rust-prover-tools#206](https://github.com/leynos/rust-prover-tools/issues/206),
+  which asks `kani exec` to support a configured development backend, is
+  resolved. The Cabochon revisit issue links #206 and falls due when #206 is
+  resolved or six months after removal, whichever comes first. Date: 2026-10-23.
 - Decision T8: one pull request per task plan, replacing the step plan's
   decision D18 (one stacked pull request per milestone), following the
   reviewer's direction on 2026-10-23 to review and merge these plans first and
@@ -747,16 +758,17 @@ Otherwise, expunge Cranelift, as its own sequence of commits:
 
    ```bash
    gh issue create -R leynos/cabochon \
-     --title "Revisit the Cranelift development backend (due <removal date + 6 months>)" \
+     --title "Revisit the Cranelift development backend (after rust-prover-tools#206, or <removal date + 6 months>)" \
      --body-file /tmp/cranelift-revisit-issue.md
    ```
 
    The body states the removal date and commit, why Cranelift was removed
-   (`prover-tools kani exec` rejects `codegen-backend` configuration), the
-   measured build-time cost, ADR 0013, and what to check on revisiting: whether
-   `rust-prover-tools` or Kani now tolerate a configured development backend,
-   and whether Cranelift's build-time gain still justifies it. Record the issue
-   number in decision T10, ADR 0013, and `docs/developers-guide.md`.
+   (`prover-tools kani exec` rejects `codegen-backend` configuration; tracked
+   upstream as leynos/rust-prover-tools#206), the measured build-time cost, ADR
+   0013, and what to check on revisiting: whether `rust-prover-tools` or Kani
+   now tolerate a configured development backend, and whether Cranelift's
+   build-time gain still justifies it. Record the issue number in decision T10,
+   ADR 0013, and `docs/developers-guide.md`.
 8. Measure the build times again with LLVM and record them.
 
 Then add the `kani` target, run S-KANI again (`make kani` on the trivial
@@ -1169,3 +1181,9 @@ record deviations in `Decision log`.
   commit, EP-M0b expunges Cranelift, guards against its return
   (`OB-KANI-COMPAT`), records ADR 0013, and raises an issue to revisit the
   matter six months later. ADR 0013 is reserved for that decision (T9).
+- 2026-10-23: raised
+  [leynos/rust-prover-tools#206](https://github.com/leynos/rust-prover-tools/issues/206)
+  asking `kani exec` to support a configured development codegen backend, and
+  recorded the reviewer's acceptance of losing Cranelift until it is resolved.
+  The planned Cabochon revisit issue now falls due when #206 is resolved or six
+  months after removal, whichever comes first (decision T10).
