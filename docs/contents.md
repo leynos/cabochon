@@ -51,6 +51,21 @@ Decision records live under `docs/adrs/` as `adr-nnnn-title-slug.md`, per the
   records that Cabochon display, print, export, thumbnail, clipboard, and
   accessibility output crosses Lapidary and Burin contracts.
 
+## Execution plans
+
+- `execplans/` holds the task-level plans for roadmap step 1.0, which
+  settles the Clerestory, Escutcheon, Lapidary, and Burin contracts. Implement
+  them in this order:
+  - [1.0.3: Define the minimum Lapidary scene contract](execplans/1-0-3-lapidary-scene-contract.md)
+    converts the workspace, installs the prover tooling, and delivers the
+    proved scene model.
+  - [1.0.4: Define the minimum Burin output contract](execplans/1-0-4-burin-output-contract.md)
+    renders one scene to every output and proves cross-target parity.
+  - [1.0.2: Define the minimum Escutcheon resource format](execplans/1-0-2-escutcheon-resource-format.md)
+    compiles localizable resources and can proceed in parallel with 1.0.4.
+  - [1.0.1: Define the minimum Clerestory application contract](execplans/1-0-1-clerestory-application-contract.md)
+    runs the resource-defined hello-window application in a host desktop.
+
 ## Rust reference material
 
 - [Reliable testing in Rust via dependency injection](reliable-testing-in-rust-via-dependency-injection.md)
