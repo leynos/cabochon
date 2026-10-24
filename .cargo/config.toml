@@ -13,12 +13,15 @@
 # recipes set. Coverage and release explicitly select their LLVM route.
 [unstable]
 codegen-backend = true
+embed-metadata = false
 
 # The test profile inherits dev. Release retains Cargo's production LLVM
 # backend; the stable cross workflow runs from outside this config's discovery
 # path because stable Cargo cannot parse the nightly-only profile key.
 [profile.dev]
 codegen-backend = "cranelift"
+incremental = false
+debug = 0
 
 [build]
 rustflags = ["-Zthreads=8"]
