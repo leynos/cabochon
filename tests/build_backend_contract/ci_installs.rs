@@ -334,12 +334,12 @@ fn ci_installers_precede_their_consumers() {
 #[case::installer_conditional(
     INSTALL_WHITAKER,
     "leynos/shared-actions/.github/actions/install-whitaker@\
-     6dea5677a84fec60ca51b07202570e3af12ffdb4\n        if: false"
+     5a99aed78ce68dcebd3052b75c31e6f173162b1e\n        if: false"
 )]
 #[case::installer_soft_failed(
     INSTALL_WHITAKER,
     "leynos/shared-actions/.github/actions/install-whitaker@\
-     6dea5677a84fec60ca51b07202570e3af12ffdb4\n        continue-on-error: true"
+     5a99aed78ce68dcebd3052b75c31e6f173162b1e\n        continue-on-error: true"
 )]
 #[case::mdtablefix_version("version: \"0.6.1\"", "version: \"0.5.0\"")]
 #[case::markdown_glob("globs: '**/*.md'", "globs: 'README.md'")]
