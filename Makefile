@@ -65,7 +65,9 @@ TARGET_ROUTE = $(call CHECK_TARGET_ROUTE,$(shell BUILD_HOST_OS="$(BUILD_HOST_OS)
 CHECK_TARGET_ROUTE = $(if $(filter route-error,$(1)),$(error Cannot classify Cargo target for $(2)),$(1))
 NEEDS_MOULD = $(filter linux linux-clang,$(call TARGET_ROUTE,$(1)))
 NEEDS_CLANG = $(filter linux-clang,$(call TARGET_ROUTE,$(1)))
-STANDARD_RUSTFLAGS = -Zthreads=8$(if $(call NEEDS_MOULD,$(1)), -Clink-arg=-fuse-ld=mold)
+STANDARD_FRONTEND_FLAG := -Zthreads=8
+STANDARD_LINKER_FLAG := -Clink-arg=-fuse-ld=mold
+STANDARD_RUSTFLAGS = $(STANDARD_FRONTEND_FLAG)$(if $(call NEEDS_MOULD,$(1)), $(STANDARD_LINKER_FLAG))
 
 # Target-specific values reach the prerequisite before each compilation route.
 # A test's nextest and doctest commands can select different targets.
@@ -107,11 +109,11 @@ clean: ## Remove build artefacts
 	$(CARGO) clean
 
 test: check-build-tools ## Run tests with warnings treated as errors
-	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(call STANDARD_RUSTFLAGS,$(TEST_FLAGS) $(BUILD_JOBS))" $(CARGO) $(TEST_CMD) $(TEST_FLAGS) $(BUILD_JOBS)
-	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(call STANDARD_RUSTFLAGS,$(BUILD_JOBS))" $(CARGO) test --doc --workspace --all-features $(BUILD_JOBS)
+	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(STANDARD_FRONTEND_FLAG)$(if $(call NEEDS_MOULD,$(TEST_FLAGS) $(BUILD_JOBS)), $(STANDARD_LINKER_FLAG))" $(CARGO) $(TEST_CMD) $(TEST_FLAGS) $(BUILD_JOBS)
+	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(STANDARD_FRONTEND_FLAG)$(if $(call NEEDS_MOULD,$(BUILD_JOBS)), $(STANDARD_LINKER_FLAG))" $(CARGO) test --doc --workspace --all-features $(BUILD_JOBS)
 
 target/debug/$(TARGET): | check-build-tools ## Build the debug binary
-	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(call STANDARD_RUSTFLAGS,$(BUILD_JOBS))" $(CARGO) build $(BUILD_JOBS) --bin $(TARGET)
+	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(STANDARD_FRONTEND_FLAG)$(if $(call NEEDS_MOULD,$(BUILD_JOBS)), $(STANDARD_LINKER_FLAG))" $(CARGO) build $(BUILD_JOBS) --bin $(TARGET)
 
 target/release/$(TARGET): ## Build the release binary with LLVM and the platform linker
 	cd "$(dir $(CURDIR))" && env -u CARGO_ENCODED_RUSTFLAGS -u CARGO_PROFILE_DEV_CODEGEN_BACKEND -u CARGO_PROFILE_TEST_CODEGEN_BACKEND -u CARGO_PROFILE_RELEASE_CODEGEN_BACKEND RUSTFLAGS="" CARGO_TARGET_DIR="$(CURDIR)/target" $(CARGO) +stable build $(BUILD_JOBS) --release --manifest-path "$(CURDIR)/Cargo.toml" --bin $(TARGET)
@@ -132,14 +134,14 @@ lint: ## Run rustdoc, Clippy, then Whitaker sequentially
 	$(MAKE) lint-whitaker
 
 lint-clippy: check-build-tools ## Run rustdoc and Clippy under the development standard
-	RUSTDOCFLAGS="$(RUSTDOC_FLAGS)" RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(call STANDARD_RUSTFLAGS,)" $(CARGO) doc --workspace --no-deps
-	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(call STANDARD_RUSTFLAGS,$(CLIPPY_FLAGS))" $(CARGO) clippy $(CLIPPY_FLAGS)
+	RUSTDOCFLAGS="$(RUSTDOC_FLAGS)" RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(STANDARD_FRONTEND_FLAG)$(if $(call NEEDS_MOULD,), $(STANDARD_LINKER_FLAG))" $(CARGO) doc --workspace --no-deps
+	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(STANDARD_FRONTEND_FLAG)$(if $(call NEEDS_MOULD,$(CLIPPY_FLAGS)), $(STANDARD_LINKER_FLAG))" $(CARGO) clippy $(CLIPPY_FLAGS)
 
 lint-whitaker: ## Run the installer-managed rolling Whitaker suite
 	cd "$(dir $(CURDIR))" && unset CARGO_ENCODED_RUSTFLAGS CARGO_PROFILE_DEV_CODEGEN_BACKEND CARGO_PROFILE_TEST_CODEGEN_BACKEND CARGO_PROFILE_RELEASE_CODEGEN_BACKEND && RUSTFLAGS="" DYLINT_RUSTFLAGS="-D warnings" $(WHITAKER) --manifest-path "$(CURDIR)/Cargo.toml" --all -- $(CARGO_FLAGS)
 
 typecheck: check-build-tools ## Type-check without building
-	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(call STANDARD_RUSTFLAGS,$(CARGO_FLAGS))" $(CARGO) check $(CARGO_FLAGS)
+	RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }$(RUST_FLAGS) $(STANDARD_FRONTEND_FLAG)$(if $(call NEEDS_MOULD,$(CARGO_FLAGS)), $(STANDARD_LINKER_FLAG))" $(CARGO) check $(CARGO_FLAGS)
 
 fmt: ## Format Rust and Markdown sources
 	$(CARGO) fmt --all
