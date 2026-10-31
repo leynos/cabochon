@@ -218,16 +218,22 @@ gate fails when a rolling lint reports a warning.
 The diagram summarizes route-specific Rust flags and linkers. Bare Cargo reads
 the checkout configuration. Make's public `build`/`dev-build`, `test`/
 `dev-test`, `lint-clippy`, and `typecheck` targets compose inherited
-`RUSTFLAGS`, `RUST_FLAGS`, and target-scoped flags; supported Linux targets use
-`mold`, and non-Linux targets use their platform linker. Coverage uses LLVM with
-`clang` and `lld`; release clears Rust flags and runs stable Cargo outside
-config discovery.
+`RUSTFLAGS`, `RUST_FLAGS`, and target-scoped flags. Each recipe names the two
+fast flags directly, as `STANDARD_FRONTEND_FLAG` (`-Zthreads=8`) and, when the
+target needs `mold`, `STANDARD_LINKER_FLAG` (`-Clink-arg=-fuse-ld=mold`) behind
+the `NEEDS_MOULD` condition for the arguments that recipe passes to Cargo. The
+Concordat build-defaults rule reads variable references but cannot follow a
+user-defined function, so the recipes no longer go through
+`$(call STANDARD_RUSTFLAGS,...)`; that helper stays, with the same expansion,
+for any caller. Supported Linux targets use `mold`, and non-Linux targets use
+their platform linker. Coverage uses LLVM with `clang` and `lld`; release
+clears Rust flags and runs stable Cargo outside config discovery.
 
 ```mermaid
 flowchart TD
     start["Build, test, lint, or release command"] --> route{"Execution route?"}
     route -->|"Bare Cargo"| config[".cargo/config.toml defaults<br/>Cranelift; -Zthreads=8<br/>Linux cfg adds mold"]
-    route -->|"Public Make dev targets"| compose["Inherited RUSTFLAGS<br/>+ RUST_FLAGS (-D warnings)<br/>+ STANDARD_RUSTFLAGS"]
+    route -->|"Public Make dev targets"| compose["Inherited RUSTFLAGS<br/>+ RUST_FLAGS (-D warnings)<br/>+ named fast flags"]
     compose --> target{"Compilation target"}
     target -->|"Supported Linux target"| mold["-Zthreads=8<br/>+ mold linker flag"]
     target -->|"Non-Linux target"| platform["-Zthreads=8<br/>+ platform linker"]
