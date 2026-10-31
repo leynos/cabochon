@@ -233,7 +233,7 @@ clears Rust flags and runs stable Cargo outside config discovery.
 flowchart TD
     start["Build, test, lint, or release command"] --> route{"Execution route?"}
     route -->|"Bare Cargo"| config[".cargo/config.toml defaults<br/>Cranelift; -Zthreads=8<br/>Linux cfg adds mold"]
-    route -->|"Public Make dev targets"| compose["Inherited RUSTFLAGS<br/>+ RUST_FLAGS (-D warnings)<br/>+ STANDARD_FRONTEND_FLAG<br/>+ STANDARD_LINKER_FLAG when needed"]
+    route -->|"Public Make dev targets"| compose["Inherited RUSTFLAGS<br/>+ RUST_FLAGS (-D warnings)<br/>+ named fast flags"]
     compose --> target{"Compilation target"}
     target -->|"Supported Linux target"| mold["-Zthreads=8<br/>+ mold linker flag"]
     target -->|"Non-Linux target"| platform["-Zthreads=8<br/>+ platform linker"]
