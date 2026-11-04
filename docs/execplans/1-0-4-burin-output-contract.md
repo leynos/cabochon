@@ -5,12 +5,14 @@ This ExecPlan (execution plan) is a living document. The sections `Constraints`,
 `Outcomes & retrospective`, `Conformance basis`, and `Verification plan` must
 be kept up to date as work proceeds.
 
-Status: DRAFT
+Status: APPROVED
 
-Implementation must not begin until a human reviewer explicitly approves this
-plan and the 1.0.3 plan (`docs/execplans/1-0-3-lapidary-scene-contract.md`) has
-been implemented and merged. Silence is not approval. Implement on a branch
-named `1-0-4-burin-output-contract`, in its own pull request.
+The reviewer approved this plan on 2026-11-04. The pull request that carries
+the plan does not implement it. Implementation must not begin until that pull
+request has merged and the 1.0.3 plan
+(`docs/execplans/1-0-3-lapidary-scene-contract.md`) has been implemented and
+merged. Implement on a branch named `1-0-4-burin-output-contract`, in its own
+pull request.
 
 ## Purpose / big picture
 
@@ -112,16 +114,19 @@ decision made for the task-level plans.
   Likelihood: high. Mitigation: one Burin adapter module per crate behind a
   Burin-owned trait; parity tests gate upgrades.
 - Risk: `vello_cpu` selects single instruction, multiple data (SIMD) code
-  paths at run time, so tests could diverge between hosts. While the Cranelift
-  development backend remains (the 1.0.3 plan's EP-M0b expunges it if Kani
-  cannot run with it present), Cranelift also implements only part of
-  `core::arch`, so tests could crash or diverge between Cranelift and the LLVM
-  coverage build. Severity: high. Likelihood: medium. Mitigation: S-VELLO;
-  every test render goes through one testkit constructor pinning the scalar
-  level, single-threaded rendering, and one render mode; if Cranelift is still
-  the development backend and still fails, a per-package profile override
-  compiles `vello_cpu` with LLVM (needs approval). The production SIMD path is
-  a documented untested residual.
+  paths at run time, so tests could diverge between hosts. The Cranelift
+  development backend, which stays now that `prover-tools kani exec` accepts it
+  (decision T10 in the 1.0.3 plan), also implements only part of `core::arch`,
+  so tests could crash or diverge between Cranelift and the LLVM coverage
+  build. Severity: high. Likelihood: medium. Mitigation: S-VELLO; every test
+  render goes through one testkit constructor pinning the scalar level,
+  single-threaded rendering, and one render mode; if Cranelift still fails, a
+  per-package profile override compiles `vello_cpu` with LLVM (needs approval).
+  A package-scoped `codegen-backend` override is a position `kani exec`
+  refuses, and `OB-KANI-COMPAT` in the 1.0.3 plan rejects it, so this fallback
+  must keep Kani running: taking it needs a design that does not use that key,
+  or the C13 contingency in the 1.0.3 plan. The production SIMD path is a
+  documented untested residual.
 - Risk: font-stack skew (`krilla` pins `skrifa` 0.42; `parley` and
   `vello_cpu` use newer). Severity: low. Likelihood: high. Mitigation: fonts
   cross stacks only as bytes plus glyph identifiers through Lapidary's
@@ -156,7 +161,8 @@ decision made for the task-level plans.
 - [x] (2026-10-22) Reviewer accepted decisions D1, D6, D7, D8, D10, D11, D12,
   D13, and D14 on the step-level plan.
 - [x] (2026-10-23) Decomposed into four task-level plans; this is the second.
-- [ ] Reviewer approval of this plan; the 1.0.3 plan implemented and merged.
+- [x] (2026-11-04) Reviewer approval of this plan.
+- [ ] The 1.0.3 plan implemented and merged.
 - [ ] EP-M1: fonts, text layout, float boundary, raster, and thumbnail.
 - [ ] EP-M2: interactive surface and invalidation.
 - [ ] EP-M3: hit map, accessibility, clipboard geometry, failure handling,
@@ -234,8 +240,8 @@ Task-level decisions:
 - Decision T9: ADR numbers are reserved by this decomposition: 0009 for the
   1.0.3 plan, 0010 for the 1.0.2 plan, 0011 for this plan, and 0012 for the
   1.0.1 plan. 0013 is reserved for the 1.0.3 plan's Cranelift decision, if its
-  EP-M0b expunges Cranelift (decision T10 there). Any other pull request
-  needing an ADR takes 0014 or later. Date: 2026-10-23.
+  EP-M0b contingency runs (decision T10 there). Any other pull request needing
+  an ADR takes 0014 or later. Date: 2026-10-23.
 - Decision T4: add a `render_all` example to `cabochon-burin` as this task's
   observable demonstration, since the hello-window application belongs to the
   1.0.1 plan. Date: 2026-10-23.
@@ -444,9 +450,9 @@ agent) and a commit; each dependency addition is its own commit with
 ### EP-M1: fonts, text layout, float boundary, raster, and thumbnail
 
 First run S-VELLO: `vello_cpu`, pinned to its scalar path, renders a rectangle
-with identical pixels under `make test` and `make coverage`. If the 1.0.3 plan
-kept Cranelift, this compares Cranelift with LLVM; if it expunged Cranelift,
-both builds use LLVM and the spike checks only that the pinned scalar path is
+with identical pixels under `make test` and `make coverage`. This compares
+Cranelift with LLVM. If the 1.0.3 plan's contingency expunged Cranelift, both
+builds use LLVM and the spike checks only that the pinned scalar path is
 deterministic across the two profiles. Create `crates/cabochon-fonts` (data
 only: static subsets of Noto Sans, Noto Sans Arabic, and Noto Sans Hebrew, each
 with `OFL.txt` and a `SHA256SUMS` entry) and `crates/cabochon-burin`, and add
@@ -706,3 +712,8 @@ starts):
   third-party crate (`backend::vello`, `backend::krilla`, `text`, `image`,
   `wire`), float expectations confined to `float_boundary`, a public-API
   allow-list, and private data-transfer types for JSON outputs.
+- 2026-11-04: the reviewer approved this plan. `leynos/rust-prover-tools#206`
+  was resolved, so the 1.0.3 plan keeps Cranelift: S-VELLO's Cranelift
+  comparison and the SIMD risk now apply by default. The risk's fallback, a
+  per-package `codegen-backend` override, is a position `kani exec` refuses, so
+  it now says so. Otherwise the milestones are unchanged.

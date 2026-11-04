@@ -5,13 +5,15 @@ This ExecPlan (execution plan) is a living document. The sections `Constraints`,
 `Outcomes & retrospective`, `Conformance basis`, and `Verification plan` must
 be kept up to date as work proceeds.
 
-Status: DRAFT
+Status: APPROVED
 
-Implementation must not begin until a human reviewer explicitly approves this
-plan and the 1.0.3 plan (`docs/execplans/1-0-3-lapidary-scene-contract.md`) has
-been implemented and merged. This plan does not depend on the 1.0.4 (Burin)
-plan and may proceed in parallel with it. Silence is not approval. Implement on
-a branch named `1-0-2-escutcheon-resource-format`, in its own pull request.
+The reviewer approved this plan on 2026-11-04. The pull request that carries
+the plan does not implement it. Implementation must not begin until that pull
+request has merged and the 1.0.3 plan
+(`docs/execplans/1-0-3-lapidary-scene-contract.md`) has been implemented and
+merged. This plan does not depend on the 1.0.4 (Burin) plan and may proceed in
+parallel with it. Implement on a branch named
+`1-0-2-escutcheon-resource-format`, in its own pull request.
 
 ## Purpose / big picture
 
@@ -128,7 +130,8 @@ decision made for the task-level plans.
 - [x] (2026-10-22) Reviewer accepted decisions D1, D6, D7, D8, D10, D11, D12,
   D13, and D14 on the step-level plan.
 - [x] (2026-10-23) Decomposed into four task-level plans; this is the third.
-- [ ] Reviewer approval of this plan; the 1.0.3 plan implemented and merged.
+- [x] (2026-11-04) Reviewer approval of this plan.
+- [ ] The 1.0.3 plan implemented and merged.
 - [ ] EP-M1: schema, parser, diagnostics, shortcuts, and the resource source
   port.
 - [ ] EP-M2: localization, pseudo-locales, icons, accessibility annotations,
@@ -197,7 +200,7 @@ Task-level decisions:
 - Decision T9: ADR numbers are reserved by this decomposition: 0009 for the
   1.0.3 plan, 0010 for the 1.0.2 plan, 0011 for the 1.0.4 plan, and 0012 for
   the 1.0.1 plan. 0013 is reserved for the 1.0.3 plan's Cranelift decision, if
-  its EP-M0b expunges Cranelift (decision T10 there). Any other pull request
+  its EP-M0b contingency runs (decision T10 there). Any other pull request
   needing an ADR takes 0014 or later. Date: 2026-10-23.
 
 ## Outcomes & retrospective
@@ -548,3 +551,6 @@ recorder) and `tracing-test` 0.2, plus the testing crates from the 1.0.3 plan.
   T13 to T15 from the 1.0.3 plan): a crate allow-list, one module home per
   third-party crate (`parse`, `l10n`, `icon`, `source`), float expectations
   confined to `icon::float_boundary`, and a public-API allow-list.
+- 2026-11-04: the reviewer approved this plan. `leynos/rust-prover-tools#206`
+  was resolved, so the 1.0.3 plan keeps Cranelift and ADR 0013 stays reserved
+  only for its contingency. The milestones are unchanged.

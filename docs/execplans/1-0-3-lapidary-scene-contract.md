@@ -5,11 +5,11 @@ This ExecPlan (execution plan) is a living document. The sections `Constraints`,
 `Outcomes & retrospective`, `Conformance basis`, and `Verification plan` must
 be kept up to date as work proceeds.
 
-Status: DRAFT
+Status: APPROVED
 
-Implementation must not begin until a human reviewer explicitly approves this
-plan. Silence is not approval. Implement on a branch named
-`1-0-3-lapidary-scene-contract`, in its own pull request.
+The reviewer approved this plan on 2026-11-04. The pull request that carries
+the plan does not implement it. Once that pull request has merged, implement on
+a branch named `1-0-3-lapidary-scene-contract`, in its own pull request.
 
 ## Purpose / big picture
 
@@ -99,8 +99,8 @@ plan, and `T` a decision made for this task-level plan.
   `--all-features`). The root package keeps `rust-version = "1.85"`, and the
   `msrv` CI job (`cargo +1.85.0 check --lib --all-features --locked`) keeps
   passing after the workspace conversion. The one sanctioned exception is
-  EP-M0b's removal of Cranelift under C13, which rewrites the build-standard
-  contracts that assert Cranelift.
+  EP-M0b's Cranelift contingency under C13, which would rewrite the
+  build-standard contracts that assert Cranelift. It is not expected to run.
 - C7, no persisted user-document format. The scene document defined here is a
   Lapidary interchange and test format, not a user-document format, and must
   not be presented as one.
@@ -114,12 +114,15 @@ plan, and `T` a decision made for this task-level plan.
 - C10, library instrumentation only. Lapidary emits no global subscriber or
   recorder.
 - C13, Kani takes precedence over Cranelift (reviewer direction,
-  2026-10-23). Kani runs through `prover-tools kani exec`. If Kani cannot run
-  while the Cranelift development backend is configured, Cranelift is expunged
-  from the development standard, not worked around, and a GitHub issue is
-  raised to revisit the matter six months later (decision T10). No handwritten
-  Kani invocation that sidesteps the repository's Cargo configuration is
-  introduced.
+  2026-10-23). Kani runs through `prover-tools kani exec`. Since
+  [leynos/rust-prover-tools#206](https://github.com/leynos/rust-prover-tools/issues/206)
+  was resolved, the tool accepts this repository's Cranelift configuration, so
+  Cranelift stays. `OB-KANI-COMPAT` keeps the configuration inside what the
+  tool accepts. The precedence still stands: if Kani ever cannot run while
+  Cranelift is configured, Cranelift is expunged from the development standard,
+  not worked around, and a GitHub issue is raised to revisit the matter six
+  months later (decision T10). No handwritten Kani invocation that sidesteps
+  the repository's Cargo configuration is introduced.
 
 ## Tolerances (exception triggers)
 
@@ -133,8 +136,8 @@ plan, and `T` a decision made for this task-level plan.
 - Proof: a Verus obligation stays unproved after two working days, or appears
   to need a construct banned by C8. Use the named fallback only after approval.
 - Spike: S-VERUS rejects its hypothesis, or S-KANI fails for a reason other
-  than the Cranelift configuration. A Cranelift refusal is not an escalation:
-  C13 resolves it by expunging Cranelift in EP-M0b.
+  than a refusal of the Cranelift configuration. A Cranelift refusal is not an
+  escalation: C13 resolves it through EP-M0b's contingency.
 - Cranelift removal: Kani still cannot run after Cranelift is expunged, or
   removing Cranelift would change a contract unrelated to the development
   backend (for example release routing, coverage, or the `mold` linker).
@@ -173,15 +176,16 @@ plan, and `T` a decision made for this task-level plan.
   that toolchain. Severity: medium. Likelihood: medium. Mitigation: S-VERUS and
   S-KANI check exactly this; if `vstd` cannot build under Kani's toolchain,
   fall back to spec mirrors (decision D11) rather than dropping Kani coverage.
-- Risk: expunging Cranelift slows development builds (LLVM replaces it for
-  `make build`, `make test`, `make lint`, and `make typecheck`) and touches the
-  build standard: `.cargo/config.toml`, `rust-toolchain.toml`, the Makefile,
-  both build-tools scripts, three CI workflows, about ten contract tests, and
-  the developer, user, layout, and agent documentation. Severity: medium.
-  Likelihood: high, because `kani exec` refuses the Cranelift configuration at
-  the pinned commit. Mitigation: EP-M0b is its own milestone with its own
-  commits; measure cold and warm build times before and after and record them;
-  ADR 0013 records the decision; the revisit issue reopens it in six months.
+- Risk: a later change to the build configuration moves it outside what
+  `kani exec` accepts, for example a package-scoped backend override, a
+  `.cargo/config.toml` `include`, or a compiler-routing `[env]` entry. Kani
+  would then refuse to run, and `make kani` is not part of the routine gates.
+  Severity: medium. Likelihood: low. Mitigation: `OB-KANI-COMPAT` runs under
+  `make test` and rejects those positions. Should Kani still come to refuse
+  Cranelift, EP-M0b's contingency removes it; that touches the build standard
+  (`.cargo/config.toml`, `rust-toolchain.toml`, the Makefile, both build-tools
+  scripts, three CI workflows, about ten contract tests, and the developer,
+  user, layout, and agent documentation) and slows development builds.
 - Risk: backend units bound coordinates below 2^24 / 256 = 65,536 device
   pixels (or points). A surface or page larger than that, or an item far
   outside the visible area, returns `GeometryOutOfRange`. Severity: low.
@@ -216,13 +220,14 @@ plan, and `T` a decision made for this task-level plan.
   this is the first.
 - [x] (2026-10-23) Raised
       [leynos/rust-prover-tools#206](https://github.com/leynos/rust-prover-tools/issues/206)
-      so that
-  `kani exec` can run with a configured development backend; the reviewer
-  accepted the loss of Cranelift until it is resolved.
-- [ ] Reviewer approval of this plan.
+      so that `kani exec` can run with a configured development backend.
+- [x] (2026-11-04) #206 resolved by
+      [leynos/rust-prover-tools#217](https://github.com/leynos/rust-prover-tools/pull/217);
+  reran the S-KANI scenario against `main`, which verified a harness with
+  Cranelift configured, so Cranelift stays.
+- [x] (2026-11-04) Reviewer approval of this plan.
 - [ ] EP-M0a: workspace, prover tooling, guards, and spikes.
-- [ ] EP-M0b: Kani route, expunging Cranelift if Kani requires it, with the
-  revisit issue raised.
+- [ ] EP-M0b: Kani route and `OB-KANI-COMPAT`, with Cranelift retained.
 - [ ] EP-M1: scene model and scene documents.
 - [ ] EP-M2: resolution, device mapping, hit testing, damage, and
   accessibility nodes.
@@ -247,8 +252,9 @@ plan, and `T` a decision made for this task-level plan.
   Cranelift backend, `mold`, and frontend-thread flags, and rejects
   `--manifest-path`. Kani 0.67.0 is installed on the development host at
   `~/.kani/kani-0.67.0`. Evidence: the tool's `docs/users-guide.md` at commit
-  `9c4a27a`, and `cargo kani --version`. Impact: `make kani` delegates to
-  `kani exec` (decision T2).
+  `9c4a27a`, unchanged in these respects at `f70b02f`, and
+  `cargo kani --version`. Impact: `make kani` delegates to `kani exec`
+  (decision T2).
 - Observation: at commit `9c4a27a`, `prover-tools kani exec` refuses any
   `codegen-backend` key in the Cargo configuration of its working directory or
   any parent (`_check_backend` in `rust_prover_tools/kani_release_config.py`:
@@ -256,10 +262,40 @@ plan, and `T` a decision made for this task-level plan.
   repository's `.cargo/config.toml` sets `[unstable] codegen-backend = true` and
   `[profile.dev] codegen-backend = "cranelift"`, and `kani exec` also rejects
   `--manifest-path`, so it cannot run here as things stand. Evidence: source
-  review on 2026-10-23. Impact: unless the pinned tool has changed by EP-M0a,
-  Kani cannot run here while Cranelift is configured, so EP-M0b expunges
-  Cranelift (constraint C13, decision T10). Raised upstream as
+  review on 2026-10-23. Impact: raised upstream as
   [leynos/rust-prover-tools#206](https://github.com/leynos/rust-prover-tools/issues/206).
+  Superseded by the next observation.
+- Observation:
+  [leynos/rust-prover-tools#217](https://github.com/leynos/rust-prover-tools/pull/217),
+  merged on 2026-10-30 as `548a454`, classifies `codegen-backend` by position.
+  It accepts `[unstable] codegen-backend = true` and string
+  `profile.<name>.codegen-backend` selections, and sets
+  `CARGO_PROFILE_<NAME>_CODEGEN_BACKEND=llvm` in the Kani child only. It still
+  refuses package-scoped backend overrides, unusual profile names, Cargo
+  `include`, and a caller-set `CARGO_PROFILE_<NAME>_CODEGEN_BACKEND`. Evidence:
+  the tool's source and users' guide at `f70b02f`. Impact: EP-M0b keeps
+  Cranelift (decision T10).
+- Observation: the tool's own acceptance test does not use this repository's
+  whole configuration, so the S-KANI scenario was run directly on 2026-11-04,
+  from a throwaway copy of `origin/main` at `222ccf1` with one harness in a
+  workspace member. It used `~/.kani/kani-0.67.0`, `f70b02f`, and the
+  repository's `.cargo/config.toml` unchanged, including `mold`, `-Zthreads=8`,
+  and the `incremental`, `debug`, and `embed-metadata` keys that `main` added
+  after the tool's fix. Result: exit 0, `VERIFICATION:- SUCCESSFUL`, with one
+  harmless warning that Kani's older Cargo ignores `unstable.embed-metadata`.
+  Impact: S-KANI's hypothesis is that this holds on the real crate.
+- Observation: `kani exec` requires at least one `--extra-arg`; without one it
+  exits 2 with "parameter --extra-arg requires an argument" before starting
+  Kani. Evidence: the same probe. Impact: `make kani` passes
+  `--extra-arg=--package=cabochon-lapidary`, which the probe's equivalent
+  proved works.
+- Observation: at `f70b02f`, `prover-tools z3 install` installs the pinned Z3
+  4.16.0, which the tool documents as not shipped in the Verus archive.
+  `verus run` neither installs Z3 nor sets `VERUS_Z3_PATH`, so the caller must
+  do both. `kani install` now takes a pinned, digest-checked prebuilt route for
+  Kani 0.67.0 by default (`--compile` selects the source build), and caches
+  archives under `.cache/kani`. `--proof-file` may be repeated. Evidence: the
+  tool's users' guide and source. Impact: decision T2 and the Make targets.
 - Observation: the build-standard contract
   (`tests/build_standard_support/make.rs`) reads only command lines containing
   `cargo` or `whitaker`, and fails a held-out target that runs no Cargo
@@ -324,31 +360,36 @@ Decisions made for this task-level plan:
   Date: 2026-10-23.
 - Decision T2: use `rust-prover-tools` for both provers. `make install-kani`
   runs `prover-tools kani install` (reading `tools/kani/VERSION`, pinned to
-  0.67.0, the release `kani exec` is qualified for); `make install-verus` and
-  `make verus` run `prover-tools verus install` and `prover-tools verus run`.
-  `make kani` runs `prover-tools kani check-version` and then
-  `prover-tools kani exec --installation "$(KANI_INSTALLATION)" --cwd
-  crates/cabochon-lapidary`.
+  0.67.0, the release `kani exec` is qualified for); `make install-verus` runs
+  `prover-tools verus install` and
+  `prover-tools z3 install --install-dir .verus/z3`, a stable path that does
+  not depend on the Z3 version the tool pins. `make verus` runs
+  `prover-tools verus run` with `VERUS_Z3_PATH` set to that binary. If a later
+  proof entry point is needed, the recipe repeats `--proof-file`; the tool
+  verifies each file in turn and stops at the first failure. `make kani` runs
+  `prover-tools kani check-version` and then `prover-tools kani exec` with
+  `--installation "$(KANI_INSTALLATION)"`, `--cwd crates/cabochon-lapidary`, and
+  `--extra-arg=--package=cabochon-lapidary`, because `kani exec` requires an
+  extra argument and the package selector is the one that adds no behaviour.
   Rationale: the tool owns version pinning, checksums, toolchain selection,
   compile admission, and isolation from the development flags. A handwritten
   `cargo kani` route run from outside the checkout was considered and rejected
   under constraint C13. Date: 2026-10-23.
-- Decision T10 (reviewer direction, 2026-10-23): Kani is more important than
-  Cranelift. If S-KANI shows that `prover-tools kani exec` cannot run while
-  `.cargo/config.toml` selects Cranelift (as at the pinned commit, which
-  rejects any `codegen-backend` key), EP-M0b expunges Cranelift from the
-  development standard: development builds, tests, lint, and type checks use
-  the default LLVM backend. EP-M0b then raises a GitHub issue on
-  `leynos/cabochon` to revisit Cranelift six months after the removal date,
-  records the issue number here and in `docs/developers-guide.md`, and records
-  the decision as ADR 0013. If S-KANI shows `kani exec` running with Cranelift
-  present (because the tool has changed), Cranelift stays and EP-M0b only adds
-  the `kani` target. On 2026-10-23 the reviewer accepted the loss of Cranelift
-  until
-  [leynos/rust-prover-tools#206](https://github.com/leynos/rust-prover-tools/issues/206),
-  which asks `kani exec` to support a configured development backend, is
-  resolved. The Cabochon revisit issue links #206 and falls due when #206 is
-  resolved or six months after removal, whichever comes first. Date: 2026-10-23.
+- Decision T10 (reviewer direction, 2026-10-23; updated 2026-11-04): Kani is
+  more important than Cranelift. On 2026-10-23 the reviewer accepted the loss
+  of Cranelift until
+  [leynos/rust-prover-tools#206](https://github.com/leynos/rust-prover-tools/issues/206)
+  was resolved. It was resolved by
+  [leynos/rust-prover-tools#217](https://github.com/leynos/rust-prover-tools/pull/217),
+  and the S-KANI scenario then passed with this repository's configuration, so
+  Cranelift stays: EP-M0b adds the `kani` target and `OB-KANI-COMPAT`, and the
+  Kani child alone compiles with LLVM. Expunging Cranelift is now a
+  contingency, taken only if S-KANI or a later run shows `kani exec` refusing
+  Cranelift's configuration. It then follows EP-M0b's contingency steps:
+  development builds, tests, lint, and type checks use the default LLVM
+  backend; ADR 0013 records the decision; and a GitHub issue on
+  `leynos/cabochon` falls due when the upstream refusal is resolved or six
+  months after removal, whichever comes first. Date: 2026-11-04.
 - Decision T13 (reviewer direction, 2026-10-23): enforce the architecture
   mechanically, at three levels, with checkers that are themselves tested.
   Crate level: `OB-ARCH-DEPS` uses allow-lists of permitted dependencies per
@@ -390,8 +431,9 @@ Decisions made for this task-level plan:
   plateaus within that pull request. Date: 2026-10-23.
 - Decision T9: ADR numbers are reserved by this decomposition: 0009 for this
   plan, 0010 for the 1.0.2 plan, 0011 for the 1.0.4 plan, 0012 for the 1.0.1
-  plan, and 0013 for this plan's Cranelift decision if EP-M0b expunges it. Any
-  other pull request needing an ADR takes 0014 or later. Date: 2026-10-23.
+  plan, and 0013 for this plan's Cranelift decision if EP-M0b's contingency
+  runs. Any other pull request needing an ADR takes 0014 or later. Date:
+  2026-10-23.
 - Decision T3: the checked integer conversion from EMU to backend units
   (1/256 device pixel, or 1/256 point for PDF, each bounded below 2^24 so a
   later `f32` cast is exact) lives in Lapidary as
@@ -425,9 +467,9 @@ Markdown formatting, `make lint` runs rustdoc, Clippy, and Whitaker, and
 `make test` runs `cargo nextest` with
 `--workspace --all-targets --all-features` and then the doctests, so new member
 crates join every gate automatically. `.cargo/config.toml` selects the
-Cranelift backend, the parallel frontend, and the pinned `mold` linker; EP-M0b
-removes the Cranelift selection if Kani cannot run with it present (constraint
-C13). Compilation passes through a shared admission queue
+Cranelift backend, the parallel frontend, and the pinned `mold` linker;
+`prover-tools kani exec` overrides that selection for the Kani child only
+(constraint C13). Compilation passes through a shared admission queue
 (`build-limits-rustc`); a waiting build is not hung.
 
 Terms:
@@ -735,19 +777,29 @@ and contain no `curl`, `unzip`, `sha256sum`, or `cargo kani`; and, with a
 recording fake passed as `PROVER_TOOLS_CONTRACT_TEST=1 PROVER_TOOLS=<fake>` on
 the `make` command line, that `make kani` issues exactly
 `kani check-version --repo-root .` and then
-`kani exec --installation <path> --cwd crates/cabochon-lapidary`, and that
-`make verus` issues exactly
-`verus run --repo-root . --proof-file verus/lapidary_proofs.rs`.
+`kani exec --installation <path> --cwd crates/cabochon-lapidary --extra-arg=--package=cabochon-lapidary`;
+that `make install-verus` issues exactly `verus install --repo-root .` and then
+`z3 install --repo-root . --install-dir .verus/z3`; and that `make verus`
+issues exactly `verus run --repo-root . --proof-file verus/lapidary_proofs.rs`
+with `VERUS_Z3_PATH` naming `.verus/z3/z3`.
 
-`OB-KANI-COMPAT`, Kani compatibility guard (only if EP-M0b expunges Cranelift).
-`tests/kani_compatibility_contract.rs` asserts that neither
-`.cargo/config.toml` nor any workspace manifest contains a `codegen-backend`
-key, and that `rust-toolchain.toml` and the build-tools scripts no longer
-request `rustc-codegen-cranelift-preview`, so Cranelift cannot return unnoticed
-before the revisit issue is resolved. Its failure message names the revisit
-issue. Non-vacuity: a seeded fault that restores
-`[profile.dev] codegen-backend = "cranelift"` in a temporary copy of the
-configuration must fail the parser-level check the test uses.
+`OB-KANI-COMPAT`, Kani compatibility guard.
+`tests/kani_compatibility_contract.rs` parses `.cargo/config.toml` and every
+workspace manifest through a pure evaluator that mirrors the positions
+`prover-tools kani exec` accepts at the pinned commit. `codegen-backend` may
+appear only as a boolean under `[unstable]` or as a string under
+`[profile.<name>]`, with `<name>` matching `[A-Za-z0-9_-]+`. The evaluator
+rejects package-scoped overrides, `include`, an `[env]` entry that routes the
+compiler, and a `[build]` `rustc-wrapper`, `rustc-workspace-wrapper`, or
+`rustdoc` entry in repository configuration. The test also asserts that the
+`kani` recipe and `formal.yml` set no `CARGO_PROFILE_<NAME>_CODEGEN_BACKEND`,
+which the tool refuses. Its failure message names `make kani` and constraint
+C13. Non-vacuity: each rejected position is a seeded fixture that must fail,
+and the repository's real configuration must pass. If EP-M0b's contingency
+runs, the test instead asserts that no `codegen-backend` key or
+`rustc-codegen-cranelift-preview` request remains, and names the revisit issue.
+`make kani` remains the behavioural check; this guard only gives early warning
+under `make test`.
 
 ## Plan of work
 
@@ -777,16 +829,18 @@ Prover tooling (decision T2). Add `tools/kani/VERSION` (`0.67.0`),
 `tools/verus/VERSION` (the latest weekly release when EP-M0a starts),
 `tools/verus/SHA256SUMS`, `tools/verus/README.md`, and
 `tools/rust-prover-tools/REF` (`ref: <40-hex>`, the then-current commit of
-`leynos/rust-prover-tools`; `9c4a27a86c678ceac1155404f45d95ee4a14a172` at
-planning time). Add `.verus/` to `.gitignore` before the first install so
-`mdtablefix --git --include-untracked` never rewrites Verus's bundled Markdown.
-Add the `install-kani`, `install-verus`, and `verus` targets from
-`Interfaces and dependencies`; the `kani` target arrives in EP-M0b, once Kani
-can run. None of these targets joins `make all`, `make test`, or `make lint`,
-and none joins the build-standard target lists, which read only `cargo` and
-`whitaker` commands. Until EP-M3, `verus/lapidary_proofs.rs` holds S-VERUS's
-verified toy kernel, so `make verus` always verifies a real file
-(`prover-tools verus run` has no skip mode). Add the new targets to `.PHONY`.
+`leynos/rust-prover-tools`, which must include `548a454`;
+`f70b02f2b11d14c4141fd33aa5fa6407e1de858c` at approval). Add `.verus/` and
+`.cache/` to `.gitignore` before the first install, so
+`mdtablefix --git --include-untracked` never rewrites Verus's bundled Markdown
+and the tool's verified archive caches stay untracked. Add the `install-kani`,
+`install-verus`, and `verus` targets from `Interfaces and dependencies`; the
+`kani` target arrives in EP-M0b, after S-KANI. None of these targets joins
+`make all`, `make test`, or `make lint`, and none joins the build-standard
+target lists, which read only `cargo` and `whitaker` commands. Until EP-M3,
+`verus/lapidary_proofs.rs` holds S-VERUS's verified toy kernel, so `make verus`
+always verifies a real file (`prover-tools verus run` has no skip mode). Add
+the new targets to `.PHONY`.
 
 Test infrastructure. Add `.config/nextest.toml` (a `render` test group for
 later plans, and slow-test timeouts), one `rstest-bdd` smoke scenario in the
@@ -809,17 +863,24 @@ Spikes, each recording hypothesis, command, and result in `Artefacts and notes`:
    and, for decision D11, the same kernel written inside `verus!` with the
    matching crates.io `vstd` and `verus_builtin_macros` compiles and passes
    `make lint` and `make test`. Record the Rust toolchain the pinned Verus
-   requires (`prover-tools verus run` installs it) and whether
-   `rust-toolchain.toml` interferes. The Kani half of this spike (building the
-   single-source kernel under Kani's own `nightly-2025-11-21` toolchain, and
-   finding the highest `rust-version` Lapidary can declare for it) runs at the
-   end of EP-M0b, once Kani can run.
+   requires (`prover-tools verus run` installs it), whether
+   `rust-toolchain.toml` interferes, and that Verus uses the Z3 at
+   `VERUS_Z3_PATH`. The Kani half of this spike (building the single-source
+   kernel under Kani's own `nightly-2025-11-21` toolchain, and finding the
+   highest `rust-version` Lapidary can declare for it) runs at the end of
+   EP-M0b.
 2. S-KANI: after `make install-kani`, run
-   `prover-tools kani exec --installation "$HOME/.kani/kani-0.67.0" --cwd crates/cabochon-lapidary`
+
+   ```bash
+   prover-tools kani exec --installation "$HOME/.kani/kani-0.67.0" \
+     --cwd crates/cabochon-lapidary --extra-arg=--package=cabochon-lapidary
+   ```
+
    on one trivial harness with the repository's configuration unchanged.
-   Hypothesis: it refuses with "Kani exec cannot prove isolation of Cargo
-   backend configuration". Record the exact outcome;    it selects EP-M0b's
-   branch (decision T10).
+   Hypothesis: it reports `VERIFICATION:- SUCCESSFUL`, as the 2026-11-04 probe
+   did on a throwaway member. Record the exact outcome and whether the pinned
+   tool still warns about `unstable.embed-metadata`. It selects EP-M0b's branch
+   (decision T10).
 3. S-PUBAPI: `public-api` 0.52 accepts the rustdoc JSON that the pinned
    nightly emits for a small crate. If it does not, find the nightly the
    release documents as supported, pin it in `tools/public-api/TOOLCHAIN`,
@@ -836,20 +897,24 @@ baseline" now describes `[workspace.lints]`; new sections cover the workspace,
 the dependency rule and its contract test, test conventions and budgets, and
 the prover tooling. Update `docs/contents.md`.
 
-### EP-M0b: Kani route, expunging Cranelift if Kani requires it
+### EP-M0b: Kani route and `OB-KANI-COMPAT`
 
-Constraint C13 and decision T10 govern this milestone.
+Constraint C13 and decision T10 govern this milestone. S-KANI is expected to
+pass, in which case Cranelift stays. Write
+`tests/kani_compatibility_contract.rs` (`OB-KANI-COMPAT`), add the `kani`
+target and its `OB-PROVER-TOOLING` expectations, and run `make kani` on the
+trivial harness, with `build-limits-status` showing its compiler invocations
+admitted through the queue. Then run S-VERUS's Kani half and record the
+outcomes.
 
-If S-KANI showed `kani exec` running with Cranelift present, add the `kani`
-target and its `OB-PROVER-TOOLING` expectations, record the outcome, and finish
-the milestone.
-
-Otherwise, expunge Cranelift, as its own sequence of commits:
+Contingency: only if S-KANI shows `kani exec` refusing Cranelift's
+configuration, raise the refusal on `leynos/rust-prover-tools`, then expunge
+Cranelift as its own sequence of commits before finishing the steps above:
 
 1. Measure cold and warm `make test` and `make lint` times with Cranelift and
    record them in `Artefacts and notes`.
-2. Write `tests/kani_compatibility_contract.rs` (`OB-KANI-COMPAT`) and run it
-   red against the current configuration.
+2. Write `OB-KANI-COMPAT`'s contingency form and run it red against the
+   current configuration.
 3. Remove the `[unstable] codegen-backend` and `[profile.dev] codegen-backend`
    keys from `.cargo/config.toml`, keeping the parallel frontend and the `mold`
    linker; remove `rustc-codegen-cranelift-preview` from `rust-toolchain.toml`,
@@ -877,22 +942,17 @@ Otherwise, expunge Cranelift, as its own sequence of commits:
 
    ```bash
    gh issue create -R leynos/cabochon \
-     --title "Revisit the Cranelift development backend (after rust-prover-tools#206, or <removal date + 6 months>)" \
+     --title "Revisit the Cranelift development backend (after rust-prover-tools#<issue>, or <removal + 6 months>)" \
      --body-file /tmp/cranelift-revisit-issue.md
    ```
 
-   The body states the removal date and commit, why Cranelift was removed
-   (`prover-tools kani exec` rejects `codegen-backend` configuration; tracked
-   upstream as leynos/rust-prover-tools#206), the measured build-time cost, ADR
-   0013, and what to check on revisiting: whether `rust-prover-tools` or Kani
-   now tolerate a configured development backend, and whether Cranelift's
-   build-time gain still justifies it. Record the issue number in decision T10,
-   ADR 0013, and `docs/developers-guide.md`.
+   The body states the removal date and commit, why Cranelift was removed (the
+   exact `prover-tools kani exec` refusal, and the upstream issue tracking it),
+   the measured build-time cost, ADR 0013, and what to check on revisiting:
+   whether `rust-prover-tools` or Kani now tolerate a configured development
+   backend, and whether Cranelift's build-time gain still justifies it. Record
+   the issue number in decision T10, ADR 0013, and `docs/developers-guide.md`.
 8. Measure the build times again with LLVM and record them.
-
-Then add the `kani` target, run S-KANI again (`make kani` on the trivial
-harness, with `build-limits-status` showing its compiler invocations admitted
-through the queue), and run S-VERUS's Kani half.
 
 ### EP-M1: scene model and scene documents
 
@@ -962,18 +1022,20 @@ are separate commits). The compatibility decision is "none": every interface is
 pre-1.0 and internal.
 
 - EP-M0a. Outcome: a workspace with two member crates, Verus tooling,
-  `install-kani`, guards, and the S-VERUS and S-KANI results. Evidence: all
+  `install-kani`, Z3, guards, and the S-VERUS and S-KANI results. Evidence: all
   gates pass; the `msrv` command passes locally; `make verus` verifies
   S-VERUS's toy kernel; the five architecture guards pass and reject their
   seeded violations; S-PUBAPI's outcome is recorded; `cargo tree -p cabochon`
   is unchanged.
-- EP-M0b. Outcome: Kani runs through `prover-tools kani exec`. Evidence:
-  `make kani` runs the trivial harness under compile admission; all gates pass.
-  If Cranelift was expunged: `OB-KANI-COMPAT` passes, the rewritten
-  build-standard contracts pass, ADR 0013 is accepted, the revisit issue exists
-  and is linked from decision T10 and the developers' guide, and the
-  before-and-after build times are recorded. Recovery: revert the milestone's
-  commits, which restores Cranelift and removes the `kani` target together.
+- EP-M0b. Outcome: Kani runs through `prover-tools kani exec` with Cranelift
+  retained. Evidence: `make kani` runs the trivial harness under compile
+  admission; `OB-KANI-COMPAT` passes and rejects its seeded positions; the
+  build-standard contracts pass unchanged; all gates pass. If the contingency
+  ran: the rewritten build-standard contracts pass, ADR 0013 is accepted, the
+  revisit issue exists and is linked from decision T10 and the developers'
+  guide, and the before-and-after build times are recorded. Recovery: revert
+  the milestone's commits, which removes the `kani` target and restores
+  Cranelift if it was removed.
 - EP-M1. Outcome: Lapidary models, validates, and round-trips scenes.
   Requirements: `RM-1.0.3` (data model), `TDD-VDI-RT`. Evidence: `OB-LAP-UNITS`,
   `OB-LAP-FIXED`, `OB-LAP-VALID`, and `OB-LAP-ROUNDTRIP` pass under
@@ -1080,8 +1142,8 @@ cargo nextest run -p cabochon-lapidary --test damage_properties
   `OB-ARCH-IMPORTS`, and `OB-ARCH-PUBAPI` pass, and each rejects its seeded
   violations.
 - Compatibility: the `msrv` command passes.
-- Kani precedence: `make kani` runs through `prover-tools kani exec`; if
-  Cranelift was expunged, `OB-KANI-COMPAT` passes and the revisit issue is open.
+- Kani precedence: `make kani` runs through `prover-tools kani exec` and
+  `OB-KANI-COMPAT` passes; if the contingency ran, the revisit issue is open.
 
 Record red, green, and refactor evidence per milestone in `Artefacts and notes`.
 
@@ -1089,11 +1151,11 @@ Record red, green, and refactor evidence per milestone in `Artefacts and notes`.
 
 Every step is additive and rerunnable. The workspace conversion is one commit
 and reverts cleanly; each dependency addition is its own commit.
-`make install-kani` and `make install-verus` are idempotent: the prover tool
-verifies versions and checksums and reuses existing installations
-(`.verus/<version>` is ignored by Git). If a gate fails, fix the cause and
-rerun the whole sequence. Accept `insta` snapshot changes only after confirming
-they reflect an intended contract change.
+`make install-kani` and `make install-verus` (including its Z3 step) are
+idempotent: the prover tool verifies versions and checksums and reuses existing
+installations (`.verus/` and `.cache/` are ignored by Git). If a gate fails,
+fix the cause and rerun the whole sequence. Accept `insta` snapshot changes
+only after confirming they reflect an intended contract change.
 
 ## Artefacts and notes
 
@@ -1143,13 +1205,15 @@ install-kani: ## Install the pinned Kani release
 
 kani: ## Run the Kani harnesses for the Lapidary kernels (added in EP-M0b)
 	$(PROVER_TOOLS) kani check-version --repo-root .
-	$(PROVER_TOOLS) kani exec --installation "$(KANI_INSTALLATION)" --cwd crates/cabochon-lapidary
+	$(PROVER_TOOLS) kani exec --installation "$(KANI_INSTALLATION)" --cwd crates/cabochon-lapidary \
+		--extra-arg=--package=cabochon-lapidary
 
-install-verus: ## Install the pinned Verus release
+install-verus: ## Install the pinned Verus release and its Z3 solver
 	$(PROVER_TOOLS) verus install --repo-root .
+	$(PROVER_TOOLS) z3 install --repo-root . --install-dir .verus/z3
 
 verus: ## Run the Verus proofs
-	$(PROVER_TOOLS) verus run --repo-root . --proof-file "$(VERUS_PROOF_FILE)"
+	VERUS_Z3_PATH="$(CURDIR)/.verus/z3/z3" $(PROVER_TOOLS) verus run --repo-root . --proof-file "$(VERUS_PROOF_FILE)"
 ```
 
 `PROVER_TOOLS` is locked to the pinned source unless both
@@ -1259,7 +1323,8 @@ record deviations in `Decision log`.
   `googletest` 0.14, `pretty_assertions` 1.4, `insta` 1.49, `proptest` 1.11, and
   `proc-macro2` 1 (spec-mirror fallback only).
 - Tooling: Kani 0.67.0 (`tools/kani/VERSION`), Verus (`tools/verus/VERSION`),
-  and `rust-prover-tools` (`tools/rust-prover-tools/REF`).
+  `rust-prover-tools` (`tools/rust-prover-tools/REF`), and Z3 4.16.0 (pinned by
+  `rust-prover-tools`).
 
 ## Documentation obligations
 
@@ -1279,7 +1344,9 @@ record deviations in `Decision log`.
 - A prose reference for scene document version 1.
 - `docs/developers-guide.md`: the architecture guards, their rule tables,
   how to add a row, their blind spots, and the `public-api` toolchain coupling.
-- If EP-M0b expunges Cranelift: ADR 0013, the revisit issue, and updates to
+- `docs/developers-guide.md`: Kani's child build uses LLVM while Cranelift
+  stays the development backend, and what `OB-KANI-COMPAT` protects.
+- If EP-M0b's contingency runs: ADR 0013, the revisit issue, and updates to
   `AGENTS.md`, `docs/developers-guide.md`, `docs/users-guide.md`, and
   `docs/repository-layout.md` describing the LLVM development standard and
   linking the issue.
@@ -1330,3 +1397,15 @@ record deviations in `Decision log`.
   S-PUBAPI). Every guard separates a tested pure evaluator from its input
   adapter and carries repair hints. Lapidary's domain types drop their `serde`
   derives in favour of private data-transfer types in `document::wire`.
+- 2026-11-04:
+  [leynos/rust-prover-tools#206](https://github.com/leynos/rust-prover-tools/issues/206)
+  was resolved by
+  [leynos/rust-prover-tools#217](https://github.com/leynos/rust-prover-tools/pull/217),
+  and the reviewer approved this plan. Cranelift now stays (constraint C13,
+  decision T10); expunging it is a contingency. `OB-KANI-COMPAT` no longer
+  guards against Cranelift's return: it keeps the configuration within what
+  `kani exec` accepts. Moved the pin to `f70b02f`. A probe against
+  `origin/main` confirmed the route and found that `kani exec` requires an
+  `--extra-arg`, so `make kani` passes a package selector. Added the Z3 install
+  and `VERUS_Z3_PATH`, which the tool now separates from Verus, and ignored
+  `.cache/`.

@@ -53,7 +53,7 @@ Decision records live under `docs/adrs/` as `adr-nnnn-title-slug.md`, per the
 
 ## Execution plans
 
-- `execplans/` holds the task-level plans for roadmap step 1.0, which
+- `execplans/` holds the approved task-level plans for roadmap step 1.0, which
   settles the Clerestory, Escutcheon, Lapidary, and Burin contracts. Implement
   them in this order:
   - [1.0.3: Define the minimum Lapidary scene contract](execplans/1-0-3-lapidary-scene-contract.md)

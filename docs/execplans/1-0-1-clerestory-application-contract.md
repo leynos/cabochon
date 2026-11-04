@@ -5,15 +5,16 @@ This ExecPlan (execution plan) is a living document. The sections `Constraints`,
 `Outcomes & retrospective`, `Conformance basis`, and `Verification plan` must
 be kept up to date as work proceeds.
 
-Status: DRAFT
+Status: APPROVED
 
-Implementation must not begin until a human reviewer explicitly approves this
-plan and the 1.0.3, 1.0.4, and 1.0.2 plans
+The reviewer approved this plan on 2026-11-04. The pull request that carries
+the plan does not implement it. Implementation must not begin until that pull
+request has merged and the 1.0.3, 1.0.4, and 1.0.2 plans
 (`docs/execplans/1-0-3-lapidary-scene-contract.md`,
 `docs/execplans/1-0-4-burin-output-contract.md`, and
 `docs/execplans/1-0-2-escutcheon-resource-format.md`) have been implemented and
-merged. Silence is not approval. Implement on a branch named
-`1-0-1-clerestory-application-contract`, in its own pull request.
+merged. Implement on a branch named `1-0-1-clerestory-application-contract`, in
+its own pull request.
 
 ## Purpose / big picture
 
@@ -157,8 +158,8 @@ from the reviewed step-level plan, `T` decision made for the task-level plans.
 - [x] (2026-10-22) Reviewer accepted decisions D1, D6, D7, D8, D10, D11, D12,
   D13, and D14 on the step-level plan.
 - [x] (2026-10-23) Decomposed into four task-level plans; this is the last.
-- [ ] Reviewer approval of this plan; the 1.0.3, 1.0.4, and 1.0.2 plans
-  implemented and merged.
+- [x] (2026-11-04) Reviewer approval of this plan.
+- [ ] The 1.0.3, 1.0.4, and 1.0.2 plans implemented and merged.
 - [ ] EP-M1: session, state machines, routing, and the headless shell.
 - [ ] EP-M2: layout, furniture, text input, inspector, and accessibility
   tree.
@@ -241,8 +242,8 @@ Task-level decisions:
 - Decision T9: ADR numbers are reserved by this decomposition: 0009 for the
   1.0.3 plan, 0010 for the 1.0.2 plan, 0011 for the 1.0.4 plan, and 0012 for
   this plan. 0013 is reserved for the 1.0.3 plan's Cranelift decision, if its
-  EP-M0b expunges Cranelift (decision T10 there). Any other pull request
-  needing an ADR takes 0014 or later. Date: 2026-10-23.
+  EP-M0b contingency runs (decision T10 there). Any other pull request needing
+  an ADR takes 0014 or later. Date: 2026-10-23.
 - Decision T11: the hello-window binary embeds its resource bundle with
   `include_str!` (and `include_bytes!` for icons) and loads it through
   Escutcheon's in-memory `ResourceSource` by default; `--resources DIR` loads a
@@ -740,3 +741,6 @@ starts):
   public-API allow-list for Clerestory, and private data-transfer types for
   `export.json`. Renumbered this plan's decisions T10 and T11 to T11 and T12,
   because T10 already names the 1.0.3 plan's Kani decision.
+- 2026-11-04: the reviewer approved this plan. `leynos/rust-prover-tools#206`
+  was resolved, so the 1.0.3 plan keeps Cranelift and ADR 0013 stays reserved
+  only for its contingency. The milestones are unchanged.
