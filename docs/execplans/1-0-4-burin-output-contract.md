@@ -375,9 +375,12 @@ with the cluster-level expected font, which is the first registered font
 covering every character of that glyph's cluster. Named cases include `你` with
 a Latin primary font, a run mixing Latin and Arabic, an Arabic sequence that
 shapes into a ligature, and a combining mark the base character's font lacks.
-Non-vacuity: counters for primary hits, fallbacks, and `NoFontCovers`; seeded
-faults: always using the primary font, and choosing fonts per character, must
-each fail.
+The combining-mark case asserts, independently of the font oracle and before
+applying it, that the base character and mark share one `ShapedGlyph::cluster`;
+this assertion is specific to that case, because shaping clusters are not
+Unicode grapheme boundaries in general. Non-vacuity: counters for primary hits,
+fallbacks, and `NoFontCovers`; seeded faults: always using the primary font,
+and choosing fonts per character, must each fail.
 
 `OB-BUR-PARITY-GEOM` and `OB-BUR-PARITY-TEXT`: every workstation's output
 agrees with the shared `ResolvedScene` within the declared tolerances. PDF and
@@ -761,3 +764,6 @@ starts):
 - 2026-11-05: `OB-TEXT-FALLBACK` now chooses fonts at shaping-cluster
   boundaries, because a ligature's glyph has no single character for a
   per-character oracle.
+- 2026-11-05: the combining-mark case of `OB-TEXT-FALLBACK` now independently
+  asserts one shared cluster, because the font oracle trusts the
+  implementation's cluster values.
