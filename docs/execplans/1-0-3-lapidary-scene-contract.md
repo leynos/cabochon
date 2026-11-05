@@ -621,8 +621,11 @@ through vertices, horizontal edges, a bow tie, and a pentagram (winding 2);
 seeded fault: the even-odd rule must fail on the pentagram.
 
 `OB-LAP-HIT`, topmost hit testing. For a resolved hit list `h` in painting
-order and scene point `p`, `hit_test` returns `Some(i)` exactly when `i` is the
-greatest index with `covers(h[i], p)`, and `None` when none covers `p`.
+order and scene point `p`, the integer-only hit kernel returns `Some(i)`
+exactly when `i` is the greatest index with `covers(h[i], p)`, and `None` when
+none covers `p`. The public `ResolvedScene::hit_test` returns `h[i]`'s
+`HitPath` for that `i`, and `None` otherwise; the property test checks this
+mapping at the public boundary, because the Verus proof covers only the kernel.
 `covers` requires `p` in the effective clip (a rectangle intersected with a
 sequence of polygons, all of which must cover `p`) and in the entry's polygon.
 Lemma sketch: the reverse scan's invariant is that no later entry covers `p`;
@@ -889,7 +892,7 @@ Spikes, each recording hypothesis, command, and result in `Artefacts and notes`:
    tool still warns about `unstable.embed-metadata`. It selects EP-M0b's branch
    (decision T10).
 3. S-PUBAPI: `public-api` 0.52 accepts the rustdoc JSON that the pinned
-   nightly emits for a small crate. If it does not, find the nightly the
+   nightly emits for a small crate. If it does not, find the nightly that the
    release documents as supported, pin it in `tools/public-api/TOOLCHAIN`,
    install it through `make install-build-tools`, and have
    `tests/public_api_contract.rs` build rustdoc JSON with that toolchain;
@@ -1100,7 +1103,7 @@ Run from the worktree root. Gates, sequentially, through `tee`:
 ```bash
 set -euo pipefail
 
-BRANCH=$(git branch --show-current)
+BRANCH=$(git branch --show-current | tr '/' '-')
 make check-fmt 2>&1 | tee /tmp/check-fmt-cabochon-${BRANCH}.out
 make lint 2>&1 | tee /tmp/lint-cabochon-${BRANCH}.out
 make test 2>&1 | tee /tmp/test-cabochon-${BRANCH}.out
@@ -1111,7 +1114,7 @@ Formal gates:
 ```bash
 set -euo pipefail
 
-BRANCH=$(git branch --show-current)
+BRANCH=$(git branch --show-current | tr '/' '-')
 make install-kani
 make kani 2>&1 | tee /tmp/kani-cabochon-${BRANCH}.out
 make install-verus
@@ -1442,3 +1445,6 @@ record deviations in `Decision log`.
   adds it, and the obligation proves both clauses. `Fixed16` gained the public
   constructor that `Transform`'s public fields require. Stopped the logged
   gates masking failures through `tee`.
+- 2026-11-05: applied the second review round. `OB-LAP-HIT` now separates the
+  proved index-returning kernel from the public `HitPath`-returning `hit_test`,
+  and log paths are safe for branch names containing a slash.

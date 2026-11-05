@@ -184,7 +184,9 @@ Task-level decisions:
   allow-lists at crate level (`OB-ARCH-DEPS`), lint inheritance
   (`OB-ARCH-LINTS`), module level (`OB-ARCH-IMPORTS`, a `syn` import lint), and
   public-API level (`OB-ARCH-PUBAPI`, using the `public-api` crate), and
-  `serde` is confined to private data-transfer types. The 1.0.3 plan builds the
+  `serde`, where a crate uses it, is confined to private data-transfer types.
+  `cabochon-escutcheon` does not use `serde`: `kdl` parses its files, so C2's
+  allow-list omits it and `OB-ARCH-DEPS` rejects it. The 1.0.3 plan builds the
   guards and their rule tables in `tests/architecture/rules.rs`; this plan adds
   its crates' rows, each with a seeded violation that must fail.
 - Decision T1: implementation order 1.0.3, then 1.0.4 and 1.0.2, then 1.0.1;
@@ -292,10 +294,17 @@ reference, and asserts compilation fails with a diagnostic naming it and its
 span; named cases; an `insta` snapshot of rendered diagnostics for a
 multi-error file. Non-vacuity: counters for each reference kind seeded.
 
-`OB-ESC-SHORTCUT`, shortcuts. No two commands share a shortcut within one scope;
+`OB-ESC-SHORTCUT`, shortcuts. A shortcut's scope is the whole application:
+`CommandSpec`, the schema, and `ResourceBundle` have no narrower scope, and
+hello-window needs none. Compared by canonical form, a shortcut names at most
+one command and appears at most once in that command's `shortcuts`; a duplicate
+is a `Diagnostic` citing both spans. Window-local or menu-local scopes need a
+schema change that a later plan must propose.
 `Shortcut::parse(s.to_string()) == s`. Shortcuts name logical keys; matching
 falls back to the Latin layout's key for the same physical key, so Ctrl+Q works
-on a Cyrillic layout. Property tests plus named cases.
+on a Cyrillic layout. Property tests plus named cases: two commands sharing a
+shortcut, one command listing a shortcut twice, spellings with the same
+canonical form, and distinct shortcuts.
 
 `OB-ESC-L10N`, localization. Lookup walks the locale chain to the base locale
 and records whether a fallback occurred; the base locale must define every
@@ -415,7 +424,7 @@ Feature: Escutcheon compiles textual, localizable resources
 ```bash
 set -euo pipefail
 
-BRANCH=$(git branch --show-current)
+BRANCH=$(git branch --show-current | tr '/' '-')
 make check-fmt 2>&1 | tee /tmp/check-fmt-cabochon-${BRANCH}.out
 make lint 2>&1 | tee /tmp/lint-cabochon-${BRANCH}.out
 make test 2>&1 | tee /tmp/test-cabochon-${BRANCH}.out
@@ -564,3 +573,6 @@ recorder) and `tracing-test` 0.2, plus the testing crates from the 1.0.3 plan.
   only for its contingency. The milestones are unchanged.
 - 2026-11-05: applied review findings. Moved a long command into a fenced
   block, and stopped the logged gates masking failures through `tee`.
+- 2026-11-05: applied the second review round. Stated that this crate does not
+  use `serde`, defined shortcut scope as application-wide with named duplicate
+  cases, and made log paths safe for branch names containing a slash.

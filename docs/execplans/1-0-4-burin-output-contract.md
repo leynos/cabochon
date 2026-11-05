@@ -383,8 +383,13 @@ offsetting PDF text by one point and shifting a raster shape by two pixels must
 each fail.
 
 `OB-BUR-NODROP`: for every workstation that can be read back, the count of
-items of each kind (paths, glyph runs, images) equals the resolved scene's.
-Property test.
+items of each kind (paths, glyph runs, images) equals the resolved scene's,
+excluding items culled under decision T3 from the raster and PDF workstations.
+Culling is a pure predicate: an item is culled only when its conservative
+bounds, dilated by one device pixel (`A-RASTER-LOCALITY`), lie wholly outside
+the surface or page. Property test. Non-vacuity: generated scenes include
+wholly off-page, straddling, and edge-adjacent items; seeded faults: dropping a
+visible item and culling a straddling item must each fail.
 
 `OB-BUR-HITMAP`: the hit map lists each region's path, scene-space polygon, and
 effective clip (exact), and renders an identifier raster agreeing with
@@ -425,8 +430,10 @@ image size mismatch, resource limit exceeded, backend error) yields a bounded
 `RenderError` with a low-cardinality class, leaves the input scene's digest
 unchanged, and never substitutes a rasterized copy for text;
 `render_with_fallback` returns a diagnostic scene naming the failed item's
-path. Named cases with a fault-injecting workstation supplied by dependency
-injection, plus the behavioural feature.
+path, or, when a resource limit or backend failure has no single item (`node` is
+`None`), naming the workstation and stating that the frame failed. The path is
+diagnostic text and never a metric label. Named cases with a fault-injecting
+workstation supplied by dependency injection, plus the behavioural feature.
 
 `OB-BUR-PRINT`: print output carries the scene's media, trim, and bleed boxes
 and an sRGB output intent, excludes non-printable layers, and passes `krilla`'s
@@ -563,7 +570,7 @@ Feature: Burin renders one scene to every workstation
 ```bash
 set -euo pipefail
 
-BRANCH=$(git branch --show-current)
+BRANCH=$(git branch --show-current | tr '/' '-')
 make check-fmt 2>&1 | tee /tmp/check-fmt-cabochon-${BRANCH}.out
 make lint 2>&1 | tee /tmp/lint-cabochon-${BRANCH}.out
 make test 2>&1 | tee /tmp/test-cabochon-${BRANCH}.out
@@ -636,12 +643,13 @@ impl InteractiveSurface {
 }
 
 pub enum RenderError {
-    UnsupportedFeature { workstation: WorkstationKind, feature: FeatureKind },
+    // FeatureKind, LimitKind, and BackendFailureClass are closed, field-less enums.
+    UnsupportedFeature { workstation: WorkstationKind, node: NodePath, feature: FeatureKind },
     UndecodableImage { node: NodePath },
     ImageSizeMismatch { node: NodePath },
-    ResourceLimit { workstation: WorkstationKind, limit: LimitKind },
+    ResourceLimit { workstation: WorkstationKind, node: Option<NodePath>, limit: LimitKind }, // None: whole frame
     GeometryOutOfRange { node: NodePath },
-    Backend { workstation: WorkstationKind, class: BackendFailureClass },
+    Backend { workstation: WorkstationKind, node: Option<NodePath>, class: BackendFailureClass }, // None: whole frame
 }
 
 pub struct ParleyTextLayout { /* font collection injected at construction */ }
@@ -722,3 +730,8 @@ starts):
 - 2026-11-05: applied review findings. C5's limit now names source files, the
   logged gates no longer mask failures through `tee`, and `OB-BUR-LOCALITY`
   names Lapidary's `snap_out` and `dilated_by_one`.
+- 2026-11-05: applied the second review round. `OB-BUR-NODROP` now accounts for
+  decision T3's culling through a pure predicate, `RenderError` carries the
+  failed item's path (optional for frame-level limits and backend failures,
+  which `OB-BUR-FAIL` now covers), and log paths are safe for branch names
+  containing a slash.

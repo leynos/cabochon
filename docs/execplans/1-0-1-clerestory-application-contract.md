@@ -46,7 +46,7 @@ Observable success:
    field, and the content canvas with its text, each named.
 2. `--locale en-XA` shows pseudo-localized strings and `--locale ar-XB` shows
    the furniture mirrored for right-to-left text, with no code changes.
-3. `cargo run -p cabochon-hello-window -- export --out /tmp/hello` writes
+3. `cargo run -p cabochon-hello-window -- export --out "$(mktemp -d)"` writes
    `content.pdf`, `content-print.pdf`, `content.png`, `thumbnail.png`,
    `accessibility.json`, `clipboard/`, `hit-map.json`, and `export.json` (the
    fonts and fallbacks used).
@@ -199,7 +199,7 @@ Inherited from the reviewed step-level plan (accepted ones say so):
   confirmation, and About. File dialogs wait for roadmap 5.1.2; export takes
   its directory from the command line.
 - Decision D10 (accepted 2026-10-22): device scale in 1/120 units; snapping
-  snaps edges; a scale change damages the whole window.
+  applies to edges; a scale change damages the whole window.
 - Decision D12 (accepted 2026-10-22): Enfilade integration lives in bridge
   crates; EP-M5 proposes redrawing the design's Figure 1 accordingly.
 - Decision D13 (accepted 2026-10-22): drag-and-drop and host clipboard
@@ -584,13 +584,15 @@ Feature: The hello-window application is defined by its resources
 ```bash
 set -euo pipefail
 
-BRANCH=$(git branch --show-current)
+BRANCH=$(git branch --show-current | tr '/' '-')
 make check-fmt 2>&1 | tee /tmp/check-fmt-cabochon-${BRANCH}.out
 make lint 2>&1 | tee /tmp/lint-cabochon-${BRANCH}.out
 make test 2>&1 | tee /tmp/test-cabochon-${BRANCH}.out
 make test-hosted 2>&1 | tee /tmp/test-hosted-cabochon-${BRANCH}.out
-cargo run -p cabochon-hello-window -- export --out /tmp/hello
-ls /tmp/hello
+# `export` refuses a foreign non-empty directory, so each run takes a fresh one.
+EXPORT_DIR=$(mktemp -d)
+cargo run -p cabochon-hello-window -- export --out "$EXPORT_DIR"
+ls "$EXPORT_DIR"
 ```
 
 ```plaintext
@@ -620,9 +622,15 @@ cd /tmp && cargo +1.85.0 check --lib --all-features --locked \
 - Security: no `unsafe`, no direct process-environment access, `make audit`
   passes.
 - Documentation: `make markdownlint`, `make nixie`, and `make spelling` pass.
-- Behaviour: under GNOME or KDE Plasma, the window, menus, dialogs, and
-  inspector come from resources, Accerciser lists their roles and names and the
-  canvas text, and typing into the greeting field redraws only the greeting.
+- Behaviour, automated: under headless `weston`, `make test-hosted` shows the
+  window, menus, dialogs, and inspector coming from resources, the same
+  accessibility tree as the headless shell, and typing into the greeting field
+  redrawing only the greeting. This is the regression guarantee.
+- Behaviour, manual: in a real GNOME or KDE Plasma session, the same is true and
+  Accerciser lists the roles, names, and canvas text. Record the desktop, its
+  version, and the outcome in `Artefacts and notes`. This is a one-off check
+  backing assumption `A-WINIT`, not a regression guarantee; automated
+  GNOME-like and KDE-like acceptance belongs to roadmap 5.1.3.
 
 ## Idempotence and recovery
 
@@ -761,3 +769,7 @@ starts):
   About dialog before using the menu, because `OB-CLR-MODAL` blocks the menu
   while it is open. Moved long commands into fenced blocks, and stopped the
   logged gates masking failures through `tee`.
+- 2026-11-05: applied the second review round. Separated the automated
+  headless `weston` guarantee from a recorded manual check on a real desktop,
+  gave each export run a fresh directory, and made log paths safe for branch
+  names containing a slash.
