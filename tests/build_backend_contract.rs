@@ -53,12 +53,25 @@ fn steps<'a>(workflow: &'a Value, job: &str) -> Result<&'a [Value], String> {
         .ok_or_else(|| format!("{job} has no readable steps"))
 }
 
-/// Returns the first step using a pinned action prefix.
+/// Splits an action reference into its path and revision.
+fn split_action(reference: &str) -> (&str, &str) {
+    reference.split_once('@').unwrap_or((reference, ""))
+}
+
+/// Whether the revision is a full commit SHA, the only immutable form.
+fn is_full_sha(revision: &str) -> bool {
+    revision.len() == 40 && revision.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+/// Returns the first step using the action at its path, pinned to a full commit
+/// SHA. The SHA itself belongs to Dependabot, so it is not restated here.
 fn action_step<'a>(steps: &'a [Value], action: &str) -> Option<(usize, &'a Value)> {
+    let (path, _) = split_action(action);
     steps.iter().enumerate().find(|(_, step)| {
         step.get("uses")
             .and_then(Value::as_str)
-            .is_some_and(|uses| uses == action)
+            .map(split_action)
+            .is_some_and(|(uses_path, revision)| uses_path == path && is_full_sha(revision))
     })
 }
 
