@@ -49,9 +49,10 @@ Observable success:
    prints a one-line summary such as
    `ok: <n> commands, <n> menus, <n> dialogs, 1 inspector, 1 icon, 1 locale`
    (EP-M2 fixes the counts when it authors the fixture) and exits zero.
-2. Running it on `tests/fixtures/broken/dangling-command` prints a diagnostic
-   naming the undeclared command with its file, line, and column, and exits
-   non-zero.
+2. Running it on
+   `crates/cabochon-escutcheon/tests/fixtures/broken/dangling-command` prints a
+   diagnostic naming the undeclared command with its file, line, and column,
+   and exits non-zero.
 3. `make test` passes, including `resources.feature`.
 
 Roadmap task 1.0.2's success criterion is that the hello-window application
@@ -311,13 +312,21 @@ and records whether a fallback occurred; the base locale must define every
 referenced key; `en-XA` and `ar-XB` transform every string, and `ar-XB` reports
 right-to-left direction; missing message arguments are reported, not dropped;
 bidirectional isolation marks are on by default and pinned off in snapshot
-tests. Named cases plus the behavioural feature.
+tests. Property tests generate locale chains, message keys, and pseudo-locale
+strings, and compare lookups with an independent chain-walking oracle and
+transforms with the invariant that placeholders survive. Named cases and the
+behavioural feature stay. Non-vacuity: counters for direct hits, fallbacks, and
+missing keys; seeded fault: stopping at the first locale must fail.
 
 `OB-ESC-ICON`, icon compilation. A compiled icon's Lapidary paths lie inside
 its declared view box, preserve the SVG's fill rule, and come from
 `float_boundary` rounding to nearest EMU; SVG text, scripts, and external
-references are rejected with located diagnostics. Named cases with small
-fixture icons.
+references are rejected with located diagnostics. Property tests generate
+supported SVG paths, view boxes, fill rules, and rejected elements; an
+independent bounds calculation is the oracle for containment. Named cases with
+small fixture icons stay. Non-vacuity: counters for each fill rule, each path
+command, and each rejected element; seeded fault: dropping the fill rule must
+fail.
 
 `OB-ESC-DET`, determinism. Compilation is independent of directory listing
 order, and diagnostics are sorted by file then position. Property test with a
@@ -345,12 +354,16 @@ agent) and a commit. Each dependency addition is its own commit with
 Create `crates/cabochon-escutcheon`, add its rows to the architecture guards
 (run red first with a seeded violation for each), and record its ownership
 policy (`docs/cabochon-design.md`, `docs/repository-layout.md`). Implement the
-`ResourceSource` port with a `cap_std` directory adapter and an in-memory
-adapter for tests; the KDL schema version 1 parser for commands, menus,
-windows, dialogs, inspectors, and icons; the built-in command catalogue; the
-shortcut grammar; and Escutcheon-owned `Diagnostic`, `SourceSpan`, and
-`DiagnosticCode` types. Write `OB-ESC-REFS`, `OB-ESC-SHORTCUT`, `OB-ESC-DET`,
-and `OB-ESC-VERSION`. Draft ADR 0010 as `docs/adrs/adr-0010-<title-slug>.md`.
+`ResourceSource` port with a `cap_std` directory adapter and a public in-memory
+adapter, `MemorySource`. `MemorySource` is production API: hello-window loads
+its embedded bundle through it by default (the 1.0.1 plan's decision T11), and
+tests use it too. A test asserts that both adapters compile the hello-window
+fixture to identical bundles. Also implement the KDL schema version 1 parser
+for commands, menus, windows, dialogs, inspectors, and icons; the built-in
+command catalogue; the shortcut grammar; and Escutcheon-owned `Diagnostic`,
+`SourceSpan`, and `DiagnosticCode` types. Write `OB-ESC-REFS`,
+`OB-ESC-SHORTCUT`, `OB-ESC-DET`, and `OB-ESC-VERSION`. Draft ADR 0010 as
+`docs/adrs/adr-0010-<title-slug>.md`.
 
 ### EP-M2: localization, icons, annotations, and the hello-window fixture
 
@@ -440,8 +453,8 @@ The `msrv` CI job must keep passing (constraint C6); reproduce it from outside
 the checkout:
 
 ```bash
-cd /tmp && cargo +1.85.0 check --lib --all-features --locked \
-  --manifest-path "$OLDPWD/Cargo.toml"
+(cd /tmp && cargo +1.85.0 check --lib --all-features --locked \
+  --manifest-path "$OLDPWD/Cargo.toml")
 ```
 
 ## Validation and acceptance
@@ -449,7 +462,7 @@ cd /tmp && cargo +1.85.0 check --lib --all-features --locked \
 - Tests: `make test` passes with every obligation's tests and
   `resources.feature`.
 - Lint and formatting: `make check-fmt` and `make lint` pass with no
-  `#[expect]` outside `icon::float_boundary`.
+  `#[expect]` in this crate outside `icon::float_boundary`.
 - Architecture: Escutcheon's rows of `OB-ARCH-DEPS`, `OB-ARCH-IMPORTS`, and
   `OB-ARCH-PUBAPI` pass, and each row's seeded violation (an unlisted
   dependency, `kdl` imported outside `parse`, and a public function returning a
@@ -473,6 +486,12 @@ pub trait ResourceSource {
     fn read(&self, path: &ResourcePath) -> Result<String, ResourceReadError>;
     fn list(&self, dir: &ResourcePath) -> Result<Vec<ResourcePath>, ResourceReadError>;
 }
+
+pub struct MemorySource { /* path-to-text entries, ordered */ }
+impl MemorySource {
+    pub fn new(entries: impl IntoIterator<Item = (ResourcePath, String)>) -> Self;
+}
+impl ResourceSource for MemorySource { /* as above */ }
 
 pub fn compile(source: &dyn ResourceSource, locales: &LocaleChain) -> Result<ResourceBundle, CompileDiagnostics>;
 
@@ -576,3 +595,7 @@ recorder) and `tracing-test` 0.2, plus the testing crates from the 1.0.3 plan.
 - 2026-11-05: applied the second review round. Stated that this crate does not
   use `serde`, defined shortcut scope as application-wide with named duplicate
   cases, and made log paths safe for branch names containing a slash.
+- 2026-11-05: applied the third review round. `MemorySource` is now a production
+  adapter with an equivalence test, the broken-fixture path is relative to the
+  repository root, `OB-ESC-L10N` and `OB-ESC-ICON` gained property suites with
+  oracles, and the MSRV command no longer moves the shell out of the checkout.

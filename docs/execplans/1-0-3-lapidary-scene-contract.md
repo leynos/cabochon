@@ -558,12 +558,15 @@ single-source route, `verus_builtin_macros` erases only ghost code) and
 `OB-LAP-UNITS`, exact and checked units. For every `i64` input, each `Emu`
 constructor (`from_points`, `from_millimetres`, `from_inches`,
 `from_reference_pixels`) returns the exact product when it lies within
-±`Emu::LIMIT` (2^47) and `LengthOutOfRange` otherwise; `Emu::parse` accepts a
-decimal with suffix `pt`, `mm`, `in`, or `px` exactly when the value is a whole
-number of EMU in range, and otherwise returns `InexactLength` or
-`LengthOutOfRange`. No panic or overflow. Method: Kani (exhaustive for the
-constructors; inputs up to 24 characters for `parse`), named boundary cases,
-and a property test that `parse(format(e)) == e`. Artefacts:
+±`Emu::LIMIT` (2^47) and `LengthOutOfRange` otherwise; `Emu::from_emu` applies
+the same range check to a raw count; `Emu::parse` accepts a decimal with suffix
+`pt`, `mm`, `in`, or `px`, or an integer with suffix `emu`, exactly when the
+value is a whole number of EMU in range, and otherwise returns `InexactLength`
+or `LengthOutOfRange`. `Display` always writes `<n>emu`, because one EMU has no
+finite decimal form in the other units and transforms can produce such values.
+No panic or overflow. Method: Kani (exhaustive for the constructors; inputs up
+to 24 characters for `parse`), named boundary cases, and a property test over
+the whole domain that `parse(e.to_string()) == e`, including `e = 1`. Artefacts:
 `crates/cabochon-lapidary/src/units/kani.rs` (behind `#[cfg(kani)]`) and
 `src/units/tests.rs`. Red step: the harness runs first against an unchecked
 multiply, and Kani reports the overflow. Non-vacuity: `kani::cover!` both
@@ -988,18 +991,18 @@ linked from `docs/contents.md`.
 
 ### EP-M2: resolution, device mapping, hit testing, damage, and accessibility nodes
 
-Define the `TextLayout` port, `ShapedRun`, `FontKey`, `FontData`, and
-`FontSet`, and a deterministic `MonospaceTextLayout` fake in the testkit (each
-grapheme advances by a fixed amount, with caret stops at grapheme boundaries).
-Implement `resolve`, producing a `ResolvedScene` in scene space: ordered
-`ResolvedItem`s (path, composed transform, effective clip as a rectangle plus a
-sequence of polygons, conservative bounds, paint payload), the group-span
-index, the used `FontSet`, and the hit list (curves flattened by integer de
-Casteljau subdivision to a declared tolerance). Implement `DeviceMapping`
-(`scene_to_device`, `device_to_scene`, `snap_out`, `to_backend_units`),
-`PixelRect::dilated_by_one`, and `PageMapping` (`to_page_units`), with the
-`OB-LAP-BACKEND` harnesses. Implement `hit_test`, `hit_test_all`, `damage`, and
-`accessibility_nodes`, with the five kernels in
+Define the `TextLayout` port, `ShapedRun`, `ShapedGlyph`, `FontKey`,
+`FontData`, and `FontSet`, and a deterministic `MonospaceTextLayout` fake in
+the testkit (each grapheme advances by a fixed amount, with caret stops at
+grapheme boundaries). Implement `resolve`, producing a `ResolvedScene` in scene
+space: ordered `ResolvedItem`s (path, composed transform, effective clip as a
+rectangle plus a sequence of polygons, conservative bounds, paint payload), the
+group-span index, the used `FontSet`, and the hit list (curves flattened by
+integer de Casteljau subdivision to a declared tolerance). Implement
+`DeviceMapping` (`scene_to_device`, `device_to_scene`, `snap_out`,
+`to_backend_units`), `PixelRect::dilated_by_one`, and `PageMapping`
+(`to_page_units`), with the `OB-LAP-BACKEND` harnesses. Implement `hit_test`,
+`hit_test_all`, `damage`, and `accessibility_nodes`, with the five kernels in
 `crates/cabochon-lapidary/src/kernel/` as total, integer-only Rust shaped for
 proof (slices, `while` loops, no preconditions). Write the property suites and
 named cases for `OB-LAP-WINDING`, `OB-LAP-HIT`, `OB-LAP-DAMAGE`,
@@ -1124,8 +1127,8 @@ make verus VERUS_PROOF_FILE=verus/lapidary_proofs.rs 2>&1 | tee /tmp/verus-caboc
 MSRV check, from outside the checkout:
 
 ```bash
-cd /tmp && cargo +1.85.0 check --lib --all-features --locked \
-  --manifest-path "$OLDPWD/Cargo.toml"
+(cd /tmp && cargo +1.85.0 check --lib --all-features --locked \
+  --manifest-path "$OLDPWD/Cargo.toml")
 ```
 
 Expected Verus result after EP-M3:
@@ -1249,7 +1252,9 @@ impl Emu {
     pub const fn from_millimetres(mm: i64) -> Result<Self, LengthOutOfRange>;
     pub const fn from_inches(inches: i64) -> Result<Self, LengthOutOfRange>;
     pub const fn from_reference_pixels(px: i64) -> Result<Self, LengthOutOfRange>;
-    pub fn parse(text: &str) -> Result<Self, LengthParseError>; // "10.5pt", "3mm", "1in", "12px"
+    pub const fn from_emu(emu: i64) -> Result<Self, LengthOutOfRange>;
+    pub const fn to_emu(self) -> i64;
+    pub fn parse(text: &str) -> Result<Self, LengthParseError>; // "10.5pt", "3mm", "1in", "12px", "7emu"
 }
 
 pub struct Fixed16(i32);
@@ -1286,8 +1291,15 @@ pub trait TextLayout {
     fn font_data(&self, key: FontKey) -> Option<FontData>;
 }
 
-pub struct ShapedRun {
+// Each glyph names its font: fallback and mixed-direction text can mix fonts in one run.
+pub struct ShapedGlyph {
     pub font: FontKey,
+    pub glyph_id: u32,
+    pub cluster: u32, // byte offset of the source cluster in the run's text
+    pub origin: Point,
+}
+
+pub struct ShapedRun {
     pub glyphs: Vec<ShapedGlyph>,
     pub ink_bounds: Rect,
     pub caret_stops: Vec<CaretStop>,
@@ -1448,3 +1460,8 @@ record deviations in `Decision log`.
 - 2026-11-05: applied the second review round. `OB-LAP-HIT` now separates the
   proved index-returning kernel from the public `HitPath`-returning `hit_test`,
   and log paths are safe for branch names containing a slash.
+- 2026-11-05: applied the third review round. `Emu` gained an exact `emu` format
+  and checked `from_emu`, because `parse(format(e)) == e` could not hold for
+  one EMU. `FontKey` moved from `ShapedRun` to the new `ShapedGlyph`, so
+  fallback can mix fonts in one run. The MSRV command no longer moves the shell
+  out of the checkout.

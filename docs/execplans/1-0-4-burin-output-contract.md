@@ -367,7 +367,13 @@ test.
 
 `OB-TEXT-FALLBACK`: text whose script the primary font lacks uses the next
 registered font; a script no registered font covers yields
-`TextLayoutError::NoFontCovers` naming the run. Named cases.
+`TextLayoutError::NoFontCovers` naming the run. Every glyph names the font that
+supplied it, so one run can mix fonts. Property test: generate script and
+font-coverage combinations and compare each glyph's font with the first
+registered font whose coverage table includes its character. Named cases include
+`你` with a Latin primary font and a run mixing Latin and Arabic. Non-vacuity:
+counters for primary hits, fallbacks, and `NoFontCovers`; seeded fault: always
+using the primary font must fail.
 
 `OB-BUR-PARITY-GEOM` and `OB-BUR-PARITY-TEXT`: every workstation's output
 agrees with the shared `ResolvedScene` within the declared tolerances. PDF and
@@ -383,13 +389,17 @@ offsetting PDF text by one point and shifting a raster shape by two pixels must
 each fail.
 
 `OB-BUR-NODROP`: for every workstation that can be read back, the count of
-items of each kind (paths, glyph runs, images) equals the resolved scene's,
-excluding items culled under decision T3 from the raster and PDF workstations.
-Culling is a pure predicate: an item is culled only when its conservative
-bounds, dilated by one device pixel (`A-RASTER-LOCALITY`), lie wholly outside
-the surface or page. Property test. Non-vacuity: generated scenes include
-wholly off-page, straddling, and edge-adjacent items; seeded faults: dropping a
-visible item and culling a straddling item must each fail.
+items of each kind (paths, glyph runs, images) equals the resolved scene's.
+Each maximal same-font glyph sequence counts as one glyph run. Items culled
+under decision T3 are excluded for the raster and PDF workstations, and items
+on non-printable layers for the print workstation (`OB-BUR-PRINT`); other
+workstations expect the full scene. Culling is a pure predicate: an item is
+culled only when its conservative bounds, dilated by one device pixel
+(`A-RASTER-LOCALITY`), lie wholly outside the surface or page. Property test.
+Non-vacuity: generated scenes include wholly off-page, straddling, and
+edge-adjacent items; seeded faults: dropping a visible item and culling a
+straddling item must each fail; generated scenes include non-printable layers,
+and keeping one in print output must fail.
 
 `OB-BUR-HITMAP`: the hit map lists each region's path, scene-space polygon, and
 effective clip (exact), and renders an identifier raster agreeing with
@@ -461,17 +471,18 @@ with identical pixels under `make test` and `make coverage`. This compares
 Cranelift with LLVM. If the 1.0.3 plan's contingency expunged Cranelift, both
 builds use LLVM and the spike checks only that the pinned scalar path is
 deterministic across the two profiles. Create `crates/cabochon-fonts` (data
-only: static subsets of Noto Sans, Noto Sans Arabic, and Noto Sans Hebrew, each
-with `OFL.txt` and a `SHA256SUMS` entry) and `crates/cabochon-burin`, and add
-both rows to the dependency contract. Record ownership and reuse policies in
-`docs/cabochon-design.md` and `docs/repository-layout.md`. Implement
-`Workstation` (with associated `Request` and `Output` types), `RenderError`,
-`float_boundary`, `ParleyTextLayout` (with `OB-TEXT-*`), PNG decoding,
-`RasterWorkstation`, and `ThumbnailWorkstation`, and the testkit render
-constructor that pins determinism. Measure cold and warm build times and record
-them. Add Burin's and the fonts crate's rows to the architecture guards first,
-and run them red with a seeded violation for each. Draft ADR 0011 as
-`docs/adrs/adr-0011-<title-slug>.md`.
+only: static subsets of Noto Sans, Noto Sans Arabic, Noto Sans Hebrew, and Noto
+Sans SC (only the characters fixtures use, including the 1.0.1 plan's
+input-method `你`), each with `OFL.txt` and a `SHA256SUMS` entry) and
+`crates/cabochon-burin`, and add both rows to the dependency contract. Record
+ownership and reuse policies in `docs/cabochon-design.md` and
+`docs/repository-layout.md`. Implement `Workstation` (with associated `Request`
+and `Output` types), `RenderError`, `float_boundary`, `ParleyTextLayout` (with
+`OB-TEXT-*`), PNG decoding, `RasterWorkstation`, and `ThumbnailWorkstation`,
+and the testkit render constructor that pins determinism. Measure cold and warm
+build times and record them. Add Burin's and the fonts crate's rows to the
+architecture guards first, and run them red with a seeded violation for each.
+Draft ADR 0011 as `docs/adrs/adr-0011-<title-slug>.md`.
 
 ### EP-M2: interactive surface and invalidation
 
@@ -486,9 +497,10 @@ records written spans through a `FrameSink`. Write `OB-BUR-INVAL` and
 Implement `HitMapWorkstation`, `AccessibilityWorkstation`, the PNG and geometry
 parts of `ClipboardWorkstation`, `render_with_fallback`, and the
 fault-injection seam. Instrument with spans and the metrics below. Write
-`OB-BUR-HITMAP`, `OB-BUR-A11Y`, `OB-BUR-CLIP`, `OB-BUR-FAIL`, `OB-BUR-OBS`, the
-raster halves of `OB-BUR-PARITY-*` and `OB-BUR-NODROP`, and the failure
-scenario of `output.feature`.
+`OB-BUR-HITMAP`, the accessibility-workstation half of `OB-BUR-A11Y`, the PNG
+and geometry half of `OB-BUR-CLIP`, `OB-BUR-FAIL`, `OB-BUR-OBS`, the raster
+halves of `OB-BUR-PARITY-*` and `OB-BUR-NODROP`, and the failure scenario of
+`output.feature`.
 
 ### EP-M4: PDF read-back device and precision spike
 
@@ -507,10 +519,12 @@ API from the shared layout, original PNG bytes, clips, non-printable layers
 kept but marked), `PrintWorkstation` (`PrintIntent` page boxes, the PDF/A-2b
 validator, sRGB output intent, `PrintTicket`, non-printable layers excluded),
 and the PDF part of `ClipboardWorkstation`. Write `OB-BUR-PARITY-GEOM`,
-`OB-BUR-PARITY-TEXT`, the vector half of `OB-BUR-NODROP`, `OB-BUR-PRINT`,
-`OB-BUR-DET`, and the remaining scenario. Add the `render_all` example. Accept
-ADR 0011. Record tolerances in `docs/cabochon-design.md` §8.4 and the SVG
-deferral (decision D7) in §15. Mark roadmap tasks 1.0.3 and 1.0.4 done.
+`OB-BUR-PARITY-TEXT`, the vector half of `OB-BUR-NODROP`, the PDF
+structure-tree half of `OB-BUR-A11Y`, the PDF half of `OB-BUR-CLIP`,
+`OB-BUR-PRINT`, `OB-BUR-DET`, and the remaining scenario. Add the `render_all`
+example. Accept ADR 0011. Record tolerances in `docs/cabochon-design.md` §8.4
+and the SVG deferral (decision D7) in §15. Mark roadmap tasks 1.0.3 and 1.0.4
+done.
 
 ## Milestones and plateaus
 
@@ -528,8 +542,8 @@ commits. Compatibility decision: none (pre-1.0, internal).
   result, `OB-BUR-INVAL`, `OB-BUR-LOCALITY`.
 - EP-M3. Outcome: hit-map, accessibility, and clipboard-geometry outputs,
   bounded failure, and metrics. Requirements: `RM-1.0.4`, `TDD-VDI-FAIL`,
-  `TDD-FAIL-RENDER`, `TDD-OBS`. Evidence: the listed obligations and the
-  failure scenario.
+  `TDD-FAIL-RENDER`, `TDD-OBS`. Evidence: the listed obligations and halves,
+  and the failure scenario.
 - EP-M4. Outcome: a validated read-back device and an approved vector
   tolerance. Evidence: handwritten-PDF cases pass; S-PDF results recorded.
 - EP-M5. Outcome: PDF and print outputs and the full parity suite.
@@ -575,8 +589,8 @@ make check-fmt 2>&1 | tee /tmp/check-fmt-cabochon-${BRANCH}.out
 make lint 2>&1 | tee /tmp/lint-cabochon-${BRANCH}.out
 make test 2>&1 | tee /tmp/test-cabochon-${BRANCH}.out
 make audit 2>&1 | tee /tmp/audit-cabochon-${BRANCH}.out
-cd /tmp && cargo +1.85.0 check --lib --all-features --locked \
-  --manifest-path "$OLDPWD/Cargo.toml"
+(cd /tmp && cargo +1.85.0 check --lib --all-features --locked \
+  --manifest-path "$OLDPWD/Cargo.toml")
 ```
 
 The last command reproduces the `msrv` CI job from outside the checkout
@@ -599,7 +613,7 @@ accessibility.json  clipboard  content-print.pdf  content.pdf  content.png  hit-
 - Tests: `make test` passes with every obligation's tests and
   `output.feature`.
 - Lint and formatting: `make check-fmt` and `make lint` pass with no
-  `#[expect]` outside `float_boundary`.
+  `#[expect]` in Burin outside `float_boundary`.
 - Architecture: the Burin and fonts rows of `OB-ARCH-DEPS`,
   `OB-ARCH-IMPORTS`, and `OB-ARCH-PUBAPI` pass, and each row's seeded violation
   (an unlisted dependency, `vello_cpu` imported outside `backend::vello`, and a
@@ -735,3 +749,8 @@ starts):
   failed item's path (optional for frame-level limits and backend failures,
   which `OB-BUR-FAIL` now covers), and log paths are safe for branch names
   containing a slash.
+- 2026-11-05: applied the third review round. Bundled a Noto Sans SC subset for
+  the input-method fixture, gave `OB-TEXT-FALLBACK` a property suite and
+  per-glyph fonts, made `OB-BUR-NODROP` apply print's layer filter, split
+  `OB-BUR-A11Y` and `OB-BUR-CLIP` between EP-M3 and EP-M5, and kept the
+  checkout as the working directory after the MSRV command.

@@ -249,10 +249,10 @@ Task-level decisions:
   EP-M0b contingency runs (decision T10 there). Any other pull request needing
   an ADR takes 0014 or later. Date: 2026-10-23.
 - Decision T11: the hello-window binary embeds its resource bundle with
-  `include_str!` (and `include_bytes!` for icons) and loads it through
-  Escutcheon's in-memory `ResourceSource` by default; `--resources DIR` loads a
-  directory through the `cap_std` adapter instead. Rationale: `run` works from
-  any working directory, and authors can still iterate on resources without
+  `include_str!` (icons are SVG text) and loads it through Escutcheon's
+  production `MemorySource` by default; `--resources DIR` loads a directory
+  through the `cap_std` adapter instead. Rationale: `run` works from any
+  working directory, and authors can still iterate on resources without
   recompiling. Date: 2026-10-23.
 - Decision T12: behavioural scenarios split by crate. EP-M2 adds
   `crates/cabochon-clerestory/tests/features/furniture.feature`, driving a test
@@ -392,7 +392,8 @@ a test recorder.
 
 `OB-APP-RESOURCES`: the hello-window application constructs its window, menus,
 dialogs, inspector, strings, shortcuts, and icon only from the compiled bundle,
-embedded by default (decision T11); changing a string in
+embedded and loaded through `MemorySource` by default (decision T11), which a
+test on the default path asserts; changing a string in
 `resources/locales/en-GB/hello-window.ftl` changes the presented title without
 recompiling Rust. End-to-end test with a temporary copy of the bundle passed
 through `--resources`.
@@ -603,8 +604,8 @@ The `msrv` CI job must keep passing (constraint C6); reproduce it from outside
 the checkout:
 
 ```bash
-cd /tmp && cargo +1.85.0 check --lib --all-features --locked \
-  --manifest-path "$OLDPWD/Cargo.toml"
+(cd /tmp && cargo +1.85.0 check --lib --all-features --locked \
+  --manifest-path "$OLDPWD/Cargo.toml")
 ```
 
 ## Validation and acceptance
@@ -613,7 +614,9 @@ cd /tmp && cargo +1.85.0 check --lib --all-features --locked \
   `furniture.feature`, and `hello_window.feature`; `make test-hosted` passes
   locally and in CI.
 - Lint and formatting: `make check-fmt` and `make lint` pass with no
-  `#[expect]` outside the hosted float boundary.
+  `#[expect]` in this plan's crates outside the hosted float boundary; the
+  prerequisite crates keep their own boundaries, including
+  `cabochon_burin::float_boundary`.
 - Architecture: the Clerestory, hosted, and application rows of
   `OB-ARCH-DEPS`, `OB-ARCH-IMPORTS`, and `OB-ARCH-PUBAPI` pass, and each row's
   seeded violation (Clerestory depending on `winit`, `session` importing
@@ -773,3 +776,7 @@ starts):
   headless `weston` guarantee from a recorded manual check on a real desktop,
   gave each export run a fresh directory, and made log paths safe for branch
   names containing a slash.
+- 2026-11-05: applied the third review round. Scoped the `#[expect]` criterion
+  to this plan's crates, named `MemorySource` as the default loading path, and
+  kept the checkout as the working directory after the MSRV command. The 1.0.4
+  plan's fonts now cover the input-method fixture's `你`.
