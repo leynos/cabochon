@@ -368,12 +368,16 @@ test.
 `OB-TEXT-FALLBACK`: text whose script the primary font lacks uses the next
 registered font; a script no registered font covers yields
 `TextLayoutError::NoFontCovers` naming the run. Every glyph names the font that
-supplied it, so one run can mix fonts. Property test: generate script and
-font-coverage combinations and compare each glyph's font with the first
-registered font whose coverage table includes its character. Named cases include
-`你` with a Latin primary font and a run mixing Latin and Arabic. Non-vacuity:
-counters for primary hits, fallbacks, and `NoFontCovers`; seeded fault: always
-using the primary font must fail.
+supplied it, so one run can mix fonts, but fonts change only at shaping-cluster
+boundaries, so a ligature or combining sequence is never split. Property test:
+generate script and font-coverage combinations and compare each glyph's font
+with the cluster-level expected font, which is the first registered font
+covering every character of that glyph's cluster. Named cases include `你` with
+a Latin primary font, a run mixing Latin and Arabic, an Arabic sequence that
+shapes into a ligature, and a combining mark the base character's font lacks.
+Non-vacuity: counters for primary hits, fallbacks, and `NoFontCovers`; seeded
+faults: always using the primary font, and choosing fonts per character, must
+each fail.
 
 `OB-BUR-PARITY-GEOM` and `OB-BUR-PARITY-TEXT`: every workstation's output
 agrees with the shared `ResolvedScene` within the declared tolerances. PDF and
@@ -754,3 +758,6 @@ starts):
   per-glyph fonts, made `OB-BUR-NODROP` apply print's layer filter, split
   `OB-BUR-A11Y` and `OB-BUR-CLIP` between EP-M3 and EP-M5, and kept the
   checkout as the working directory after the MSRV command.
+- 2026-11-05: `OB-TEXT-FALLBACK` now chooses fonts at shaping-cluster
+  boundaries, because a ligature's glyph has no single character for a
+  per-character oracle.

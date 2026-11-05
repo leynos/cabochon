@@ -356,14 +356,12 @@ Create `crates/cabochon-escutcheon`, add its rows to the architecture guards
 policy (`docs/cabochon-design.md`, `docs/repository-layout.md`). Implement the
 `ResourceSource` port with a `cap_std` directory adapter and a public in-memory
 adapter, `MemorySource`. `MemorySource` is production API: hello-window loads
-its embedded bundle through it by default (the 1.0.1 plan's decision T11), and
-tests use it too. A test asserts that both adapters compile the hello-window
-fixture to identical bundles. Also implement the KDL schema version 1 parser
-for commands, menus, windows, dialogs, inspectors, and icons; the built-in
-command catalogue; the shortcut grammar; and Escutcheon-owned `Diagnostic`,
-`SourceSpan`, and `DiagnosticCode` types. Write `OB-ESC-REFS`,
-`OB-ESC-SHORTCUT`, `OB-ESC-DET`, and `OB-ESC-VERSION`. Draft ADR 0010 as
-`docs/adrs/adr-0010-<title-slug>.md`.
+its embedded bundle through it by default (the 1.0.1 plan's decision T11),  and
+tests use it too. Also implement the KDL schema version 1 parser for commands,
+menus, windows, dialogs, inspectors, and icons; the built-in command catalogue;
+the shortcut grammar; and Escutcheon-owned `Diagnostic`, `SourceSpan`, and
+`DiagnosticCode` types. Write `OB-ESC-REFS`, `OB-ESC-SHORTCUT`, `OB-ESC-DET`,
+and `OB-ESC-VERSION`. Draft ADR 0010 as `docs/adrs/adr-0010-<title-slug>.md`.
 
 ### EP-M2: localization, icons, annotations, and the hello-window fixture
 
@@ -376,7 +374,8 @@ hello-window bundle under `tests/fixtures/hello-window/` (commands `app.quit`,
 `app.about`, `view.inspector`, and `content.export`; File, View, and Help
 menus; the About dialog; the greeting inspector with a text field; one icon;
 `en-GB` strings) and the broken fixtures. Write `OB-ESC-L10N`, `OB-ESC-ICON`,
-`OB-ESC-OBS`, and `resources.feature`.
+`OB-ESC-OBS`, `resources.feature`, and a test that both `ResourceSource`
+adapters compile the fixture to identical bundles.
 
 ### EP-M3: checker, schema reference, and ADR 0010
 
@@ -599,3 +598,5 @@ recorder) and `tracing-test` 0.2, plus the testing crates from the 1.0.3 plan.
   adapter with an equivalence test, the broken-fixture path is relative to the
   repository root, `OB-ESC-L10N` and `OB-ESC-ICON` gained property suites with
   oracles, and the MSRV command no longer moves the shell out of the checkout.
+- 2026-11-05: moved the adapter-equivalence test from EP-M1 to EP-M2, because
+  the hello-window fixture it compiles does not exist until EP-M2.
