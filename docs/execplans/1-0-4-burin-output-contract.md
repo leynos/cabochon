@@ -83,7 +83,7 @@ decision made for the task-level plans.
   `to_page_units` bound them below 2^24 (`OB-LAP-BACKEND`).
 - C5, lint, safety, and documentation policy as in the repository: `forbid`
   unsafe code, no `#[allow]`, no `.expect()` or `.unwrap()` outside tests, no
-  file over 400 lines, and the style guide's doc-comment rules.
+  source file over 400 lines, and the style guide's doc-comment rules.
 - C6, existing contracts, including the `msrv` CI job, keep passing; member
   crates declare no features.
 - C12, tolerance integrity: no declared tolerance is loosened silently;
@@ -406,10 +406,10 @@ test.
 
 `OB-BUR-LOCALITY` (exercises `A-RASTER-LOCALITY`): for any generated scene `S`
 and item `i`, rendering `S` and `S` with `i` removed or recoloured changes no
-pixel outside `i`'s snapped bounds dilated by one pixel. Property test.
-Non-vacuity: thick strokes with sharp mitre joins, square caps, combining
-marks, and colours distinct from the background; seeded fault: bounds ignoring
-the mitre extension must fail.
+pixel outside `m.snap_out(bounds(i)).dilated_by_one()`, where `m` is the
+render's device mapping. Property test. Non-vacuity: thick strokes with sharp
+mitre joins, square caps, combining marks, and colours distinct from the
+background; seeded fault: bounds ignoring the mitre extension must fail.
 
 `OB-BUR-FLOAT`: float-boundary conversions cast Lapidary backend units to `f32`
 exactly and round `parley`'s `f32` results back to EMU to nearest, rejecting
@@ -561,6 +561,8 @@ Feature: Burin renders one scene to every workstation
 ## Concrete steps
 
 ```bash
+set -euo pipefail
+
 BRANCH=$(git branch --show-current)
 make check-fmt 2>&1 | tee /tmp/check-fmt-cabochon-${BRANCH}.out
 make lint 2>&1 | tee /tmp/lint-cabochon-${BRANCH}.out
@@ -717,3 +719,6 @@ starts):
   comparison and the SIMD risk now apply by default. The risk's fallback, a
   per-package `codegen-backend` override, is a position `kani exec` refuses, so
   it now says so. Otherwise the milestones are unchanged.
+- 2026-11-05: applied review findings. C5's limit now names source files, the
+  logged gates no longer mask failures through `tee`, and `OB-BUR-LOCALITY`
+  names Lapidary's `snap_out` and `dilated_by_one`.

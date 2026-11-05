@@ -52,8 +52,12 @@ Observable success:
    fonts and fallbacks used).
 4. `make test` passes, including `furniture.feature` and
    `hello_window.feature` under the headless shell; `make test-hosted` runs the
-   application under a headless Wayland compositor and prints
-   `hello-window: shell=hosted windows=1 frames=1 accessibility_nodes=<N> exit=0`.
+   application under a headless Wayland compositor and prints:
+
+   ```text
+   hello-window: shell=hosted windows=1 frames=1 accessibility_nodes=<N> exit=0
+   ```
+
 5. Roadmap tasks 1.0.1 and 1.0.2 are marked done (decision T1).
 
 How to read identifiers: `RM-` roadmap task, `TDD-` technical-design
@@ -469,13 +473,19 @@ in pure, unit-tested functions. Hosted tests carry
 depends on `check-build-tools` and composes `RUSTFLAGS` as the `test` recipe
 does (it is a development target); it creates a private `XDG_RUNTIME_DIR`,
 starts `weston --backend=headless`, waits for its socket, runs the ignored
-tests under `dbus-run-session` with
-`cargo nextest run --run-ignored only -p cabochon-clerestory-hosted -p cabochon-hello-window`,
-and stops only the `weston` it started. Add `test-hosted` to
-`DEVELOPMENT_TARGETS` in `tests/build_standard_support/make.rs` and to
-`.PHONY`. Add a CI job that installs `weston` and `at-spi2-core`, sets up Rust
-through `setup-rust` with `install-mold: 'true'`, and runs `make test-hosted`,
-keeping the workflow contract tests green. Write `OB-CLR-HOST`. Accept ADR 0012.
+tests under `dbus-run-session` with the command below, and stops only the
+`weston` it started.
+
+```bash
+cargo nextest run --run-ignored only \
+  -p cabochon-clerestory-hosted -p cabochon-hello-window
+```
+
+Add `test-hosted` to `DEVELOPMENT_TARGETS` in
+`tests/build_standard_support/make.rs` and to `.PHONY`. Add a CI job that
+installs `weston` and `at-spi2-core`, sets up Rust through `setup-rust` with
+`install-mold: 'true'`, and runs `make test-hosted`, keeping the workflow
+contract tests green. Write `OB-CLR-HOST`. Accept ADR 0012.
 
 ### EP-M5: documentation reconciliation and step closure
 
@@ -523,6 +533,7 @@ Feature: Clerestory furniture behaves consistently
   Scenario: Shortcuts and menus dispatch the same command
     Given the fixture application under the headless shell
     When the user presses "F1"
+    And the user presses "Escape"
     And the user chooses "Help" then "About Hello, Cabochon"
     Then the dispatch log shows "app.about" twice with identical records
 
@@ -571,6 +582,8 @@ Feature: The hello-window application is defined by its resources
 ## Concrete steps
 
 ```bash
+set -euo pipefail
+
 BRANCH=$(git branch --show-current)
 make check-fmt 2>&1 | tee /tmp/check-fmt-cabochon-${BRANCH}.out
 make lint 2>&1 | tee /tmp/lint-cabochon-${BRANCH}.out
@@ -744,3 +757,7 @@ starts):
 - 2026-11-04: the reviewer approved this plan. `leynos/rust-prover-tools#206`
   was resolved, so the 1.0.3 plan keeps Cranelift and ADR 0013 stays reserved
   only for its contingency. The milestones are unchanged.
+- 2026-11-05: applied review findings. The shortcut scenario now closes the
+  About dialog before using the menu, because `OB-CLR-MODAL` blocks the menu
+  while it is open. Moved long commands into fenced blocks, and stopped the
+  logged gates masking failures through `tee`.

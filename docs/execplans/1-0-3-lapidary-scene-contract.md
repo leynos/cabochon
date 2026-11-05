@@ -115,14 +115,15 @@ plan, and `T` a decision made for this task-level plan.
   recorder.
 - C13, Kani takes precedence over Cranelift (reviewer direction,
   2026-10-23). Kani runs through `prover-tools kani exec`. Since
-  [leynos/rust-prover-tools#206](https://github.com/leynos/rust-prover-tools/issues/206)
-  was resolved, the tool accepts this repository's Cranelift configuration, so
-  Cranelift stays. `OB-KANI-COMPAT` keeps the configuration inside what the
-  tool accepts. The precedence still stands: if Kani ever cannot run while
-  Cranelift is configured, Cranelift is expunged from the development standard,
-  not worked around, and a GitHub issue is raised to revisit the matter six
-  months later (decision T10). No handwritten Kani invocation that sidesteps
-  the repository's Cargo configuration is introduced.
+  `rust-prover-tools`
+  [#206](https://github.com/leynos/rust-prover-tools/issues/206) was resolved,
+  the tool accepts this repository's Cranelift configuration, so Cranelift
+  stays. `OB-KANI-COMPAT` keeps the configuration inside what the tool accepts.
+  The precedence still stands: if Kani ever cannot run while Cranelift is
+  configured, Cranelift is expunged from the development standard, not worked
+  around, and a GitHub issue is raised to revisit the matter six months later
+  (decision T10). No handwritten Kani invocation that sidesteps the
+  repository's Cargo configuration is introduced.
 
 ## Tolerances (exception triggers)
 
@@ -218,13 +219,13 @@ plan, and `T` a decision made for this task-level plan.
   D13, and D14 on the step-level plan.
 - [x] (2026-10-23) Decomposed the step-level plan into four task-level plans;
   this is the first.
-- [x] (2026-10-23) Raised
-      [leynos/rust-prover-tools#206](https://github.com/leynos/rust-prover-tools/issues/206)
-      so that `kani exec` can run with a configured development backend.
-- [x] (2026-11-04) #206 resolved by
-      [leynos/rust-prover-tools#217](https://github.com/leynos/rust-prover-tools/pull/217);
-  reran the S-KANI scenario against `main`, which verified a harness with
-  Cranelift configured, so Cranelift stays.
+- [x] (2026-10-23) Raised `rust-prover-tools`
+  [#206](https://github.com/leynos/rust-prover-tools/issues/206) so that
+  `kani exec` can run with a configured development backend.
+- [x] (2026-11-04) #206 resolved by `rust-prover-tools`
+  [#217](https://github.com/leynos/rust-prover-tools/pull/217); reran the
+  S-KANI scenario against `main`, which verified a harness with Cranelift
+  configured, so Cranelift stays.
 - [x] (2026-11-04) Reviewer approval of this plan.
 - [ ] EP-M0a: workspace, prover tooling, guards, and spikes.
 - [ ] EP-M0b: Kani route and `OB-KANI-COMPAT`, with Cranelift retained.
@@ -262,13 +263,14 @@ plan, and `T` a decision made for this task-level plan.
   repository's `.cargo/config.toml` sets `[unstable] codegen-backend = true` and
   `[profile.dev] codegen-backend = "cranelift"`, and `kani exec` also rejects
   `--manifest-path`, so it cannot run here as things stand. Evidence: source
-  review on 2026-10-23. Impact: raised upstream as
-  [leynos/rust-prover-tools#206](https://github.com/leynos/rust-prover-tools/issues/206).
-  Superseded by the next observation.
+  review on 2026-10-23. Impact: raised upstream as `rust-prover-tools`
+  [#206](https://github.com/leynos/rust-prover-tools/issues/206). Superseded by
+  the next observation.
 - Observation:
-  [leynos/rust-prover-tools#217](https://github.com/leynos/rust-prover-tools/pull/217),
-  merged on 2026-10-30 as `548a454`, classifies `codegen-backend` by position.
-  It accepts `[unstable] codegen-backend = true` and string
+  `rust-prover-tools`
+  [#217](https://github.com/leynos/rust-prover-tools/pull/217), merged on
+  2026-10-30 as `548a454`, classifies `codegen-backend` by position. It accepts
+  `[unstable] codegen-backend = true` and string
   `profile.<name>.codegen-backend` selections, and sets
   `CARGO_PROFILE_<NAME>_CODEGEN_BACKEND=llvm` in the Kani child only. It still
   refuses package-scoped backend overrides, unusual profile names, Cargo
@@ -377,19 +379,19 @@ Decisions made for this task-level plan:
   under constraint C13. Date: 2026-10-23.
 - Decision T10 (reviewer direction, 2026-10-23; updated 2026-11-04): Kani is
   more important than Cranelift. On 2026-10-23 the reviewer accepted the loss
-  of Cranelift until
-  [leynos/rust-prover-tools#206](https://github.com/leynos/rust-prover-tools/issues/206)
-  was resolved. It was resolved by
-  [leynos/rust-prover-tools#217](https://github.com/leynos/rust-prover-tools/pull/217),
-  and the S-KANI scenario then passed with this repository's configuration, so
-  Cranelift stays: EP-M0b adds the `kani` target and `OB-KANI-COMPAT`, and the
-  Kani child alone compiles with LLVM. Expunging Cranelift is now a
-  contingency, taken only if S-KANI or a later run shows `kani exec` refusing
-  Cranelift's configuration. It then follows EP-M0b's contingency steps:
-  development builds, tests, lint, and type checks use the default LLVM
-  backend; ADR 0013 records the decision; and a GitHub issue on
-  `leynos/cabochon` falls due when the upstream refusal is resolved or six
-  months after removal, whichever comes first. Date: 2026-11-04.
+  of Cranelift until `rust-prover-tools`
+  [#206](https://github.com/leynos/rust-prover-tools/issues/206) was resolved.
+  It was resolved by `rust-prover-tools`
+  [#217](https://github.com/leynos/rust-prover-tools/pull/217), and the S-KANI
+  scenario then passed with this repository's configuration, so Cranelift
+  stays: EP-M0b adds the `kani` target and `OB-KANI-COMPAT`, and the Kani child
+  alone compiles with LLVM. Expunging Cranelift is now a contingency, taken
+  only if S-KANI or a later run shows `kani exec` refusing Cranelift's
+  configuration. It then follows EP-M0b's contingency steps: development
+  builds, tests, lint, and type checks use the default LLVM backend; ADR 0013
+  records the decision; and a GitHub issue on `leynos/cabochon` falls due when
+  the upstream refusal is resolved or six months after removal, whichever comes
+  first. Date: 2026-11-04.
 - Decision T13 (reviewer direction, 2026-10-23): enforce the architecture
   mechanically, at three levels, with checkers that are themselves tested.
   Crate level: `OB-ARCH-DEPS` uses allow-lists of permitted dependencies per
@@ -649,11 +651,15 @@ biased to its edges. Non-vacuity: counters for each edit kind; seeded faults:
 omitting removed items must fail; overlapping prefix and suffix must fail on
 `old = [A, A]`, `new = [A]`.
 
-`OB-LAP-SNAP`, snapping covers damage. For every rectangle `d`, mapping `m`,
-and device pixel intersecting `d` dilated by one pixel, that pixel lies in
-`m.snap_out(d)`, which floors minimum edges and ceils maximum edges. Method:
-Verus. Non-vacuity: witnesses at 100%, 125%, 150%, and 200%; seeded fault:
-rounding both edges to nearest must fail.
+`OB-LAP-SNAP`, snapping covers damage. `m.snap_out(d)` floors minimum edges and
+ceils maximum edges, and adds no margin. `PixelRect::dilated_by_one` adds the
+one-pixel margin that covers antialiasing, so callers state that margin
+explicitly. For every rectangle `d` and mapping `m`, every device pixel
+intersecting `d` lies in `m.snap_out(d)`, and every device pixel intersecting
+`d` dilated by one device pixel lies in `m.snap_out(d).dilated_by_one()`.
+Method: Verus. Non-vacuity: witnesses at 100%, 125%, 150%, and 200%; seeded
+faults: rounding both edges to nearest must fail, and using `m.snap_out(d)`
+alone must fail the second clause.
 
 `OB-LAP-RESOLVE`, resolution produces the theorems' inputs. Items are in
 painting order; transforms compose ancestors'; effective clips intersect
@@ -776,9 +782,10 @@ blocks), and asserts token identity.
 and contain no `curl`, `unzip`, `sha256sum`, or `cargo kani`; and, with a
 recording fake passed as `PROVER_TOOLS_CONTRACT_TEST=1 PROVER_TOOLS=<fake>` on
 the `make` command line, that `make kani` issues exactly
-`kani check-version --repo-root .` and then
-`kani exec --installation <path> --cwd crates/cabochon-lapidary --extra-arg=--package=cabochon-lapidary`;
-that `make install-verus` issues exactly `verus install --repo-root .` and then
+`kani check-version --repo-root .` and then `kani exec` with
+`--installation <path>`, `--cwd crates/cabochon-lapidary`, and
+`--extra-arg=--package=cabochon-lapidary`; that `make install-verus` issues
+exactly `verus install --repo-root .` and then
 `z3 install --repo-root . --install-dir .verus/z3`; and that `make verus`
 issues exactly `verus run --repo-root . --proof-file verus/lapidary_proofs.rs`
 with `VERUS_Z3_PATH` naming `.verus/z3/z3`.
@@ -986,12 +993,13 @@ Implement `resolve`, producing a `ResolvedScene` in scene space: ordered
 sequence of polygons, conservative bounds, paint payload), the group-span
 index, the used `FontSet`, and the hit list (curves flattened by integer de
 Casteljau subdivision to a declared tolerance). Implement `DeviceMapping`
-(`scene_to_device`, `device_to_scene`, `snap_out`, `to_backend_units`) and
-`PageMapping` (`to_page_units`), with the `OB-LAP-BACKEND` harnesses. Implement
-`hit_test`, `hit_test_all`, `damage`, and `accessibility_nodes`, with the five
-kernels in `crates/cabochon-lapidary/src/kernel/` as total, integer-only Rust
-shaped for proof (slices, `while` loops, no preconditions). Write the property
-suites and named cases for `OB-LAP-WINDING`, `OB-LAP-HIT`, `OB-LAP-DAMAGE`,
+(`scene_to_device`, `device_to_scene`, `snap_out`, `to_backend_units`),
+`PixelRect::dilated_by_one`, and `PageMapping` (`to_page_units`), with the
+`OB-LAP-BACKEND` harnesses. Implement `hit_test`, `hit_test_all`, `damage`, and
+`accessibility_nodes`, with the five kernels in
+`crates/cabochon-lapidary/src/kernel/` as total, integer-only Rust shaped for
+proof (slices, `while` loops, no preconditions). Write the property suites and
+named cases for `OB-LAP-WINDING`, `OB-LAP-HIT`, `OB-LAP-DAMAGE`,
 `OB-LAP-RESOLVE`, and `OB-LAP-A11Y`, and `scene.feature`.
 
 ### EP-M3: Verus proofs, formal CI workflow, and ADR 0009
@@ -1090,6 +1098,8 @@ Feature: Lapidary scenes describe geometry independently of devices
 Run from the worktree root. Gates, sequentially, through `tee`:
 
 ```bash
+set -euo pipefail
+
 BRANCH=$(git branch --show-current)
 make check-fmt 2>&1 | tee /tmp/check-fmt-cabochon-${BRANCH}.out
 make lint 2>&1 | tee /tmp/lint-cabochon-${BRANCH}.out
@@ -1099,6 +1109,9 @@ make test 2>&1 | tee /tmp/test-cabochon-${BRANCH}.out
 Formal gates:
 
 ```bash
+set -euo pipefail
+
+BRANCH=$(git branch --show-current)
 make install-kani
 make kani 2>&1 | tee /tmp/kani-cabochon-${BRANCH}.out
 make install-verus
@@ -1237,6 +1250,12 @@ impl Emu {
 }
 
 pub struct Fixed16(i32);
+impl Fixed16 {
+    pub const ONE: Self = Self(65_536);
+    // Every i32 is a valid 16.16 value, so unlike Emu this needs no range check.
+    pub const fn from_bits(bits: i32) -> Self;
+    pub const fn to_bits(self) -> i32;
+}
 pub struct Transform { pub xx: Fixed16, pub xy: Fixed16, pub yx: Fixed16, pub yy: Fixed16, pub tx: Emu, pub ty: Emu }
 
 pub struct Scene {
@@ -1277,8 +1296,14 @@ pub struct DeviceMapping { pub origin: Point, pub scale: Scale120 }
 impl DeviceMapping {
     pub fn scene_to_device(&self, point: Point) -> DevicePoint;
     pub fn device_to_scene(&self, point: DevicePoint) -> Point;
-    pub fn snap_out(&self, rect: Rect) -> PixelRect;
+    pub fn snap_out(&self, rect: Rect) -> PixelRect; // no margin; see dilated_by_one
     pub fn to_backend_units(&self, point: Point) -> Result<BackendPoint, GeometryOutOfRange>; // 1/256 px, |v| < 2^24
+}
+
+pub struct PixelRect { pub left: i64, pub top: i64, pub right: i64, pub bottom: i64 }
+impl PixelRect {
+    // i64 edges: Emu::LIMIT leaves headroom, so adding a pixel cannot overflow.
+    pub const fn dilated_by_one(self) -> Self;
 }
 
 pub struct PageMapping { pub origin: Point }
@@ -1382,10 +1407,11 @@ record deviations in `Decision log`.
   (`OB-KANI-COMPAT`), records ADR 0013, and raises an issue to revisit the
   matter six months later. ADR 0013 is reserved for that decision (T9).
 - 2026-10-23: raised
-  [leynos/rust-prover-tools#206](https://github.com/leynos/rust-prover-tools/issues/206)
-  asking `kani exec` to support a configured development codegen backend, and
-  recorded the reviewer's acceptance of losing Cranelift until it is resolved.
-  The planned Cabochon revisit issue now falls due when #206 is resolved or six
+  `rust-prover-tools`
+  [#206](https://github.com/leynos/rust-prover-tools/issues/206) asking
+  `kani exec` to support a configured development codegen backend, and recorded
+  the reviewer's acceptance of losing Cranelift until it is resolved. The
+  planned Cabochon revisit issue now falls due when #206 is resolved or six
   months after removal, whichever comes first (decision T10).
 - 2026-10-23: folded in the architecture-enforcement assessment of
   `leynos/wildside`, `leynos/corbusier`, `leynos/mxd`, and `leynos/statelet`
@@ -1398,14 +1424,21 @@ record deviations in `Decision log`.
   adapter and carries repair hints. Lapidary's domain types drop their `serde`
   derives in favour of private data-transfer types in `document::wire`.
 - 2026-11-04:
-  [leynos/rust-prover-tools#206](https://github.com/leynos/rust-prover-tools/issues/206)
-  was resolved by
-  [leynos/rust-prover-tools#217](https://github.com/leynos/rust-prover-tools/pull/217),
-  and the reviewer approved this plan. Cranelift now stays (constraint C13,
-  decision T10); expunging it is a contingency. `OB-KANI-COMPAT` no longer
-  guards against Cranelift's return: it keeps the configuration within what
+  `rust-prover-tools`
+  [#206](https://github.com/leynos/rust-prover-tools/issues/206) was resolved by
+  `rust-prover-tools`
+  [#217](https://github.com/leynos/rust-prover-tools/pull/217), and the
+  reviewer approved this plan. Cranelift now stays (constraint C13, decision
+  T10); expunging it is a contingency. `OB-KANI-COMPAT` no longer guards
+  against Cranelift's return: it keeps the configuration within what
   `kani exec` accepts. Moved the pin to `f70b02f`. A probe against
   `origin/main` confirmed the route and found that `kani exec` requires an
   `--extra-arg`, so `make kani` passes a package selector. Added the Z3 install
   and `VERUS_Z3_PATH`, which the tool now separates from Verus, and ignored
   `.cache/`.
+- 2026-11-05: applied review findings. `OB-LAP-SNAP` as written was false,
+  because flooring and ceiling cannot contain a pixel one away from the
+  rectangle. `snap_out` now adds no margin, the new `PixelRect::dilated_by_one`
+  adds it, and the obligation proves both clauses. `Fixed16` gained the public
+  constructor that `Transform`'s public fields require. Stopped the logged
+  gates masking failures through `tee`.

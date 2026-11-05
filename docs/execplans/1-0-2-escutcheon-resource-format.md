@@ -39,7 +39,13 @@ checker lets authors who do not write Rust validate a bundle.
 
 Observable success:
 
-1. `cargo run -p cabochon-escutcheon --bin escutcheon-check -- crates/cabochon-escutcheon/tests/fixtures/hello-window`
+1. Running the checker on the fixture bundle:
+
+   ```bash
+   cargo run -p cabochon-escutcheon --bin escutcheon-check -- \
+     crates/cabochon-escutcheon/tests/fixtures/hello-window
+   ```
+
    prints a one-line summary such as
    `ok: <n> commands, <n> menus, <n> dialogs, 1 inspector, 1 icon, 1 locale`
    (EP-M2 fixes the counts when it authors the fixture) and exits zero.
@@ -407,6 +413,8 @@ Feature: Escutcheon compiles textual, localizable resources
 ## Concrete steps
 
 ```bash
+set -euo pipefail
+
 BRANCH=$(git branch --show-current)
 make check-fmt 2>&1 | tee /tmp/check-fmt-cabochon-${BRANCH}.out
 make lint 2>&1 | tee /tmp/lint-cabochon-${BRANCH}.out
@@ -554,3 +562,5 @@ recorder) and `tracing-test` 0.2, plus the testing crates from the 1.0.3 plan.
 - 2026-11-04: the reviewer approved this plan. `leynos/rust-prover-tools#206`
   was resolved, so the 1.0.3 plan keeps Cranelift and ADR 0013 stays reserved
   only for its contingency. The milestones are unchanged.
+- 2026-11-05: applied review findings. Moved a long command into a fenced
+  block, and stopped the logged gates masking failures through `tee`.
