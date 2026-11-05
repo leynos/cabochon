@@ -31,15 +31,11 @@ const RELEASE: &str = include_str!(concat!(
     "/.github/workflows/release.yml"
 ));
 
-const SETUP_RUST: &str =
-    "leynos/shared-actions/.github/actions/setup-rust@b804b69fa7f978cf9091b9d9bd5481d8ce58c2ea";
-const INSTALL_WHITAKER: &str = "leynos/shared-actions/.github/actions/install-whitaker@\
-                                5a99aed78ce68dcebd3052b75c31e6f173162b1e";
-const INSTALL_MDTABLEFIX: &str = "leynos/shared-actions/.github/actions/install-mdtablefix@\
-                                  0606ca899ce2995a0c4bc78e660e80832e6e8855";
-const MARKDOWNLINT_ACTION: &str =
-    "DavidAnson/markdownlint-cli2-action@2df9e28eb87988518ef3880c34edad45d65b1668";
-const SETUP_UV: &str = "astral-sh/setup-uv@12d13f90bc3a5a1971bebad4beb09a4dfa962e91";
+const SETUP_RUST: &str = "leynos/shared-actions/.github/actions/setup-rust@LIVE";
+const INSTALL_WHITAKER: &str = "leynos/shared-actions/.github/actions/install-whitaker@LIVE";
+const INSTALL_MDTABLEFIX: &str = "leynos/shared-actions/.github/actions/install-mdtablefix@LIVE";
+const MARKDOWNLINT_ACTION: &str = "DavidAnson/markdownlint-cli2-action@LIVE";
+const SETUP_UV: &str = "astral-sh/setup-uv@LIVE";
 
 /// Returns a YAML job's steps, rejecting absent or empty lists.
 fn steps<'a>(workflow: &'a Value, job: &str) -> Result<&'a [Value], String> {
@@ -53,12 +49,59 @@ fn steps<'a>(workflow: &'a Value, job: &str) -> Result<&'a [Value], String> {
         .ok_or_else(|| format!("{job} has no readable steps"))
 }
 
-/// Returns the first step using a pinned action prefix.
+/// Stands for the revision Dependabot currently pins in the live workflow.
+const LIVE: &str = "LIVE";
+
+/// A commit SHA for synthetic fixture workflows.
+const FIXTURE_SHA: &str = "0123456789abcdef0123456789abcdef01234567";
+
+/// Replaces each `<action path>@LIVE` with the revision the live CI workflow
+/// pins for that action, so a mutation never restates a Dependabot-managed SHA.
+fn expand_live(text: &str) -> String {
+    let mut expanded = text.to_owned();
+    while let Some(at) = expanded.find(&format!("@{LIVE}")) {
+        let start = expanded
+            .get(..at)
+            .and_then(|head| {
+                head.rfind(|character: char| {
+                    !(character.is_ascii_alphanumeric() || "_./-".contains(character))
+                })
+                .map(|index| index + 1)
+            })
+            .unwrap_or(0);
+        let path = expanded.get(start..at).unwrap_or_default().to_owned();
+        let marker = format!("{path}@");
+        let Some(revision) = CI
+            .match_indices(&marker)
+            .filter_map(|(index, _)| CI.get(index + marker.len()..index + marker.len() + 40))
+            .find(|candidate| is_full_sha(candidate))
+        else {
+            panic!("the live CI workflow must pin {path} to a full SHA");
+        };
+        expanded.replace_range(at..at + 1 + LIVE.len(), &format!("@{revision}"));
+    }
+    expanded
+}
+
+/// Splits an action reference into its path and revision.
+fn split_action(reference: &str) -> (&str, &str) {
+    reference.split_once('@').unwrap_or((reference, ""))
+}
+
+/// Whether the revision is a full commit SHA, the only immutable form.
+fn is_full_sha(revision: &str) -> bool {
+    revision.len() == 40 && revision.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+/// Returns the first step using the action at its path, pinned to a full commit
+/// SHA. The SHA itself belongs to Dependabot, so it is not restated here.
 fn action_step<'a>(steps: &'a [Value], action: &str) -> Option<(usize, &'a Value)> {
+    let (path, _) = split_action(action);
     steps.iter().enumerate().find(|(_, step)| {
         step.get("uses")
             .and_then(Value::as_str)
-            .is_some_and(|uses| uses == action)
+            .map(split_action)
+            .is_some_and(|(uses_path, revision)| uses_path == path && is_full_sha(revision))
     })
 }
 
@@ -236,4 +279,28 @@ fn backend_text_in_an_environment_value_is_not_a_default() {
     );
     let problems = default_backend_problems(config).expect("read backend value fixture");
     assert!(problems.is_empty(), "{problems:?}");
+}
+
+/// Scenario: a step's `uses` is matched against an action path.
+///
+/// Invariant: the path must match and the revision must be a full commit SHA,
+/// whichever SHA Dependabot has pinned.
+#[rstest]
+#[case::current("astral-sh/setup-uv@0123456789abcdef0123456789abcdef01234567", true)]
+#[case::other_valid_sha("astral-sh/setup-uv@fedcba9876543210fedcba9876543210fedcba98", true)]
+#[case::other_path("astral-sh/other@0123456789abcdef0123456789abcdef01234567", false)]
+#[case::missing_revision("astral-sh/setup-uv", false)]
+#[case::tag("astral-sh/setup-uv@v5", false)]
+#[case::short("astral-sh/setup-uv@0123456789abcdef", false)]
+#[case::overlong("astral-sh/setup-uv@0123456789abcdef0123456789abcdef012345670", false)]
+#[case::non_hex("astral-sh/setup-uv@0123456789abcdef0123456789abcdef0123456z", false)]
+fn action_step_matches_path_and_full_sha(#[case] uses: &str, #[case] found: bool) {
+    let steps: Vec<Value> =
+        serde_norway::from_str(&format!("- uses: {uses}\n")).expect("parse the fixture step");
+    assert_eq!(
+        action_step(&steps, SETUP_UV).is_some(),
+        found,
+        "{uses} must{} match",
+        if found { "" } else { " not" }
+    );
 }
