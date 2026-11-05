@@ -12,6 +12,7 @@ use super::{
     SETUP_RUST,
     SETUP_UV,
     action_step,
+    expand_live,
     field,
     is_binding,
     named_step,
@@ -22,8 +23,7 @@ use super::{
 /// Correct order of uv provisioning and the spelling gate in the CI fixture.
 const UV_THEN_SPELLING: &str = concat!(
     "      - name: Setup uv\n",
-    "        uses: astral-sh/setup-uv@",
-    "12d13f90bc3a5a1971bebad4beb09a4dfa962e91\n",
+    "        uses: astral-sh/setup-uv@LIVE\n",
     "      - name: Spelling\n",
     "        run: make spelling",
 );
@@ -33,8 +33,7 @@ const SPELLING_THEN_UV: &str = concat!(
     "      - name: Spelling\n",
     "        run: make spelling\n",
     "      - name: Setup uv\n",
-    "        uses: astral-sh/setup-uv@",
-    "12d13f90bc3a5a1971bebad4beb09a4dfa962e91",
+    "        uses: astral-sh/setup-uv@LIVE",
 );
 
 /// Stable check command, with an absolute manifest outside config discovery.
@@ -333,13 +332,11 @@ fn ci_installers_precede_their_consumers() {
 #[case::cranelift_unrecognized("cranelift: true", "cranelift: maybe")]
 #[case::installer_conditional(
     INSTALL_WHITAKER,
-    "leynos/shared-actions/.github/actions/install-whitaker@\
-     5a99aed78ce68dcebd3052b75c31e6f173162b1e\n        if: false"
+    "leynos/shared-actions/.github/actions/install-whitaker@LIVE\n        if: false"
 )]
 #[case::installer_soft_failed(
     INSTALL_WHITAKER,
-    "leynos/shared-actions/.github/actions/install-whitaker@\
-     5a99aed78ce68dcebd3052b75c31e6f173162b1e\n        continue-on-error: true"
+    "leynos/shared-actions/.github/actions/install-whitaker@LIVE\n        continue-on-error: true"
 )]
 #[case::mdtablefix_version("version: \"0.6.1\"", "version: \"0.5.0\"")]
 #[case::markdown_glob("globs: '**/*.md'", "globs: 'README.md'")]
@@ -358,7 +355,7 @@ fn ci_installers_precede_their_consumers() {
     "run: make spelling\n        continue-on-error: true"
 )]
 fn ci_install_mutations_are_detected(#[case] old: &str, #[case] new: &str) {
-    let mutated = CI.replacen(old, new, 1);
+    let mutated = CI.replacen(&expand_live(old), &expand_live(new), 1);
     assert_ne!(mutated, CI);
     let problems = ci_install_problems(&mutated).expect("read mutated CI workflow");
     assert_ne!(

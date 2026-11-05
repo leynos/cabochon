@@ -4,7 +4,7 @@ use proptest::prelude::*;
 use rstest::rstest;
 use serde_norway::Value;
 
-use super::{CI, SETUP_RUST, action_step, field, is_binding};
+use super::{CI, FIXTURE_SHA, SETUP_RUST, action_step, field, is_binding, split_action};
 
 /// Resolves a matrix runner label from literal values declared by the job.
 fn resolve_label(label: &str, job: &Value) -> Result<Vec<String>, String> {
@@ -238,7 +238,10 @@ fn generated_steps(setup_before_suite: bool, insertion_points: &[usize]) -> Vec<
         .iter()
         .map(|event| match *event {
             "setup" => {
-                format!("      - uses: {SETUP_RUST}\n        with:\n          install-mold: 'true'")
+                format!(
+                    "      - uses: {}@{FIXTURE_SHA}\n        with:\n          install-mold: 'true'",
+                    split_action(SETUP_RUST).0
+                )
             }
             "suite" => "      - run: cargo test".to_owned(),
             _ => "      - run: echo filler".to_owned(),
