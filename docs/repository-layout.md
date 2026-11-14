@@ -55,8 +55,10 @@ compact and omits build output such as `target/`.
 
 ## Path responsibilities
 
-- `.cargo/config.toml`: Configures the default LLVM development backend (the
-  Cranelift selection is disabled), parallel frontend, and Linux linker.
+- `.cargo/config.toml`: Configures the default LLVM development backend,
+  parallel frontend, and Linux linker. Cranelift is disabled and opt-in only,
+  under review on 14 May 2027
+  ([estate ADR](https://github.com/leynos/concordat/blob/main/docs/adrs/adr-0004-cranelift-is-not-part-of-the-rust-build-standard.md)).
 - `.github/dependabot.yml`: Configures automated dependency update checks.
 - `.github/workflows/ci.yml`: Runs the generated project's continuous
   integration checks.

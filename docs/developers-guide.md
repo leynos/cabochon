@@ -257,19 +257,19 @@ The estate standard is LLVM, which is the default backend here; review is due
 14 May 2027 under the
 [estate ADR](https://github.com/leynos/concordat/blob/main/docs/adrs/adr-0004-cranelift-is-not-part-of-the-rust-build-standard.md).
 The `[profile.dev] codegen-backend = "cranelift"` selection in
-`.cargo/config.toml` is commented out. Uncommenting it is a persistent opt-in
-that also needs `tests/build_backend_contract.rs` updated; Cranelift does not
-unwind, so no test may rely on a caught panic under it, and an inherited
-`CARGO_PROFILE_DEV_CODEGEN_BACKEND` can still select it. The
-`[unstable] codegen-backend` key and the component stay, and the nightly still
-reads that key from `.cargo/config.toml`. Stable Cargo rejects the nightly-only
-profile key even for a release-profile build, so an opt-in that restores the
-key makes it refuse the repository root; with the selection disabled the
-repository does not assert either outcome there. The release workflow therefore
-keeps running stable Cargo or `cross` from the checkout's parent directory with
-`--manifest-path` pointing into the checkout: Cargo discovers configuration
-from its working directory, yet still builds this manifest. Its empty
-`RUSTFLAGS` keeps the development frontend and linker out.
+`.cargo/config.toml` is commented out, so Cranelift is disabled. Uncommenting
+it is a persistent opt-in that also needs `tests/build_backend_contract.rs`
+updated; Cranelift does not unwind, so no test may rely on a caught panic under
+it, and an inherited `CARGO_PROFILE_DEV_CODEGEN_BACKEND` can still select it.
+The `[unstable] codegen-backend` key and the component stay, and the nightly
+still reads that key from `.cargo/config.toml`. Stable Cargo rejects the
+nightly-only profile key even for a release-profile build, so an opt-in that
+restores the key makes it refuse the repository root; with the selection
+disabled the repository does not assert either outcome there. The release
+workflow therefore keeps running stable Cargo or `cross` from the checkout's
+parent directory with `--manifest-path` pointing into the checkout: Cargo
+discovers configuration from its working directory, yet still builds this
+manifest. Its empty `RUSTFLAGS` keeps the development frontend and linker out.
 `tests/stable_cargo_config.rs` builds the real release binary from the parent
 working directory with the absolute manifest path. The full suite must pass
 under the default backend on the integrated head.
