@@ -480,10 +480,11 @@ internally facing conventions or practices in `docs/developers-guide.md`.
 Bare Cargo commands from the repository root and the standard `make build`,
 `make test`, `make lint`, and `make typecheck` targets use the development
 defaults in `.cargo/config.toml`. The pinned nightly toolchain selects LLVM as
-the default backend (the Cranelift selection is disabled), the parallel rustc
-frontend, and the `mold` linker on Linux. Make restates the development flags
-when a recipe sets `RUSTFLAGS`, so its commands use the same backend and
-frontend as bare Cargo.
+the default backend, the parallel rustc frontend, and the `mold` linker on
+Linux. Cranelift is disabled and opt-in only, under review on 14 May 2027
+([estate ADR](https://github.com/leynos/concordat/blob/main/docs/adrs/adr-0004-cranelift-is-not-part-of-the-rust-build-standard.md)).
+Make restates the development flags when a recipe sets `RUSTFLAGS`, so its
+commands use the same backend and frontend as bare Cargo.
 
 Run `make install-build-tools` to install the pinned nightly components and, on
 Linux, the pinned `mold` binary. Standard development targets run
