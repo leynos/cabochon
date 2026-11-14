@@ -81,8 +81,6 @@ fn a_failed_preflight_stops_the_target(#[case] target: &str) {
 /// Scenario: inherited Cargo overrides would replace development defaults.
 #[rstest]
 #[case::encoded("CARGO_ENCODED_RUSTFLAGS", "-Dwarnings")]
-#[case::dev_backend("CARGO_PROFILE_DEV_CODEGEN_BACKEND", "llvm")]
-#[case::test_backend("CARGO_PROFILE_TEST_CODEGEN_BACKEND", "llvm")]
 fn inherited_backend_override_fails_before_cargo(#[case] key: &str, #[case] value: &str) {
     let output = Command::new("make")
         .args(["--silent", "test", "CARGO=echo"])

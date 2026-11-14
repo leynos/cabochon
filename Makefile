@@ -50,7 +50,7 @@ CV005_CONTRACTS = $(UV_ENV) $(UV) tool run --python 3.13 \
 test-workflow-contracts: ## Check the CV-005 CodeScene workflow contracts
 	$(CV005_CONTRACTS) check --repository .
 # The development build standard (concordat rule `rust-build-defaults`):
-# Cranelift is selected by the dev profile in .cargo/config.toml; the flags
+# The dev profile in .cargo/config.toml leaves the backend on LLVM; the flags
 # below restate the parallel frontend and target-scoped Linux `mold` linker.
 # An assigned RUSTFLAGS replaces every `rustflags` table in .cargo/config.toml, so each
 # recipe that sets it composes these onto any inherited value (CI's

@@ -15,10 +15,10 @@ render `src/main.rs`, `src/lib.rs`, release automation, and
 application prints `Hello from Cabochon!` followed by a newline when run.
 
 Bare development Cargo commands and standard Make build, test and typecheck
-targets use Cranelift and the parallel `rustc` frontend (`-Zthreads=8`). On
-Linux, they link with the pinned `mold` binary. The Rustdoc and Clippy parts of
-`make lint` use the same standard; Whitaker uses its installer-managed
-toolchain.
+targets use LLVM (the default) and the parallel `rustc` frontend
+(`-Zthreads=8`). On Linux, they link with the pinned `mold` binary. The Rustdoc
+and Clippy parts of `make lint` use the same standard; Whitaker uses its
+installer-managed toolchain.
 
 Coverage uses LLVM and `lld`, while `make release` uses stable Cargo and the
 production linker. Neither adds the development frontend or linker flags. See

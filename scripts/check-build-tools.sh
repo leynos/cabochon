@@ -17,14 +17,6 @@ if [[ ${CARGO_ENCODED_RUSTFLAGS+x} == x ]]; then
   echo 'CARGO_ENCODED_RUSTFLAGS overrides the development standard; unset it before using standard Make targets' >&2
   status=1
 fi
-if [[ ${CARGO_PROFILE_DEV_CODEGEN_BACKEND+x} == x && ${CARGO_PROFILE_DEV_CODEGEN_BACKEND-} != cranelift ]]; then
-  echo 'CARGO_PROFILE_DEV_CODEGEN_BACKEND must select Cranelift for development; unset the override or set it to cranelift' >&2
-  status=1
-fi
-if [[ ${CARGO_PROFILE_TEST_CODEGEN_BACKEND+x} == x && ${CARGO_PROFILE_TEST_CODEGEN_BACKEND-} != cranelift ]]; then
-  echo 'CARGO_PROFILE_TEST_CODEGEN_BACKEND must select Cranelift for tests; unset the override or set it to cranelift' >&2
-  status=1
-fi
 
 if [[ ! $toolchain =~ ^nightly-[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
   echo 'Invalid Rust toolchain pin; inspect rust-toolchain.toml' >&2

@@ -237,36 +237,36 @@ fn default_backend_problems(config: &str) -> Result<Vec<String>, String> {
     {
         problems.push("unstable.codegen-backend must be enabled".to_owned());
     }
-    if parsed
+    let development = parsed
         .get("profile")
         .and_then(|table| table.get("dev"))
-        .and_then(|table| table.get("codegen-backend"))
-        .and_then(toml::Value::as_str)
-        != Some("cranelift")
-    {
-        problems.push("profile.dev must select cranelift".to_owned());
+        .and_then(|table| table.get("codegen-backend"));
+    if development.is_some_and(|backend| backend.as_str() != Some("llvm")) {
+        problems.push("profile.dev must leave the backend unset or select llvm".to_owned());
     }
     Ok(problems)
 }
 
 /// Scenario: Cargo auto-discovers this file for development commands.
+///
+/// Uncommenting the Cranelift selection is a persistent opt-in that needs this contract
+/// updated.
 #[test]
-fn cargo_configuration_selects_cranelift() {
+fn cargo_configuration_leaves_the_backend_on_llvm() {
     let found = default_backend_problems(CONFIG).expect("read Cargo configuration");
     assert!(found.is_empty(), "{found:?}");
 }
 
-/// Scenario: a default key is removed or changed.
+/// Scenario: a Cranelift selection is added or the unstable key is removed.
 #[rstest]
-#[case::backend_removed(CONFIG.replace("codegen-backend = \"cranelift\"", ""))]
+#[case::cranelift_selected(CONFIG.replace(
+    "# codegen-backend = \"cranelift\"",
+    "codegen-backend = \"cranelift\"",
+))]
 #[case::feature_removed(CONFIG.replace("codegen-backend = true", ""))]
-fn missing_cranelift_default_is_detected(#[case] config: String) {
+fn a_cranelift_default_or_missing_gate_is_detected(#[case] config: String) {
     let problems = default_backend_problems(&config).expect("read mutated Cargo configuration");
-    assert_ne!(
-        problems,
-        [] as [String; 0],
-        "missing default must be detected"
-    );
+    assert_ne!(problems, [] as [String; 0], "the mutation must be detected");
 }
 
 /// Scenario: a backend-looking string in another TOML key is not a setting.
@@ -274,7 +274,7 @@ fn missing_cranelift_default_is_detected(#[case] config: String) {
 fn backend_text_in_an_environment_value_is_not_a_default() {
     let config = concat!(
         "[unstable]\ncodegen-backend = true\n",
-        "[profile.dev]\ncodegen-backend = \"cranelift\"\n",
+        "[profile.dev]\nopt-level = 1\n",
         "[env]\nBACKEND_HINT = \"codegen-backend=cranelift\"\n"
     );
     let problems = default_backend_problems(config).expect("read backend value fixture");

@@ -374,10 +374,11 @@ collaboration.
 
 Bare Cargo commands from the repository root and the standard `make build`,
 `make test`, `make lint`, and `make typecheck` targets use the development
-defaults in `.cargo/config.toml`. The pinned nightly toolchain selects
-Cranelift for the development profile, the parallel rustc frontend, and the
-`mold` linker on Linux. Make restates the development flags when a recipe sets
-`RUSTFLAGS`, so its commands use the same backend and frontend as bare Cargo.
+defaults in `.cargo/config.toml`. The pinned nightly toolchain selects LLVM as
+the default backend (the Cranelift selection is disabled), the parallel rustc
+frontend, and the `mold` linker on Linux. Make restates the development flags
+when a recipe sets `RUSTFLAGS`, so its commands use the same backend and
+frontend as bare Cargo.
 
 Run `make install-build-tools` to install the pinned nightly components and, on
 Linux, the pinned `mold` binary. Standard development targets run

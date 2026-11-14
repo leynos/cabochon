@@ -55,8 +55,8 @@ compact and omits build output such as `target/`.
 
 ## Path responsibilities
 
-- `.cargo/config.toml`: Configures the default Cranelift development backend,
-  parallel frontend, and Linux linker.
+- `.cargo/config.toml`: Configures the default LLVM development backend (the
+  Cranelift selection is disabled), parallel frontend, and Linux linker.
 - `.github/dependabot.yml`: Configures automated dependency update checks.
 - `.github/workflows/ci.yml`: Runs the generated project's continuous
   integration checks.
