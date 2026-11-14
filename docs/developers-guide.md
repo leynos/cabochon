@@ -206,15 +206,16 @@ configuration while keeping packaged output at its expected path. It selects
 stable Cargo and removes inherited encoded flags and backend profile overrides;
 CI's stable native and `cross` routes make the same exclusions. A direct nightly
 `cargo build --release` from the repository root still gets the configured
-frontend and Linux linker unless its caller excludes them. Stable Cargo rejects
-the nightly-only profile key there; use the documented parent-directory and
-absolute-manifest route for stable release builds. Whitaker runs from the
-checkout's parent with an absolute manifest path under its installer-managed
-toolchain. It removes inherited backend profile overrides and encoded Rust
-flags. The temporary driver no longer inherits unstable profile settings, and
-the repository check starts outside `.cargo/config.toml` discovery. Its own
-`DYLINT_RUSTFLAGS=-D warnings` promotes suite findings to errors, so the lint
-gate fails when a rolling lint reports a warning.
+frontend and Linux linker unless its caller excludes them. Use the documented
+parent-directory and absolute-manifest route for stable release builds, which
+keeps working if a Cranelift opt-in restores the nightly-only profile key that
+stable Cargo rejects. Whitaker runs from the checkout's parent with an absolute
+manifest path under its installer-managed toolchain. It removes inherited
+backend profile overrides and encoded Rust flags. The temporary driver no
+longer inherits unstable profile settings, and the repository check starts
+outside `.cargo/config.toml` discovery. Its own `DYLINT_RUSTFLAGS=-D warnings`
+promotes suite findings to errors, so the lint gate fails when a rolling lint
+reports a warning.
 
 The diagram summarizes route-specific Rust flags and linkers. Bare Cargo reads
 the checkout configuration. Make's public `build`/`dev-build`, `test`/
@@ -261,11 +262,11 @@ that also needs `tests/build_backend_contract.rs` updated; Cranelift does not
 unwind, so no test may rely on a caught panic under it, and an inherited
 `CARGO_PROFILE_DEV_CODEGEN_BACKEND` can still select it. The
 `[unstable] codegen-backend` key and the component stay, and the nightly still
-reads that key from `.cargo/config.toml`. With the selection disabled, stable
-Cargo no longer rejects the configuration at the repository root, but an opt-in
-restores that refusal, since stable Cargo rejects the nightly-only profile key
-even for a release-profile build. The release workflow therefore keeps running
-stable Cargo or `cross` from the checkout's parent directory with
+reads that key from `.cargo/config.toml`. Stable Cargo rejects the nightly-only
+profile key even for a release-profile build, so an opt-in that restores the
+key makes it refuse the repository root; with the selection disabled the
+repository does not assert either outcome there. The release workflow therefore
+keeps running stable Cargo or `cross` from the checkout's parent directory with
 `--manifest-path` pointing into the checkout: Cargo discovers configuration
 from its working directory, yet still builds this manifest. Its empty
 `RUSTFLAGS` keeps the development frontend and linker out.

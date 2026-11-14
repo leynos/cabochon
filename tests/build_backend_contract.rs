@@ -237,12 +237,16 @@ fn default_backend_problems(config: &str) -> Result<Vec<String>, String> {
     {
         problems.push("unstable.codegen-backend must be enabled".to_owned());
     }
-    let development = parsed
-        .get("profile")
-        .and_then(|table| table.get("dev"))
-        .and_then(|table| table.get("codegen-backend"));
-    if development.is_some_and(|backend| backend.as_str() != Some("llvm")) {
-        problems.push("profile.dev must leave the backend unset or select llvm".to_owned());
+    for profile in ["dev", "test"] {
+        let selected = parsed
+            .get("profile")
+            .and_then(|table| table.get(profile))
+            .and_then(|table| table.get("codegen-backend"));
+        if selected.is_some_and(|backend| backend.as_str() != Some("llvm")) {
+            problems.push(format!(
+                "profile.{profile} must leave the backend unset or select llvm"
+            ));
+        }
     }
     Ok(problems)
 }
@@ -262,6 +266,9 @@ fn cargo_configuration_leaves_the_backend_on_llvm() {
 #[case::cranelift_selected(CONFIG.replace(
     "# codegen-backend = \"cranelift\"",
     "codegen-backend = \"cranelift\"",
+))]
+#[case::test_profile_selected(format!(
+    "{CONFIG}\n[profile.test]\ncodegen-backend = \"cranelift\"\n"
 ))]
 #[case::feature_removed(CONFIG.replace("codegen-backend = true", ""))]
 fn a_cranelift_default_or_missing_gate_is_detected(#[case] config: String) {
