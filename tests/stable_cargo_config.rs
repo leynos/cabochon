@@ -1,11 +1,13 @@
 //! Holds the stable release route outside this repository's development config.
 //!
 //! `build_backend_contract.rs` checks the configuration and release workflow
-//! as text. These probes exercise Cargo's configuration discovery instead. A
-//! stable Cargo run at the repository root must refuse the nightly-only
-//! development profile. The release route starts outside the checkout and
-//! passes an absolute manifest path, so it must build the real release binary.
-//! That is the failure that broke catnap's v0.1.0 release.
+//! as text. These probes exercise Cargo's configuration discovery instead. With
+//! the Cranelift selection disabled (14 November 2026), stable Cargo at the
+//! repository root no longer refuses the development profile, so the live
+//! root probe is retired; an opt-in that restores the nightly-only key must
+//! restore it. The release route starts outside the checkout and passes an
+//! absolute manifest path, so it must build the real release binary. That is
+//! the failure that broke catnap's v0.1.0 release.
 
 use std::process::Command;
 
@@ -121,30 +123,6 @@ fn the_probe_output_is_judged_strictly(
         root_passes,
         "root route: {stderr:?}"
     );
-}
-
-/// Scenario: stable Cargo discovers the repository's development configuration.
-///
-/// Invariant: the nightly-only development profile is refused before Cargo can
-/// reach the real release binary.
-#[test]
-fn stable_cargo_refuses_the_repository_development_configuration() -> Result<(), String> {
-    let mut command = stable_cargo();
-    let output = run_probe(
-        command.current_dir(env!("CARGO_MANIFEST_DIR")),
-        ROOT_PROBE_COMMAND,
-    )?;
-    judge_root_probe(
-        &String::from_utf8_lossy(&output.stderr),
-        output.status.success(),
-    )
-    .map_err(|reason| {
-        format!(
-            "`{ROOT_PROBE_COMMAND}` exited {} while probing the development configuration: \
-             {reason}",
-            output.status
-        )
-    })
 }
 
 /// Scenario: stable Cargo follows the release workflow from outside the checkout.

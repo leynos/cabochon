@@ -1,7 +1,8 @@
 //! Contract tests for the Rust build standard.
 //!
-//! The standard makes the parallel `rustc` frontend and Cranelift the default
-//! for development builds on the pinned nightly, with `mold` for Linux targets.
+//! The standard makes the parallel `rustc` frontend the default (with LLVM as the
+//! backend; the Cranelift selection is disabled) for development builds on the
+//! pinned nightly, with `mold` for Linux targets.
 //! Cargo reads these defaults from `.cargo/config.toml`, but it applies a single
 //! `rustflags` source rather than merging them, and an assigned `RUSTFLAGS`
 //! replaces every source. So the flags must be repeated in each configuration

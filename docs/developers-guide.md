@@ -167,19 +167,20 @@ request reads the cache and never writes one.
 
 Bare Cargo development commands, the public `make build`, `make test`, and
 `make typecheck` targets, and the rustdoc and Clippy phases of `make lint` use
-Cranelift and the parallel `rustc` frontend (`-Zthreads=8`). On Linux, these
-development routes also use the `mold` linker (`-Clink-arg=-fuse-ld=mold`).
-`.cargo/config.toml` supplies the dev-profile backend and flags when Cargo runs
-from this checkout; Make restates the flags because its recipes assign
-`RUSTFLAGS`. On x86_64 GNU/Linux, the configured linker launcher checks that
-`ld.mold` on the selected `mold` binary's `PATH` directory is the same pinned
-executable, then gives that directory to `clang` with `-B`. This prevents Clang
-from silently choosing an older system `ld.mold`. The local binary installer
-and CI's `setup-rust` action both add their verified binary directory to `PATH`.
-`mold` is Linux-only; other platforms keep their platform linker. Install the
-pinned `mold` binary and keep it on `PATH` before running Linux development
-targets. Cargo selects one `rustflags` source rather than merging them, so
-every source repeats the frontend flag.
+LLVM (the default backend) and the parallel `rustc` frontend (`-Zthreads=8`).
+On Linux, these development routes also use the `mold` linker
+(`-Clink-arg=-fuse-ld=mold`). `.cargo/config.toml` supplies the dev-profile
+backend and flags when Cargo runs from this checkout; Make restates the flags
+because its recipes assign `RUSTFLAGS`. On x86_64 GNU/Linux, the configured
+linker launcher checks that `ld.mold` on the selected `mold` binary's `PATH`
+directory is the same pinned executable, then gives that directory to `clang`
+with `-B`. This prevents Clang from silently choosing an older system
+`ld.mold`. The local binary installer and CI's `setup-rust` action both add
+their verified binary directory to `PATH`. `mold` is Linux-only; other
+platforms keep their platform linker. Install the pinned `mold` binary and keep
+it on `PATH` before running Linux development targets. Cargo selects one
+`rustflags` source rather than merging them, so every source repeats the
+frontend flag.
 
 The public `make dev-build` and `make dev-test` targets remain compatibility
 aliases for `make build` and `make test`, so they inherit the same development
@@ -205,15 +206,16 @@ configuration while keeping packaged output at its expected path. It selects
 stable Cargo and removes inherited encoded flags and backend profile overrides;
 CI's stable native and `cross` routes make the same exclusions. A direct nightly
 `cargo build --release` from the repository root still gets the configured
-frontend and Linux linker unless its caller excludes them. Stable Cargo rejects
-the nightly-only profile key there; use the documented parent-directory and
-absolute-manifest route for stable release builds. Whitaker runs from the
-checkout's parent with an absolute manifest path under its installer-managed
-toolchain. It removes inherited backend profile overrides and encoded Rust
-flags. The temporary driver no longer inherits unstable profile settings, and
-the repository check starts outside `.cargo/config.toml` discovery. Its own
-`DYLINT_RUSTFLAGS=-D warnings` promotes suite findings to errors, so the lint
-gate fails when a rolling lint reports a warning.
+frontend and Linux linker unless its caller excludes them. Use the documented
+parent-directory and absolute-manifest route for stable release builds, which
+keeps working if a Cranelift opt-in restores the nightly-only profile key that
+stable Cargo rejects. Whitaker runs from the checkout's parent with an absolute
+manifest path under its installer-managed toolchain. It removes inherited
+backend profile overrides and encoded Rust flags. The temporary driver no
+longer inherits unstable profile settings, and the repository check starts
+outside `.cargo/config.toml` discovery. Its own `DYLINT_RUSTFLAGS=-D warnings`
+promotes suite findings to errors, so the lint gate fails when a rolling lint
+reports a warning.
 
 The diagram summarizes route-specific Rust flags and linkers. Bare Cargo reads
 the checkout configuration. Make's public `build`/`dev-build`, `test`/
@@ -232,7 +234,7 @@ clears Rust flags and runs stable Cargo outside config discovery.
 ```mermaid
 flowchart TD
     start["Build, test, lint, or release command"] --> route{"Execution route?"}
-    route -->|"Bare Cargo"| config[".cargo/config.toml defaults<br/>Cranelift; -Zthreads=8<br/>Linux cfg adds mold"]
+    route -->|"Bare Cargo"| config[".cargo/config.toml defaults<br/>LLVM; -Zthreads=8<br/>Linux cfg adds mold"]
     route -->|"Public Make dev targets"| compose["Inherited RUSTFLAGS<br/>+ RUST_FLAGS (-D warnings)<br/>+ named fast flags"]
     compose --> target{"Compilation target"}
     target -->|"Supported Linux target"| mold["-Zthreads=8<br/>+ mold linker flag"]
@@ -245,23 +247,32 @@ _Figure 1: Rust flags and linker selection by build route._
 
 `tests/build_standard_contract.rs` checks the configured flags and evaluated
 Make commands on Linux and macOS. `tests/build_backend_contract.rs` checks the
-Cranelift default and the coverage, Whitaker, and release exclusions. CI
-installs the linker through `setup-rust` before running the suite, including
-the coverage action's indirect test route.
+LLVM default and the coverage, Whitaker, and release exclusions. CI installs
+the linker through `setup-rust` before running the suite, including the
+coverage action's indirect test route.
 
 ### Cranelift
 
-The selected nightly reads `[profile.dev] codegen-backend = "cranelift"` from
-`.cargo/config.toml`. Stable Cargo rejects that key even for a release-profile
-build. The release workflow therefore runs stable Cargo or `cross` from the
-checkout's parent directory with `--manifest-path` pointing into the checkout:
-Cargo discovers configuration from its working directory, yet still builds this
-manifest. Its empty `RUSTFLAGS` keeps the development frontend and linker out.
-`tests/stable_cargo_config.rs` proves that stable Cargo refuses the profile
-from the repository root, then builds the real release binary from the parent
+The estate standard is LLVM, which is the default backend here; review is due
+14 May 2027 under the
+[estate ADR](https://github.com/leynos/concordat/blob/main/docs/adrs/adr-0004-cranelift-is-not-part-of-the-rust-build-standard.md).
+The `[profile.dev] codegen-backend = "cranelift"` selection in
+`.cargo/config.toml` is commented out. Uncommenting it is a persistent opt-in
+that also needs `tests/build_backend_contract.rs` updated; Cranelift does not
+unwind, so no test may rely on a caught panic under it, and an inherited
+`CARGO_PROFILE_DEV_CODEGEN_BACKEND` can still select it. The
+`[unstable] codegen-backend` key and the component stay, and the nightly still
+reads that key from `.cargo/config.toml`. Stable Cargo rejects the nightly-only
+profile key even for a release-profile build, so an opt-in that restores the
+key makes it refuse the repository root; with the selection disabled the
+repository does not assert either outcome there. The release workflow therefore
+keeps running stable Cargo or `cross` from the checkout's parent directory with
+`--manifest-path` pointing into the checkout: Cargo discovers configuration
+from its working directory, yet still builds this manifest. Its empty
+`RUSTFLAGS` keeps the development frontend and linker out.
+`tests/stable_cargo_config.rs` builds the real release binary from the parent
 working directory with the absolute manifest path. The full suite must pass
-under the development backend on the integrated head; a successful single panic
-test would not prove that contract.
+under the default backend on the integrated head.
 
 ## Coverage publication
 
