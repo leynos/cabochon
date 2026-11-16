@@ -377,7 +377,10 @@ list.
 - `clippy.toml` carries the companion thresholds (cognitive complexity,
   argument count, function length, nesting) and the `disallowed-methods` list
   that bans direct `std::env` access. Reach for an injected environment reader
-  instead of `std::env::var`/`var_os`/`vars`/`set_var`/`remove_var`.
+  instead of `std::env::var`/`var_os`/`vars`/`set_var`/`remove_var`, and pass a
+  directory in (or use `Command::current_dir` for a child process) instead of
+  `std::env::set_current_dir`, which changes the whole process's working
+  directory.
 - The pinned nightly toolchain in `rust-toolchain.toml` supplies `rustfmt`,
   `clippy`, and `rust-analyzer`, so `make lint`'s Clippy and rustdoc checks and
   editor tooling all run consistently for every contributor.
