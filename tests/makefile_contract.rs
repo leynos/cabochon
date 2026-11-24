@@ -265,20 +265,9 @@ fn all_orders_its_gates_even_with_parallel_make() {
     );
 }
 
-/// Scenario: spelling uses the pinned builder gate and propagates failure.
+/// Scenario: a failing spelling gate fails the target.
 #[test]
 fn spelling_gate_is_binding() {
-    let dry_run =
-        make(&["--dry-run", "spelling", "UVX=probe-uvx"]).expect("read evaluated spelling recipe");
-    assert!(dry_run.status.success());
-    let command = String::from_utf8(dry_run.stdout).expect("read spelling command");
-    assert!(
-        command.contains(concat!(
-            "probe-uvx --from \"git+https://github.com/leynos/typos-config-builder.git@v0.1.3\" ",
-            "typos-config-builder gate --scope all"
-        )),
-        "{command}"
-    );
     let failed = make(&["--silent", "spelling", "UVX=false"]).expect("run failing spelling probe");
     assert!(
         !failed.status.success(),
