@@ -159,7 +159,7 @@ install-markdownlint: ## Install the pinned Markdown linter for local Make targe
 	BUN_INSTALL_BIN="$(BUILD_TOOLS_PREFIX)/bin" $(BUN) add --global --exact markdownlint-cli2@0.22.1
 
 spelling: ## Regenerate the spelling configuration and check source and prose
-	$(UVX) --from "git+https://github.com/leynos/typos-config-builder.git@v0.1.3" typos-config-builder gate --scope all
+	$(UVX) --python 3.14 --from "git+https://github.com/leynos/typos-config-builder.git@v0.1.3" typos-config-builder gate --scope all
 
 nixie: ## Validate Mermaid diagrams
 	$(NIXIE) --no-sandbox
