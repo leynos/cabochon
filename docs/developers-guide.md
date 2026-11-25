@@ -13,6 +13,17 @@ workspace root with `cargo metadata`, logs workspace member manifests, and runs
 `cargo audit` once from the workspace root. `make coverage` uses
 `cargo llvm-cov` with `lld`.
 
+Cognitive complexity is not gated by Clippy. Clippy's `cognitive_complexity`
+scores code after macro expansion, so it counts branching a macro generated,
+and neither `Cargo.toml` nor `clippy.toml` enables it. Whitaker's experimental
+`macro_aware_cognitive_complexity` gates it at `max_complexity = 9`,
+CodeScene's ceiling. `dylint.toml` opts in with
+`[whitaker] experimental = ["macro_aware_cognitive_complexity"]`. Fix a finding
+by extracting named helpers, never by raising the threshold. A Whitaker suite
+installed before the lint existed (v0.2.12 or earlier) does not register it and
+silently leaves the gate inactive, so rerun `whitaker-installer` to refresh the
+suite after updating a checkout.
+
 The test suite runs once per pull request, in `ci.yml`'s coverage step. That
 step runs the same tests `make test` runs except the doctests, which
 `build-test` runs in a step of its own with
@@ -374,11 +385,11 @@ list.
 - Fix violations at source. Reserve a reasoned `#[expect]` for a proven
   macro-expansion artefact or genuine floating-point arithmetic; never use
   `#[allow]` or an expectation as a source-fix backlog.
-- `clippy.toml` carries the companion thresholds (cognitive complexity,
-  argument count, function length, nesting) and the `disallowed-methods` list
-  that bans direct `std::env` access. Reach for an injected environment reader
-  instead of `std::env::var`/`var_os`/`vars`/`set_var`/`remove_var`, and pass a
-  directory in (or use `Command::current_dir` for a child process) instead of
+- `clippy.toml` carries the companion thresholds (argument count, function
+  length, nesting) and the `disallowed-methods` list that bans direct
+  `std::env` access. Reach for an injected environment reader instead of
+  `std::env::var`/`var_os`/`vars`/`set_var`/`remove_var`, and pass a directory
+  in (or use `Command::current_dir` for a child process) instead of
   `std::env::set_current_dir`, which changes the whole process's working
   directory.
 - The pinned nightly toolchain in `rust-toolchain.toml` supplies `rustfmt`,
