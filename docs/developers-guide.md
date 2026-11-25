@@ -17,12 +17,11 @@ Cognitive complexity is not gated by Clippy. Clippy's `cognitive_complexity`
 scores code after macro expansion, so it counts branching a macro generated,
 and neither `Cargo.toml` nor `clippy.toml` enables it. Whitaker's experimental
 `macro_aware_cognitive_complexity` gates it at `max_complexity = 9`,
-CodeScene's ceiling. `dylint.toml` opts in with
-`[whitaker] experimental = ["macro_aware_cognitive_complexity"]`. Fix a finding
-by extracting named helpers, never by raising the threshold. A Whitaker suite
-installed before the lint existed (v0.2.12 or earlier) does not register it and
-silently leaves the gate inactive, so rerun `whitaker-installer` to refresh the
-suite after updating a checkout.
+CodeScene's ceiling. `dylint.toml` opts in with the `experimental` key in its
+`[whitaker]` table. Fix a finding by extracting named helpers, never by raising
+the threshold. A Whitaker suite installed before the lint existed (v0.2.12 or
+earlier) does not register it and silently leaves the gate inactive, so rerun
+`whitaker-installer` to refresh the suite after updating a checkout.
 
 The test suite runs once per pull request, in `ci.yml`'s coverage step. That
 step runs the same tests `make test` runs except the doctests, which
